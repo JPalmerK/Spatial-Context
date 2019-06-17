@@ -445,11 +445,11 @@ classdef simulationClass <handle
             end
             
             % Create the empty similarity matrix
-            Sim_mat = zeros(length(obj.arrivalArray(:,end)))/0;
+            Sim_mat = zeros(length(obj.arrivalArray))/0;
             
             % Step through each call in the dataset and calculate the tdoa
             % values
-            for ii =1:(length(obj.arrivalArray)-1)
+            for ii =1:length(Sim_mat)
                 
                 
                 % For each call get the time gaps of the additional calls
@@ -503,11 +503,14 @@ classdef simulationClass <handle
                 % Get the minimu value across the likelihoods
                 
             
-            
+
+                
             % Take the minimum value and fill in the similarity matrix
             
-            Sim_mat(ii+1, ii+1:ii+length(simValues)) = simValues;
-            Sim_mat(ii+1:ii+length(simValues),ii+1) = simValues;
+            Sim_mat(ii, ii+1:ii+length(simValues)) = simValues;
+            
+            Sim_mat(ii+1:ii+length(simValues),ii) = simValues;
+            Sim_mat(ii,ii)=1;
             end
         
             obj.Sim_mat= Sim_mat;
@@ -1003,6 +1006,7 @@ classdef simulationClass <handle
         
         %% Function for creating the cluster chains (aka ladder linkages)
         function updateChains(obj)
+            
             % Original design via Glen Lerley
             if isempty(obj.Sim_mat)
                 disp('Updating Simulation Matrix')
@@ -1026,6 +1030,7 @@ classdef simulationClass <handle
             nc=1; % cluster counter
             clear chain dex ss
             
+            % While there are still rows in the matrix
             while s1>1
                 flag=1;
                 
@@ -1065,11 +1070,22 @@ classdef simulationClass <handle
                 
                 % now cut cluster at first large jump:
                 k=find(diff(cluster)>time_cut);
+                
+                % If any objects in the cluster
                 if length(k)>0
                     k=k(1);
                     % Remove everything after the first large gap
                     cluster=cluster(1:k);
                     index=index(1:k);
+                    
+                    % Remove calls with separation times of less than one
+                    % second
+                    if length(cluster)>1
+                    cluster = [cluster(1) cluster(find(diff(cluster)>1))];
+                    index=[index(2) index(find(diff(cluster)>1))];
+                    cluster = cluster(cluster>0);
+                    index = index(index>0);
+                    end
                 end
                 
                 % aggregate clusters
