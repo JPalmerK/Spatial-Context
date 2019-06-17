@@ -1,0 +1,40 @@
+
+
+clear all; close all; clc
+
+cd('/home/kpalmer/AnacondaProjects/Localisation/Scripts')
+
+% Load the meta data for array plotting
+dclde_2013_meta = xlsread(strcat('/cache/kpalmer/quick_ssd/data/',...
+    'DCLDE_2013_10Channel/DCL2013_NEFSC_SBNMS_200903_metadata.xlsx'));
+
+load('/home/kpalmer/AnacondaProjects/Localisation/Scripts/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
+load('/home/kpalmer/AnacondaProjects/Localisation/Scripts/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
+
+
+
+close all
+fs =2000;
+array_idx=1
+LSQ_plot_thres =.0008; % Plotting only
+cor_thresh = .2;
+time_cut = 300*60; %30 minutes
+NChidlHyd = 2; % Number of pairs of hydrophones
+
+
+% Set up data parameters
+DCLDE2013Cluster  = clusterDataGPLclass();
+
+DCLDE2013Cluster.array_struct = array_struct;
+
+DCLDE2013Cluster.localize_struct =localize_struct;
+
+DCLDE2013Cluster.fs =fs;
+
+DCLDE2013Cluster.time_cut =time_cut
+DCLDE2013Cluster.CrossScore = 100000
+DCLDE2013Cluster.cutoff =.6
+% Run the clustering algorithim up to the the similarity matrix
+simMatLowMemory(DCLDE2013Cluster)
+% Create the Cluster ID's
+updateClusterID(DCLDE2013Cluster)
