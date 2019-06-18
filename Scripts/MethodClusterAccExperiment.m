@@ -1,26 +1,26 @@
 % Accuracy comparison between the three methods using adjusted rand
-% 
-% % Run experiments
-% close all; clear all
-% clear classes; clc
-% 
-% cd('/home/kpalmer/AnacondaProjects/Localisation/Scripts')
-% % Load metadata to create Hydrophone Structur
-% dclde_2013_meta = xlsread(strcat('/cache/kpalmer/quick_ssd/data/',...
-%     'DCLDE_2013_10Channel/DCL2013_NEFSC_SBNMS_200903_metadata.xlsx'));
-% % Load the DCLDE array structure (just for the array structure, depth, and SSP)
-% load('/home/kpalmer/AnacondaProjects/Localisation/Scripts/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
-% load('/home/kpalmer/AnacondaProjects/Localisation/Scripts/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
+
+% Run experiments
+close all; clear all
+clear classes; clc
+
+cd('/home/kpalmer/AnacondaProjects/Spatial-Context/Scripts')
+% Load metadata to create Hydrophone Structur
+dclde_2013_meta = xlsread(strcat('/cache/kpalmer/quick_ssd/data/',...
+    'DCLDE_2013_10Channel/DCL2013_NEFSC_SBNMS_200903_metadata.xlsx'));
+% Load the DCLDE array structure (just for the array structure, depth, and SSP)
+load('DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
+load('DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
 
 %%
+% 
+% clear all
+% % Load metadata to create Hydrophone Structur
+% dclde_2013_meta = xlsread('C:\Users\Kaitlin\Desktop\DCL2013_NEFSC_SBNMS_200903_metadata.xlsx');
+% load('D:/data/SimStructures/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
+% load('D:/data/SimStructures/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
 
-clear all
-% Load metadata to create Hydrophone Structur
-dclde_2013_meta = xlsread('C:\Users\Kaitlin\Desktop\DCL2013_NEFSC_SBNMS_200903_metadata.xlsx');
-load('D:/data/SimStructures/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
-load('D:/data/SimStructures/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
-
-
+%%
 % Parent hydrophone for the analysis
 parent =5;
 fs = 2000;
@@ -532,6 +532,145 @@ legend('TDOA Only', 'Idealized Spatial Model', 'AdHoc','Baseline','Location','be
 
 
 
+
+
+
+
+
+%% Experiment 3- Threshold Sensitivity analysis
+
+
+% Run a default example first
+TimeThresh =quantile(diff(examp.arrivalArray(:,1)), [0:.1:1]);
+SimThresh = quantile(reshape(examp.Sim_mat,[],1), [0:.02:1]);
+nIters =200;
+
+ExpScoresMeth1 = zeros(nIters, length(TimeThresh), length(SimThresh));
+ExpScoresMeth2 = ExpScoresMeth1;
+ExpScoresMeth3 = ExpScoresMeth1;
+ExpScoresBaseline = ExpScoresMeth1;
+
+
+for iter=1:nIters
+    
+    
+    clear spaceWhale examp
+    close all
+    % Create new agents
+    [spaceWhale] =  createRandomSpaceWhale(n_hrs,n_agents, hyd_arr,...
+        array_struct,hydrophone_struct, ssp, grid_depth);
+    
+    % Populate data and parameters
+    examp = simulationClass();
+    examp.spaceWhale = spaceWhale;
+    examp.array_struct = array_struct;
+    examp.hydrophone_struct = hydrophone_struct;
+    examp.spaceWhale= spaceWhale;
+    examp.time_cut = 15*60;
+    examp.randomMiss =0;
+    
+    % First method, TDOA only
+    simMatTDOAonly(examp);
+    
+    
+    for jj = 1:length(SimThresh)
+        examp.Cluster_id =[];
+        examp.cutoff = SimThresh(jj);
+        
+        for ii = 1:length(TimeThresh)
+            
+            examp.Cluster_id =[];
+            examp.time_cut=exp(TimeThresh(ii));
+            examp.updateChains;
+            examp.getRand();
+            ExpScoresMeth1(iter, ii,jj) = examp.AdjRand;
+            
+        end
+        
+    end
+    
+    
+    % Second method, Ideal
+    examp.clearCalcValues();
+    examp.simMatIdeal();
+    
+    
+    for jj = 1:length(SimThresh)
+        examp.Cluster_id =[];
+        examp.cutoff = SimThresh(jj);
+        
+        for ii = 1:length(TimeThresh)
+            
+            examp.Cluster_id =[];
+            examp.time_cut=exp(TimeThresh(ii));
+            examp.updateChains;
+            examp.getRand();
+            ExpScoresMeth2(iter, ii,jj) = examp.AdjRand;
+            
+        end
+        
+    end
+    
+    
+    
+    % Third method, ad hoc
+    examp.clearCalcValues();
+    examp.simMatadHoc();
+    
+    
+    for jj = 1:length(SimThresh)
+        examp.Cluster_id =[];
+        examp.cutoff = SimThresh(jj);
+        
+        for ii = 1:length(TimeThresh)
+            
+            examp.Cluster_id =[];
+            examp.time_cut=exp(TimeThresh(ii));
+            examp.updateChains;
+            examp.getRand();
+            ExpScoresMeth3(iter, ii,jj) = examp.AdjRand;
+            
+        end
+        
+    end
+    
+    
+    % Fourth method, baseline
+    
+    examp.clearCalcValues();
+    examp.toaOnlyCluster();
+    examp.getRand();
+    
+      for jj = 1:length(SimThresh)
+        examp.Cluster_id =[];
+        examp.cutoff = SimThresh(jj);
+        
+        for ii = 1:length(TimeThresh)
+            
+            examp.Cluster_id =[];
+            examp.time_cut=exp(TimeThresh(ii));
+            examp.updateChains;
+            examp.getRand();
+            ExpScoresBaseline(iter, ii,jj) = examp.AdjRand;
+            
+        end
+        
+    end  
+    
+end
+
+
+
+
+imagesc(ExpScores)
+colorbar
+
+xticklabs =(num2str(round(SimThresh(1:4:end),2)));
+
+xticks((1:4:length(SimThresh)))
+xticklabels({round(SimThresh(1:4:end),2)})
+yticks((1:2:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:2:end),2)})
 
 %%
 % First method, TDOA only
