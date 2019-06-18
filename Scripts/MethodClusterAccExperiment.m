@@ -541,23 +541,14 @@ legend('TDOA Only', 'Idealized Spatial Model', 'AdHoc','Baseline','Location','be
 
 
 % Run a default example first
-TimeThresh =quantile(diff(examp.arrivalArray(:,1)), [0:.1:1]);
-SimThresh = quantile(reshape(examp.Sim_mat,[],1), [0:.02:1]);
+TimeThresh =[2 3 5 10 30 60 100 200 400 600 900 1200];
+
 nIters =200;
 
-ExpScoresMeth1 = zeros(nIters, length(TimeThresh), length(SimThresh));
-ExpScoresMeth2 = ExpScoresMeth1;
-ExpScoresMeth3 = ExpScoresMeth1;
-ExpScoresBaseline = ExpScoresMeth1;
 
 
-for iter=1:nIters
-    
-    
-    clear spaceWhale examp
-    close all
-    % Create new agents
-    [spaceWhale] =  createRandomSpaceWhale(n_hrs,n_agents, hyd_arr,...
+% Get some reasonable thresholds
+[spaceWhale] =  createRandomSpaceWhale(.75,n_agents, hyd_arr,...
         array_struct,hydrophone_struct, ssp, grid_depth);
     
     % Populate data and parameters
@@ -566,16 +557,59 @@ for iter=1:nIters
     examp.array_struct = array_struct;
     examp.hydrophone_struct = hydrophone_struct;
     examp.spaceWhale= spaceWhale;
-    examp.time_cut = 15*60;
+    examp.time_cut = 1500;
     examp.randomMiss =0;
     
+% First method, tdoa only
+simMatTDOAonly(examp);
+SimThresh1 = quantile(reshape(examp.Sim_mat,[],1), [0:.02:1]);
+
+% Second method, Ideal
+examp.clearCalcValues();
+examp.simMatIdeal();
+SimThresh2 = quantile(reshape(examp.Sim_mat,[],1), [0:.02:1]);
+
+
+% Third method, ad hoc
+examp.clearCalcValues();
+examp.simMatadHoc();
+SimThresh3 = quantile(reshape(examp.Sim_mat,[],1), [0:.02:1]);
+
+
+ExpScoresMeth1 = zeros(nIters, length(TimeThresh), length(SimThresh1));
+ExpScoresMeth2 = ExpScoresMeth1;
+ExpScoresMeth3 = ExpScoresMeth1;
+ExpScoresBaseline = ExpScoresMeth1;
+
+
+
+for iter=1:nIters
+    
+    disp(num2str(iter))
+    clear spaceWhale examp
+    close all
+    % Create new agents
+    [spaceWhale] =  createRandomSpaceWhale(.75, n_agents, hyd_arr,...
+        array_struct,hydrophone_struct, ssp, grid_depth);
+    
+    % Populate data and parameters
+    examp = simulationClass();
+    examp.spaceWhale = spaceWhale;
+    examp.array_struct = array_struct;
+    examp.hydrophone_struct = hydrophone_struct;
+    examp.spaceWhale= spaceWhale;
+    examp.time_cut = 1500;
+    examp.randomMiss =0;
+    
+
     % First method, TDOA only
+    examp.clearCalcValues();
     simMatTDOAonly(examp);
     
     
-    for jj = 1:length(SimThresh)
+    for jj = 1:length(SimThresh1)
         examp.Cluster_id =[];
-        examp.cutoff = SimThresh(jj);
+        examp.cutoff = SimThresh1(jj);
         
         for ii = 1:length(TimeThresh)
             
@@ -589,15 +623,20 @@ for iter=1:nIters
         
     end
     
+    figure
+    imagesc(squeeze(ExpScoresMeth1(1,:,:)))
+    title('Method 1')
+    
     
     % Second method, Ideal
     examp.clearCalcValues();
+    examp.time_cut = 1500;
     examp.simMatIdeal();
     
     
-    for jj = 1:length(SimThresh)
+    for jj = 1:length(SimThresh2)
         examp.Cluster_id =[];
-        examp.cutoff = SimThresh(jj);
+        examp.cutoff = SimThresh2(jj);
         
         for ii = 1:length(TimeThresh)
             
@@ -611,16 +650,19 @@ for iter=1:nIters
         
     end
     
-    
+    figure
+    imagesc(squeeze(ExpScoresMeth2(1,:,:)))
+    title('Method 2')
     
     % Third method, ad hoc
     examp.clearCalcValues();
+    examp.time_cut = 1500;
     examp.simMatadHoc();
     
     
-    for jj = 1:length(SimThresh)
+    for jj = 1:length(SimThresh3)
         examp.Cluster_id =[];
-        examp.cutoff = SimThresh(jj);
+        examp.cutoff = SimThresh3(jj);
         
         for ii = 1:length(TimeThresh)
             
@@ -634,14 +676,17 @@ for iter=1:nIters
         
     end
     
+    figure
+    imagesc(squeeze(ExpScoresMeth3(1,:,:)))
+    title('Method 3')
+    
     
     % Fourth method, baseline
-    
     examp.clearCalcValues();
     examp.toaOnlyCluster();
     examp.getRand();
     
-      for jj = 1:length(SimThresh)
+    for jj = 1:length(SimThresh3)
         examp.Cluster_id =[];
         examp.cutoff = SimThresh(jj);
         
@@ -649,28 +694,30 @@ for iter=1:nIters
             
             examp.Cluster_id =[];
             examp.time_cut=exp(TimeThresh(ii));
-            examp.updateChains;
+             examp.toaOnlyCluster();
             examp.getRand();
             ExpScoresBaseline(iter, ii,jj) = examp.AdjRand;
             
         end
         
-    end  
+    end
+    
+    
     
 end
 
 
 
-
-imagesc(ExpScores)
-colorbar
-
-xticklabs =(num2str(round(SimThresh(1:4:end),2)));
-
-xticks((1:4:length(SimThresh)))
-xticklabels({round(SimThresh(1:4:end),2)})
-yticks((1:2:length(TimeThresh)))
-yticklabels({round(TimeThresh(1:2:end),2)})
+% 
+% imagesc(ExpScores)
+% colorbar
+% 
+% xticklabs =(num2str(round(SimThresh(1:4:end),2)));
+% 
+% xticks((1:4:length(SimThresh)))
+% xticklabels({round(SimThresh(1:4:end),2)})
+% yticks((1:2:length(TimeThresh)))
+% yticklabels({round(TimeThresh(1:2:end),2)})
 
 %%
 % First method, TDOA only
