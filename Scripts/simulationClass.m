@@ -355,7 +355,6 @@ classdef simulationClass <handle
             % well as the projected grid probabilities for times at all
             % subsiquent calls but within the maximum time cuttoff
             for ii =1:length(obj.arrivalArray)
-                Sim_mat(ii ,ii ) =1;
                 
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
@@ -411,8 +410,8 @@ classdef simulationClass <handle
                             nextLklhdSpace);
                         
                         % Populate the simulation matrix
-                        Sim_mat(ii+1, ii+jj-1) = simValue;
-                        Sim_mat(ii+jj-1 ,ii+1) = simValue;
+                        Sim_mat(ii, ii+jj-1) = simValue;
+                        Sim_mat(ii+jj-1 ,ii) = simValue;
                         
                     end
                     
@@ -424,13 +423,12 @@ classdef simulationClass <handle
             
             % Plot of the similarity matrix for good meausre
             figure;
-            [nr,nc] = size(Sim_mat);
-            h =pcolor(flipud(fliplr(Sim_mat)));
+            h =pcolor(Sim_mat);
             set(h, 'EdgeColor', 'none');
             set (gca, 'ydir', 'reverse' )
             colormap(jet);
             colorbar
-            title('Similarity Matrix Idealized Spatial')
+            title('Call Space Similarity TDOA Only')
             xlabel('Call ID')
             ylabel('Call ID')
             
@@ -445,11 +443,11 @@ classdef simulationClass <handle
             end
             
             % Create the empty similarity matrix
-            Sim_mat = zeros(length(obj.arrivalArray))/0;
+            Sim_mat = zeros(length(obj.arrivalArray(:,end)))/0;
             
             % Step through each call in the dataset and calculate the tdoa
             % values
-            for ii =1:length(Sim_mat)
+            for ii =1:(length(obj.arrivalArray)-1)
                 
                 
                 % For each call get the time gaps of the additional calls
@@ -504,22 +502,18 @@ classdef simulationClass <handle
                 % Get the minimu value across the likelihoods
                 
             
-
-                
+            
             % Take the minimum value and fill in the similarity matrix
             
-            Sim_mat(ii, ii+1:ii+length(simValues)) = simValues;
-            
-            Sim_mat(ii+1:ii+length(simValues),ii) = simValues;
-            Sim_mat(ii,ii)=1;
+            Sim_mat(ii+1, ii+1:ii+length(simValues)) = simValues;
+            Sim_mat(ii+1:ii+length(simValues),ii+1) = simValues;
             end
         
             obj.Sim_mat= Sim_mat;
             
             % Plot of the similarity matrix for good meausre
             figure;
-            [nr,nc] = size(Sim_mat);
-            h =pcolor(flipud(fliplr(Sim_mat)));
+            h =pcolor(Sim_mat);
             set(h, 'EdgeColor', 'none');
             set (gca, 'ydir', 'reverse' )
             colormap(jet);
@@ -549,7 +543,8 @@ classdef simulationClass <handle
             % well as the projected grid probabilities for times at all
             % subsiquent calls but within the maximum time cuttoff
             for ii =1:length(obj.arrivalArray)
- 
+                Sim_mat(ii ,ii ) =1;
+                
                 % Get the average prob loc space of the i-th call
                 averageLklhd_space = getAvLkHdSpace(obj, ii); % need to rename this fx...
                 
@@ -615,9 +610,10 @@ classdef simulationClass <handle
             % Plot of the similarity matrix for good meausre
             figure;
             [nr,nc] = size(Sim_mat);
-            h =pcolor(flipud(fliplr(Sim_mat)));
+            h =pcolor(flipud((Sim_mat)));
             set(h, 'EdgeColor', 'none');
-            set (gca, 'ydir', 'reverse' )
+            ax = gca;
+            ax.YTickLabel = flipud(ax.YTickLabel)
             colormap(jet);
             colorbar
             title('Call Space Similarity adHoc')
@@ -628,8 +624,6 @@ classdef simulationClass <handle
         %% Cluster based only on time of arrivals Baseline (step 4)
         % Baseline clustering against which all others are compared
         function toaOnlyCluster(obj)
-            
-            
             
             % Check if the arrival table is present if not update it
             if isempty(obj.arrivalArray)
@@ -947,6 +941,7 @@ classdef simulationClass <handle
             else
                 % Otherwise, there were too few data to cluster
                 obj.AdjRand = nan;
+                disp('No rand values available')
             end
             
             
@@ -1138,23 +1133,42 @@ classdef simulationClass <handle
             %             simValue = length(intersect(a_hiprob, b_hiprob))/size_b_highprob;
             %
             
+            
+
+            
+            
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             simValue = sum(sum(nextLklhdSpace.*ProjectedLklhdSpace))/...
                 sum(sum(nextLklhdSpace));
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             figure(1);imagesc(ProjectedLklhdSpace ); colorbar;
+%             figure(2);imagesc(nextLklhdSpace); colorbar;
             
+            maskidx = find(nextLklhdSpace>0.005);
             
+            nextvals = nextLklhdSpace(maskidx);
+            projvals = ProjectedLklhdSpace(maskidx);
             
-            maskidx = find(nextLklhdSpace>0.0001);
+            aa = min([nextvals, projvals],[],2);
+            
+            simValue = sum(aa)/sum(nextvals);
+            
+        end
+        %% Compare two probability grid spaces
+        function simValue = compTrueLkhddSpace(obj,...
+                ProjectedLklhdSpace, nextLklhdSpace)
+            
+            % Compares likelihood spaces for two calls, typically call a that
+            % has been projected and call b from later in the sequence that
+            % has not. This version works ONLY for arrays with perfect
+            % association
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            simValue =sum(min([ProjectedLklhdSpace(maskidx) nextLklhdSpace(maskidx)],[],2))/...
-                sum(nextLklhdSpace(maskidx));
+            simValue = max(nextLklhdSpace.*ProjectedLklhdSpace);
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             
         end
-
         %% Create similarity matrix from projSpace RAM heavy version (below)
         function UpdateSimMat(obj)
             % This previous verion of simMatLowMemory uses the updateProj
