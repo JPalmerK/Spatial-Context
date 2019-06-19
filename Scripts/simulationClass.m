@@ -543,7 +543,6 @@ classdef simulationClass <handle
             % well as the projected grid probabilities for times at all
             % subsiquent calls but within the maximum time cuttoff
             for ii =1:length(obj.arrivalArray)
-                Sim_mat(ii ,ii ) =1;
                 
                 % Get the average prob loc space of the i-th call
                 averageLklhd_space = getAvLkHdSpace(obj, ii); % need to rename this fx...
@@ -596,8 +595,8 @@ classdef simulationClass <handle
                             nextLklhdSpace);
                         
                         % Populate the simulation matrix
-                        Sim_mat(ii+1, ii+jj-1 ) = simValue;
-                        Sim_mat(ii+jj-1 ,ii+1) = simValue;
+                        Sim_mat(ii, ii+jj-1 ) = simValue;
+                        Sim_mat(ii+jj-1 ,ii) = simValue;
                         
                     end
                     
