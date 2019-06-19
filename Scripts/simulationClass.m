@@ -430,7 +430,7 @@ classdef simulationClass <handle
             set (gca, 'ydir', 'reverse' )
             colormap(jet);
             colorbar
-            title('Call Space Similarity TDOA Only')
+            title('Similarity Matrix Idealized Spatial')
             xlabel('Call ID')
             ylabel('Call ID')
             
@@ -484,18 +484,19 @@ classdef simulationClass <handle
                     
                     
                     % Project the TDOA values based on the elapsed time
+                    mu = zeros(size(next_tdoa));
                     sigmaSwim = (time_gaps * (2*obj.s)/obj.c);
+                    x =(tdoa(jj) - next_tdoa).^2; %values
+                    likelihood = normpdf(x,mu,sigmaSwim);
+                    
+                    % Normalizing factor
+                    LikelihoodNormFac= normpdf( zeros(size(next_tdoa)),...
+                         zeros(size(next_tdoa)),sigmaSwim);
+                    
+                    NormLikelihood = likelihood./LikelihoodNormFac;
                     
                     % Normalized likelihood
-                    deltaTDOALklhd = [deltaTDOALklhd,...
-                        (normpdf(...
-                        (tdoa(jj) - next_tdoa),... % x
-                        zeros(size(next_tdoa)),... % mu
-                        sigmaSwim')./... % sigma
-                        normpdf(...
-                        zeros(size(next_tdoa)),... % xze
-                        zeros(size(next_tdoa)),... % mu
-                        sigmaSwim'))']; % sigma
+                    deltaTDOALklhd = [deltaTDOALklhd, NormLikelihood]; % sigma
                     % Create normalizing factor
 
                 end
@@ -548,8 +549,7 @@ classdef simulationClass <handle
             % well as the projected grid probabilities for times at all
             % subsiquent calls but within the maximum time cuttoff
             for ii =1:length(obj.arrivalArray)
-                Sim_mat(ii ,ii ) =1;
-                
+ 
                 % Get the average prob loc space of the i-th call
                 averageLklhd_space = getAvLkHdSpace(obj, ii); % need to rename this fx...
                 
@@ -579,31 +579,21 @@ classdef simulationClass <handle
                         
                         % Grow the prob loc space of the current call and
                         % normalize
-                        Lklhd_space_proj =  normpdf(averageLklhd_space,...
-                            0, sig_tot(jj))./normpdf(0, 0, sig_tot(jj));
+                        Lklhd_space_proj =  ...
+                            normpdf(averageLklhd_space,0, sig_tot(jj))./...
+                            normpdf(0, 0, sig_tot(jj));
                         
                         if ndims(Lklhd_space_proj)>2
-                            Lklhd_space_proj = mean(Lklhd_space_proj,3);
+                            Lklhd_space_proj = min(Lklhd_space_proj,[],3);
                         end
                         
                         
                         % Get the prob. loc space space of the next call in
                         % the series and normalize
-                        nextLklhdSpace = getAvLkHdSpace(obj, (ii+jj-1));
-                        
-                        sigma = ones(size(nextLklhdSpace))...
-                            *obj.PosUncertsigma;
-                        
-                        
-                        nextLklhdSpace =  normpdf(nextLklhdSpace, 0,...
-                            sigma)./normpdf(0, 0, sigma);
-                        
-                        % If multiple locations went into the ambiguity
-                        % surface take the mean
-                        if ndims(nextLklhdSpace)>2
-                            nextLklhdSpace = mean(nextLklhdSpace,3);
-                        end
-                        
+
+                        sigma = sqrt(obj.PosUncertsigma);
+                        nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sigma);
+
 
                         % Get the comparison value of the projected prob
                         % loc space and the next call in the squence
@@ -652,6 +642,13 @@ classdef simulationClass <handle
             
             % Find gaps bigger than the allowable time
             time_idx = quantile(diff_vals, .95);
+            
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%
+            % For sensitivity analysis 
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            time_idx = obj.time_cut;
+            
             idx = [1; find(diff_vals>time_idx)];
             
             
@@ -880,7 +877,8 @@ classdef simulationClass <handle
             
             
             delay_mat = ones(length(obj.array_struct.latgrid),...
-                length(obj.array_struct.longrid), length(delays));
+                length(obj.array_struct.longrid),...
+                length(delays));
             
             % Project the delays ot the same size as the output tensor for
             % matrix multiplication
@@ -918,7 +916,7 @@ classdef simulationClass <handle
             if length(size(averageLklhd_space))>1
                 
                 % sum along third axis, will be normalized later
-                averageLklhd_space = mean(averageLklhd_space,3);
+                averageLklhd_space = min(averageLklhd_space,[],3);
                 
             end
             
@@ -944,7 +942,7 @@ classdef simulationClass <handle
                     obj.Cluster_id);
                 
                 % Get the adjusted rand (third party)
-                [~,f,~,~] = RandIndex(newClusterId, arrival_array(:,end));
+                [f,~,~,~] = RandIndex(newClusterId, arrival_array(:,end));
                 obj.AdjRand = f;
             else
                 % Otherwise, there were too few data to cluster
@@ -1146,22 +1144,17 @@ classdef simulationClass <handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             
-        end
-        %% Compare two probability grid spaces
-        function simValue = compTrueLkhddSpace(obj,...
-                ProjectedLklhdSpace, nextLklhdSpace)
             
-            % Compares likelihood spaces for two calls, typically call a that
-            % has been projected and call b from later in the sequence that
-            % has not. This version works ONLY for arrays with perfect
-            % association
+            maskidx = find(nextLklhdSpace>0.0001);
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            simValue = max(nextLklhdSpace.*ProjectedLklhdSpace);
+            simValue =sum(min([ProjectedLklhdSpace(maskidx) nextLklhdSpace(maskidx)],[],2))/...
+                sum(nextLklhdSpace(maskidx));
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             
         end
+
         %% Create similarity matrix from projSpace RAM heavy version (below)
         function UpdateSimMat(obj)
             % This previous verion of simMatLowMemory uses the updateProj
