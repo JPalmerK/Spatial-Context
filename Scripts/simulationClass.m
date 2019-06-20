@@ -359,7 +359,7 @@ classdef simulationClass <handle
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                sig_tot = sqrt(obj.PosUncertsigma);
+                sig_tot = sqrt(obj.PosUncertsigma/4);
                 averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
                 
                 % Figure out the number of time gaps within the maximum
@@ -428,7 +428,7 @@ classdef simulationClass <handle
             set (gca, 'ydir', 'reverse' )
             colormap(jet);
             colorbar
-            title('Call Space Similarity TDOA Only')
+            title('Call Space Similarity Ideal')
             xlabel('Call ID')
             ylabel('Call ID')
             
@@ -436,7 +436,6 @@ classdef simulationClass <handle
         
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatTDOAonly(obj)
-            % Check if the arrival table is present if not update it
             if isempty(obj.TDOA_vals)
                 disp(['Updating TDOA values'])
                 UpdateTDOA(obj);
@@ -455,51 +454,43 @@ classdef simulationClass <handle
                 
                 % Current TDOA values
                 tdoa = obj.TDOA_vals(ii,(obj.child_idx)-1);
+                tdoa =tdoa(~isnan(tdoa));
                 
-                % TOA indexs of the channels with values
-                child_idx1 = find(~isnan(tdoa));
-                child_ids = obj.child_idx(child_idx1);
-                
-                
-                % Get the gaps in time between the call and all
-                % subsiquent calls
+                % Get later TDOA values for all later calls
                 time_gaps = obj.arrivalArray(ii:end, 1)-...
                     obj.arrivalArray(ii, 1);
                 time_gaps_idx = find(time_gaps<=obj.time_cut);
                 time_gaps = time_gaps(time_gaps_idx);
                 
-                
-                % Step through the channels with delay values and figure
-                % out which time gaps can fit
-                simValues =[];
+                % Get the TDOA values for the calls within the temporal cutoff
+                % threshold
+                next_tdoa_vals = obj.TDOA_vals(time_gaps_idx +ii-1,:);
                 deltaTDOALklhd =[];
                 
-                
-                next_tdoa_vals = obj.TDOA_vals(...
-                        (ii+time_gaps_idx-1),:);
-                
-                
                 for jj =1:length(tdoa)
-                                 
-                    % Project the TDOA values based on the elapsed time
-                    mu = zeros(length(next_tdoa_vals),1);
-                    sigmaSwim = sqrt(obj.PosUncertsigma+ (time_gaps * (2*obj.s)/obj.c).^2);
-                    x =sqrt(tdoa(jj) - next_tdoa_vals(:,jj)).^2; %values
                     
-                    likelihood = normpdf(x,mu,sigmaSwim);
-                    
-                    % Normalizing factor
-                    LikelihoodNormFac= normpdf(0,0,sigmaSwim);
-                    NormLikelihood = likelihood./LikelihoodNormFac;
-                    
-                    % Normalized likelihood
-                    deltaTDOALklhd = [deltaTDOALklhd, NormLikelihood]; % sigma
-                    % Create normalizing factor
+                    for kk =1:length(obj.child_idx)
+                        
+                        % Project the TDOA values based on the elapsed time
+                        mu = zeros(length(next_tdoa_vals),1);
+                        sigmaSwim = sqrt((time_gaps * (2*obj.s)/obj.c).^2);
+                        x =sqrt(tdoa(jj) - next_tdoa_vals(:,kk)).^2; %values
+                        
+                        likelihood = normpdf(x,mu,sigmaSwim);
+                        
+                        % Normalizing factor
+                        LikelihoodNormFac= normpdf(0,0,sigmaSwim);
+                        NormLikelihood = likelihood./LikelihoodNormFac;
+                        
+                        % Normalized likelihood
+                        deltaTDOALklhd = [deltaTDOALklhd, NormLikelihood]; % sigma
+                        % Create normalizing factor
+                    end
                     
                 end
-                simValues = nanmin(deltaTDOALklhd,[],2);
-                % Get the minimu value across the likelihoods
                 
+                simValues = nanmin(deltaTDOALklhd,[],2);
+                simValues(1)=1;
                 
                 
                 % Take the minimum value and fill in the similarity matrix
@@ -545,6 +536,13 @@ classdef simulationClass <handle
                 
                 % Get the average prob loc space of the i-th call
                 averageLklhd_space = getAvLkHdSpace(obj, ii); % need to rename this fx...
+            
+                if length(size(averageLklhd_space))>1
+                    
+                    % sum along third axis, will be normalized later
+                    averageLklhd_space = max(averageLklhd_space,[],3);
+                    
+                end
                 
                 % Figure out the number of time gaps within the maximum
                 % allowed correlation time (time_cut)
@@ -561,37 +559,50 @@ classdef simulationClass <handle
                     % suggestion
                     % sigma (error) valuse from the normal distribution
                     
-                    swimSigma =  (time_gaps * ((2*obj.s)/obj.c).^2);
+                    swimSigma =  (time_gaps * (2*(obj.s)/obj.c));
                     
-                    % Total sigma error
-                    sig_tot = sqrt(obj.PosUncertsigma + swimSigma.^2+ obj.drift^2);
+                    % Total sigma error (standard deviation) five input
+                    % variables (four from position uncertainty plus sigma
+                    % swim)
+                    sigSD = sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2)/5);
                     
                     % Step through the time gaps/sigma values getting each
                     % probability loc space and projection
-                    for jj= 1:length(sig_tot)
+                    for jj= 1:length(sigSD)
                         
                         % Grow the prob loc space of the current call and
                         % normalize
                         Lklhd_space_proj =  ...
-                            normpdf(averageLklhd_space,0, sig_tot(jj))./...
-                            normpdf(0, 0, sig_tot(jj));
+                            normpdf(averageLklhd_space,0, sigSD(jj))./...
+                            normpdf(0, 0, sigSD(jj));
                         
                         if ndims(Lklhd_space_proj)>2
-                            Lklhd_space_proj = min(Lklhd_space_proj,[],3);
+                            Lklhd_space_proj = nanmin(Lklhd_space_proj,[],3);
                         end
                         
                         
                         % Get the prob. loc space space of the next call in
                         % the series and normalize
-                        
-                        sigma = sqrt(obj.PosUncertsigma);
+%                         
+%                         sig_tot = sqrt(obj.PosUncertsigma);
+%                         averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
+%                         
+                        sigma = sqrt(obj.PosUncertsigma/4);
                         nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sigma);
                         
                         
+%                         
+%                         close all; figure(1); subplot(2,1,1); 
+%                         imagesc(nextLklhdSpace); colorbar; 
+%                         subplot(2,1,2); imagesc(Lklhd_space_proj); colorbar
+            
                         % Get the comparison value of the projected prob
                         % loc space and the next call in the squence
                         simValue = compareLklhdSpace(obj, Lklhd_space_proj,...
                             nextLklhdSpace);
+                        if isnan(simValue)
+                            aa1
+                        end
                         
                         % Populate the simulation matrix
                         Sim_mat(ii, ii+jj-1 ) = simValue;
@@ -698,15 +709,23 @@ classdef simulationClass <handle
                 obj.arrivalTable.Location ...
                 obj.arrivalTable.ID];
             
-            % Remove arrivals where there are two or more Nans
-            array = array(sum(~isnan(array(:,1:3)),2)>1,:);
-            
+
             % Remove calls that weren't detected on the parent hydrophone
             array = array(~isnan(array(:,1)),:);
+            
+            % At least 1 tdoa value needed, therefore remove any calls
+            % (master) where there aren't at least two arrivals
+            array = array(sum(~isnan(array(:,1:3)),2)>= 2,:);
+            
+            
+            
             
             % Sort by start time on the parent hydrophone
             [~,sortidx] = sort(array(:,1));
             array = array(sortidx,:);
+            
+            
+            
             
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -857,7 +876,8 @@ classdef simulationClass <handle
         end
         
         %% Function for calculating the averageed (across hydrophones)
-        % probloc for a given call
+        % probloc for a given call- NOT normalized or drawn from normal
+        % distribution
         function averageLklhd_space = getAvLkHdSpace(obj, callIdx)
             % Returns an averaged likelihood space for a given TDOA
             
@@ -867,42 +887,45 @@ classdef simulationClass <handle
             % Remove nans, but keep the indexes for hydrophone pairs
             delays = delays(~isnan(delays));
             
+            child_idx = obj.child_idx(~isnan(delays));
+            
             
             delay_mat = ones(length(obj.array_struct.latgrid),...
                 length(obj.array_struct.longrid),...
-                length(delays));
+                length(child_idx));
             
-            % Project the delays ot the same size as the output tensor for
-            % matrix multiplication
-            delay_mat = delay_mat .*reshape(delays, 1, [], length(delays));
+            averageLklhd_space = zeros(size(delay_mat))./0;
+            
+            for ii=1:length(child_idx)
+                
+                % Get the expected delay spaces for the hydrophone pairs
+                toa_space = cell2mat(obj.array_struct.toa_diff(child_idx(ii)));
+                
+                % Delta TOA space
+                averageLklhd_space(:,:,ii) = sqrt((toa_space - delays(ii)).^2);
+            end
             
             
-            % Get the expected delay spaces for the hydrophone pairs
-            toa_space = cell2mat(obj.array_struct.toa_diff(obj.child_idx(~isnan(delays))));
+       
             
-            % Convert to matrix same size as delay matrix
-            toa_space = reshape(toa_space, size(delay_mat));
-            
-            
-            % Delta TOA space
-            averageLklhd_space = sqrt((toa_space - delay_mat).^2);
+         
             
             
             
         end
         
-        %%
-        function averageLklhd_space = getTruHdSpace(obj, ii, sig_tot)
+        %% Retruns Normalized Likelihood
+        function averageLklhd_space = getTruHdSpace(obj, idx, sig_tot)
             
             % Get the observed TDOA space and normalize
-            averageLklhd_space = getAvLkHdSpace(obj, ii);
+            averageLklhd_space = getAvLkHdSpace(obj, idx);
             
             % set up the vectorization for the PDF
             sigma = ones(size(averageLklhd_space)).*sig_tot;
             
             % Create ambiguity surface and normalize
             averageLklhd_space = normpdf(averageLklhd_space, 0, sigma)./...
-                normpdf(0, 0, sigma);
+                normpdf(0, 0, sig_tot);
             
             
             if length(size(averageLklhd_space))>1
@@ -1142,14 +1165,21 @@ classdef simulationClass <handle
             %             figure(1);imagesc(ProjectedLklhdSpace ); colorbar;
             %             figure(2);imagesc(nextLklhdSpace); colorbar;
             
-            maskidx = find(nextLklhdSpace>0.005);
+            maskidx = find(nextLklhdSpace>0.01);
             
             nextvals = nextLklhdSpace(maskidx);
             projvals = ProjectedLklhdSpace(maskidx);
             
-            aa = min([nextvals, projvals],[],2);
+            aa = projvals./nextvals;
+            aa(aa>1)=1;
+            simValue = sum(aa)/length(nextvals);
             
-            simValue = sum(aa)/sum(nextvals);
+% 
+%             aa = min([nextvals, projvals],[],2);
+%             simValue = sum(aa)/sum(nextvals);
+%             
+            % Make sure there is always a value, even if it's zero
+            simValue = nanmax(simValue, 0);
             
         end
         %% Compare two probability grid spaces

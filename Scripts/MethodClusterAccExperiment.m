@@ -46,7 +46,7 @@ hyd_arr =vertcat(hyd_arr{2,:,:});
 % Number of hours the experiment runs and the number of agents included
 n_hrs = 0.5;
 n_agents = 7;
-nRuns = 200;
+nRuns = 5;
 
 % Number of calls included in the analysis
 n_calls = zeros(1, nRuns);
@@ -603,7 +603,7 @@ for iter =8:nIters
     % Second method, Ideal
     examp.clearCalcValues();
     examp.time_cut = 1500;
-    examp.simMatIdeal();
+    simMatIdeal(examp);
     
     
     for jj = 1:length(SimThresh)
@@ -630,7 +630,7 @@ for iter =8:nIters
     % Third method, ad hoc
     examp.clearCalcValues();
     examp.time_cut = 1500;
-    examp.simMatadHoc();
+    simMatadHoc(examp);
     
     
     for jj = 1:length(SimThresh)
@@ -674,6 +674,10 @@ for iter =8:nIters
         
     end
     
+    figure
+    imagesc(squeeze(ExpScoresBaseline(iter,:,:)))
+    title('Baseline')
+    colorbar
     
     
 end
@@ -718,15 +722,17 @@ title('Method 3')
 
 
 % 
-% imagesc(ExpScores)
-% colorbar
-% 
-% xticklabs =(num2str(round(SimThresh(1:4:end),2)));
-% 
-% xticks((1:4:length(SimThresh)))
-% xticklabels({round(SimThresh(1:4:end),2)})
-% yticks((1:2:length(TimeThresh)))
-% yticklabels({round(TimeThresh(1:2:end),2)})
+
+figure
+imagesc(aveScoresMeth1)
+colorbar
+
+xticklabs =(num2str(round(SimThresh(1:4:end),2)));
+
+xticks((1:4:length(SimThresh)))
+xticklabels({round(SimThresh(1:4:end),2)})
+yticks((1:2:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:2:end),2)})
 
 %%
 % First method, TDOA only
