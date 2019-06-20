@@ -67,8 +67,8 @@ classdef simulationClass <handle
         % sound speed profile = 50 m/s -> 50/1500 =0.3 sec
         PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
         
-        % Logit of the correct classification rate for the 
-        SppCorrRate 
+        % Logit of the correct classification rate for the
+        SppCorrRate
         SppCorrSd
     end
     
@@ -95,7 +95,7 @@ classdef simulationClass <handle
             truthAndpreds(:,3)=0; % True class
             truthAndpreds(:,4)=0; % Score
             truthAndpreds(:,5)=0; % Prediction after applying likelihood ratio
-
+            
             truthAndpreds= array2table(truthAndpreds, 'VariableNames',...
                 {'TrueClust','PredClust', 'TrueSpp', 'Score',...
                 'ClusterScore'});
@@ -154,8 +154,8 @@ classdef simulationClass <handle
                     % Update the species (binary) and the classifier
                     % predication score
                     
-                     truthAndpreds.TrueSpp(mn_idx) = 0; % No! Not target spp.
-                     truthAndpreds.Score(mn_idx) = score';
+                    truthAndpreds.TrueSpp(mn_idx) = 0; % No! Not target spp.
+                    truthAndpreds.Score(mn_idx) = score';
                     
                 end
                 
@@ -177,14 +177,14 @@ classdef simulationClass <handle
             % Assume any call with a classification threshold above 0.5 is tagged as RW
             % and any detection classification less than 0.5 is tagged as a humpback
             
-%             % If the classification hasn't been applied, apply it
-%             if isempty(obj.truthAndpreds)
-%                 createSpeciesPreds(obj);
-%             end
+            %             % If the classification hasn't been applied, apply it
+            %             if isempty(obj.truthAndpreds)
+            %                 createSpeciesPreds(obj);
+            %             end
             createSpeciesPreds(obj);
-%             if isempty(obj.chains);
-%                 updateChains(obj)
-%             end
+            %             if isempty(obj.chains);
+            %                 updateChains(obj)
+            %             end
             
             
             % Pull out for easy reading
@@ -254,7 +254,7 @@ classdef simulationClass <handle
             % Percent of calls correctly classified using the clustering
             % method
             perfStructure.totCorrectClassMeth = (Tp_egc+Tp_mnc)/height(truthAndpreds);
-            % Number of chains 
+            % Number of chains
             perfStructure.nChains = length(unique(truthAndpreds.PredClust));
             
             % Un updated at the moment, bigger fish to fry
@@ -449,66 +449,65 @@ classdef simulationClass <handle
             % values
             for ii =1:(length(obj.arrivalArray)-1)
                 
-                
                 % For each call get the time gaps of the additional calls
                 % that fall within the maximum elapsed time. Use the
                 % maximum delta TDOA as the association value
                 
-                % TDOA values
+                % Current TDOA values
                 tdoa = obj.TDOA_vals(ii,(obj.child_idx)-1);
                 
                 % TOA indexs of the channels with values
-                child_ids = obj.child_idx(~isnan(tdoa));
+                child_idx1 = find(~isnan(tdoa));
+                child_ids = obj.child_idx(child_idx1);
                 
-                % Clear out na values
-                tdoa = tdoa(~isnan(tdoa));
                 
                 % Get the gaps in time between the call and all
                 % subsiquent calls
-                time_gaps = obj.arrivalArray(ii+1:end, 1)-...
+                time_gaps = obj.arrivalArray(ii:end, 1)-...
                     obj.arrivalArray(ii, 1);
-                time_gaps = time_gaps(time_gaps<obj.time_cut);
+                time_gaps_idx = find(time_gaps<=obj.time_cut);
+                time_gaps = time_gaps(time_gaps_idx);
                 
                 
                 % Step through the channels with delay values and figure
                 % out which time gaps can fit
                 simValues =[];
                 deltaTDOALklhd =[];
+                
+                
+                next_tdoa_vals = obj.TDOA_vals(...
+                        (ii+time_gaps_idx-1),:);
+                
+                
                 for jj =1:length(tdoa)
-                    
-                    % TDOA of next calls
-                    next_tdoa = obj.TDOA_vals(ii+1:(ii+length(time_gaps)),...
-                        (child_ids(jj)-1));
-                    
-                    
+                                 
                     % Project the TDOA values based on the elapsed time
-                    mu = zeros(size(next_tdoa));
-                    sigmaSwim = (time_gaps * (2*obj.s)/obj.c);
-                    x =(tdoa(jj) - next_tdoa).^2; %values
+                    mu = zeros(length(next_tdoa_vals),1);
+                    sigmaSwim = sqrt(obj.PosUncertsigma+ (time_gaps * (2*obj.s)/obj.c).^2);
+                    x =sqrt(tdoa(jj) - next_tdoa_vals(:,jj)).^2; %values
+                    
                     likelihood = normpdf(x,mu,sigmaSwim);
                     
                     % Normalizing factor
-                    LikelihoodNormFac= normpdf( zeros(size(next_tdoa)),...
-                         zeros(size(next_tdoa)),sigmaSwim);
-                    
+                    LikelihoodNormFac= normpdf(0,0,sigmaSwim);
                     NormLikelihood = likelihood./LikelihoodNormFac;
                     
                     % Normalized likelihood
                     deltaTDOALklhd = [deltaTDOALklhd, NormLikelihood]; % sigma
                     % Create normalizing factor
-
+                    
                 end
-                simValues = min(deltaTDOALklhd,[],2);
+                simValues = nanmin(deltaTDOALklhd,[],2);
                 % Get the minimu value across the likelihoods
                 
-            
-            
-            % Take the minimum value and fill in the similarity matrix
-            
-            Sim_mat(ii+1, ii+1:ii+length(simValues)) = simValues;
-            Sim_mat(ii+1:ii+length(simValues),ii+1) = simValues;
+                
+                
+                % Take the minimum value and fill in the similarity matrix
+                
+                Sim_mat(ii, ii:ii+length(simValues)-1) = simValues;
+                Sim_mat(ii:ii+length(simValues)-1,ii) = simValues;
             end
-        
+            
             obj.Sim_mat= Sim_mat;
             
             % Plot of the similarity matrix for good meausre
@@ -521,7 +520,7 @@ classdef simulationClass <handle
             title('Call Space Similarity TDOA Only')
             xlabel('Call ID')
             ylabel('Call ID')
-    end
+        end
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatadHoc(obj)
             % This function creates the simulation matrix using the low
@@ -584,11 +583,11 @@ classdef simulationClass <handle
                         
                         % Get the prob. loc space space of the next call in
                         % the series and normalize
-
+                        
                         sigma = sqrt(obj.PosUncertsigma);
                         nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sigma);
-
-
+                        
+                        
                         % Get the comparison value of the projected prob
                         % loc space and the next call in the squence
                         simValue = compareLklhdSpace(obj, Lklhd_space_proj,...
@@ -638,7 +637,7 @@ classdef simulationClass <handle
             
             
             %%%%%%%%%%%%%%%%%%%%%%%%
-            % For sensitivity analysis 
+            % For sensitivity analysis
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             time_idx = obj.time_cut;
             
@@ -709,7 +708,7 @@ classdef simulationClass <handle
             [~,sortidx] = sort(array(:,1));
             array = array(sortidx,:);
             
-
+            
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Create the Associations and TDOA values %
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -986,7 +985,7 @@ classdef simulationClass <handle
             
             % Simply create an array with the predicted clusterid
             Cluster_id = zeros(length(obj.arrivalArray),1);
-             
+            
             % Step through each chain and grab the cluster
             for ii=1:length(obj.chains);
                 Cluster_id(obj.chains(ii).index) = ii;
@@ -1073,10 +1072,10 @@ classdef simulationClass <handle
                     % Remove calls with separation times of less than one
                     % second
                     if length(cluster)>1
-                    cluster = [cluster(1) cluster(find(diff(cluster)>1))];
-                    index=[index(2) index(find(diff(cluster)>1))];
-                    cluster = cluster(cluster>0);
-                    index = index(index>0);
+                        cluster = [cluster(1) cluster(find(diff(cluster)>1))];
+                        index=[index(2) index(find(diff(cluster)>1))];
+                        cluster = cluster(cluster>0);
+                        index = index(index>0);
                     end
                 end
                 
@@ -1133,15 +1132,15 @@ classdef simulationClass <handle
             %
             
             
-
+            
             
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             simValue = sum(sum(nextLklhdSpace.*ProjectedLklhdSpace))/...
                 sum(sum(nextLklhdSpace));
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%             figure(1);imagesc(ProjectedLklhdSpace ); colorbar;
-%             figure(2);imagesc(nextLklhdSpace); colorbar;
+            %             figure(1);imagesc(ProjectedLklhdSpace ); colorbar;
+            %             figure(2);imagesc(nextLklhdSpace); colorbar;
             
             maskidx = find(nextLklhdSpace>0.005);
             
