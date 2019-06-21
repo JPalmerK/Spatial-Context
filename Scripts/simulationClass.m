@@ -70,6 +70,9 @@ classdef simulationClass <handle
         % Logit of the correct classification rate for the
         SppCorrRate
         SppCorrSd
+        
+        % Title string for simulation plots
+        titleStr
     end
     
     
@@ -421,16 +424,18 @@ classdef simulationClass <handle
             end
             obj.Sim_mat= Sim_mat;
             
-            % Plot of the similarity matrix for good meausre
-            figure;
-            h =pcolor(Sim_mat);
-            set(h, 'EdgeColor', 'none');
-            set (gca, 'ydir', 'reverse' )
-            colormap(jet);
-            colorbar
-            title('Call Space Similarity Ideal')
-            xlabel('Call ID')
-            ylabel('Call ID')
+%             % Plot of the similarity matrix for good meausre
+%             figure;
+%             h =pcolor(Sim_mat);
+%             set(h, 'EdgeColor', 'none');
+%             set (gca, 'ydir', 'reverse' )
+%             colormap(jet);
+%             colorbar
+%             title('Call Space Similarity Ideal')
+%             xlabel('Call ID')
+%             ylabel('Call ID')
+            
+            obj.titleStr ='Call Space Similarity Ideal';
             
         end
         
@@ -501,16 +506,19 @@ classdef simulationClass <handle
             
             obj.Sim_mat= Sim_mat;
             
-            % Plot of the similarity matrix for good meausre
-            figure;
-            h =pcolor(Sim_mat);
-            set(h, 'EdgeColor', 'none');
-            set (gca, 'ydir', 'reverse' )
-            colormap(jet);
-            colorbar
-            title('Call Space Similarity TDOA Only')
-            xlabel('Call ID')
-            ylabel('Call ID')
+%             % Plot of the similarity matrix for good meausre
+%             figure;
+%             h =pcolor(Sim_mat);
+%             set(h, 'EdgeColor', 'none');
+%             set (gca, 'ydir', 'reverse' )
+%             colormap(jet);
+%             colorbar
+%             title('Call Space Similarity TDOA Only')
+%             xlabel('Call ID')
+%             ylabel('Call ID')
+            
+            
+            obj.titleStr ='Call Space Similarity TDOA Only';
         end
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatadHoc(obj)
@@ -616,18 +624,21 @@ classdef simulationClass <handle
             end
             obj.Sim_mat= Sim_mat;
             
-            % Plot of the similarity matrix for good meausre
-            figure;
-            [nr,nc] = size(Sim_mat);
-            h =pcolor(flipud((Sim_mat)));
-            set(h, 'EdgeColor', 'none');
-            ax = gca;
-            ax.YTickLabel = flipud(ax.YTickLabel)
-            colormap(jet);
-            colorbar
-            title('Call Space Similarity adHoc')
-            xlabel('Call ID')
-            ylabel('Call ID')
+%             % Plot of the similarity matrix for good meausre
+%             figure;
+%             [nr,nc] = size(Sim_mat);
+%             h =pcolor(flipud((Sim_mat)));
+%             set(h, 'EdgeColor', 'none');
+%             ax = gca;
+%             ax.YTickLabel = flipud(ax.YTickLabel)
+%             colormap(jet);
+%             colorbar
+%             title('Call Space Similarity adHoc')
+%             xlabel('Call ID')
+%             ylabel('Call ID')
+%             
+            
+            obj.titleStr = 'Call Space Similarity adHoc';
         end
         
         %% Cluster based only on time of arrivals Baseline (step 4)
@@ -1404,6 +1415,23 @@ classdef simulationClass <handle
             scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
             
 
+            
+        end
+        
+        %% Draw the simulation matrix
+        function drawSimMat(obj)
+            figure;
+            [nr,nc] = size(obj.Sim_mat);
+            h =pcolor(flipud((obj.Sim_mat)));
+            set(h, 'EdgeColor', 'none');
+            ax = gca;
+            ax.YTickLabel = flipud(ax.YTickLabel)
+            colormap(jet);
+            colorbar
+            title(obj.titleStr)
+            xlabel('Call ID')
+            ylabel('Call ID')
+            
             
         end
     end
