@@ -1372,6 +1372,41 @@ classdef simulationClass <handle
             obj.projSpace = Proj_space;
         end
         
+        %% Draw the Agents
+        function drawAgents(obj)
+            
+            % Update the arrival array
+            if isempty(obj.arrivalArray)
+                UpdateArrArray(obj);
+            end
+            
+            % Hydrophone locations
+            hyd_table = struct2table(obj.hydrophone_struct);
+            
+            TimeColorVals = parula(obj.spaceWhale.param_sim.dur);
+            ColorVals = lines(length(obj.spaceWhale.agent));
+            
+            
+            figure;
+           
+            subplot(2,1,1)
+             hold on
+             scatter(obj.arrivalArray(:,5), obj.arrivalArray(:,4),[],...
+                ColorVals(obj.arrivalArray(:,6),:), 'f')
+            scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
+            
+            
+            subplot(2,1,2)
+            hold on
+            scatter(obj.arrivalArray(:,5), obj.arrivalArray(:,4),[],...
+                 [TimeColorVals(round(obj.arrivalArray(:,1)),:)], 'f')
+            colorbar
+            scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
+            
+
+            
+        end
     end
+    
 end
 
