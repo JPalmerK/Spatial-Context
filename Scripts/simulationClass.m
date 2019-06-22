@@ -671,13 +671,14 @@ classdef simulationClass <handle
             
             for ii = 1:length(idx)
                 
-                cluster_vals(idx(ii):end) = cluster_id;
+                cluster_vals(idx(ii)) = cluster_id;
                 cluster_id = cluster_id +1;
                 
             end
             
             
             obj.Cluster_id = cluster_vals;
+            
         end
         
         %% Create function to get TDOA values (step 2)
@@ -957,6 +958,8 @@ classdef simulationClass <handle
             if isempty(obj.Cluster_id)
                 updateClusterID(obj)
             end
+            
+
             % Pull out the arrival array for easy reading
             arrival_array = obj.arrivalArray;
             
@@ -965,7 +968,7 @@ classdef simulationClass <handle
                 
                 % Allign the true clusters and the predicted clusters
                 newClusterId = allignclusters(arrival_array(:,end),...
-                    obj.Cluster_id);
+                    obj.Cluster_id)+1;
                 
                 % Get the adjusted rand (third party)
                 [f,~,~,~] = RandIndex(newClusterId, arrival_array(:,end));

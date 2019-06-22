@@ -1,27 +1,14 @@
 % Experiment 1 - Sensitivity Analysis
 
-
-
 % Run experiments
 close all; clear all
 clear classes; clc
 
-cd('/home/kpalmer/AnacondaProjects/Spatial-Context/Scripts')
-% Load metadata to create Hydrophone Structur
-dclde_2013_meta = xlsread(strcat('/cache/kpalmer/quick_ssd/data/',...
-    'DCLDE_2013_10Channel/DCL2013_NEFSC_SBNMS_200903_metadata.xlsx'));
-% Load the DCLDE array structure (just for the array structure, depth, and SSP)
-load('DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
-load('DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
+whereAmI = loadSimspace();
+dclde_2013_meta = xlsread(whereAmI{1});
+load(whereAmI{2})
+load(whereAmI{3})
 
-%%
-close all
-clear all
-cd('D:\Anaconda Projects\Spatial-Context\Scripts')
-% Load metadata to create Hydrophone Structur
-dclde_2013_meta = xlsread('C:\Users\Kaitlin\Desktop\DCL2013_NEFSC_SBNMS_200903_metadata.xlsx');
-load('D:/data/SimStructures/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
-load('D:/data/SimStructures/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
 
 %%
 % Parent hydrophone for the analysis
@@ -45,7 +32,7 @@ hyd_arr =vertcat(hyd_arr{2,:,:});
 
 
 %% Run the Experiment
-nIters = 5;
+nIters = 100;
 n_agents = 7;
 
 % Run a default example first
@@ -64,7 +51,7 @@ for iter =1:nIters
     disp(num2str(iter))
     
     % Create new agents
-    [spaceWhale] =  createRandomSpaceWhale(.75, 7, hyd_arr,...
+    [spaceWhale] =  createRandomSpaceWhale(.75, n_agents, hyd_arr,...
         array_struct,hydrophone_struct, ssp, grid_depth);
     
     % Populate data and parameters
@@ -108,21 +95,18 @@ for iter =1:nIters
     simMatIdeal(examp);
     
     
-    for jj = 1:length(SimThresh)
-        examp.Cluster_id =[];
-        examp.cutoff = SimThresh(jj);
+
         
-        for ii = 1:length(TimeThresh)
-            
-            examp.Cluster_id =[];
-            examp.time_cut=(TimeThresh(ii));
-            examp.updateChains;
-            examp.getRand();
-            ExpScoresMeth2(iter, ii,jj) = examp.AdjRand;
-            
-        end
+    for ii = 1:length(TimeThresh)
+        
+        examp.Cluster_id =[];
+        examp.time_cut=(TimeThresh(ii));
+        examp.updateChains;
+        examp.getRand();
+        ExpScoresMeth2(iter, 1,ii) = examp.AdjRand;
         
     end
+        
     
     figure
     imagesc(squeeze(ExpScoresMeth2(iter,:,:))); colorbar;
@@ -170,7 +154,7 @@ for iter =1:nIters
             examp.time_cut=(TimeThresh(ii));
             examp.toaOnlyCluster();
             examp.getRand();
-            ExpScoresBaseline(iter, ii,jj) = examp.AdjRand;
+            ExpScoresBaseline(iter, ii,1) = examp.AdjRand;
             
         end
         
@@ -185,17 +169,17 @@ for iter =1:nIters
 end
 %%
 
-% get range of values
+% Mean Values
 figure
 subplot(2,2,1)
-imagesc(nanmean(ExpScoresBaseline,3))
-colorbar;
-yticks((1:2:length(TimeThresh)))
-yticklabels({round(TimeThresh(1:2:end)/60,2)})
+plot(TimeThresh/60, nanmedian(ExpScoresBaseline(:,:,1),1))
+xticks((1:9:length(TimeThresh)))
+xticklabels({round(TimeThresh(1:9:end),2)})
+ylabel('Median Adjusted Rand')
 title('Baseline')
 
 subplot(2,2,2)
-imagesc(squeeze(nanmean(ExpScoresMeth1)))
+imagesc(squeeze(nanmedian(ExpScoresMeth1)))
 colorbar;
 yticks((1:6:length(TimeThresh)))
 yticklabels({round(TimeThresh(1:6:end)/60,2)})
@@ -204,21 +188,96 @@ xticklabels({round(SimThresh(1:9:end),2)})
 title('Method 1')
 
 subplot(2,2,3)
-imagesc(squeeze(nanmean(ExpScoresMeth2)))
+imagesc(squeeze(nanmedian(ExpScoresMeth2)))
 colorbar; 
-yticks((1:2:length(TimeThresh)))
-yticklabels({round(TimeThresh(1:2:end)/60,2)})
-xticks((1:4:length(SimThresh)))
-xticklabels({round(SimThresh(1:4:end),2)})
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
 title('Method 2')
 
 subplot(2,2,4)
-imagesc(squeeze(nanmean(ExpScoresMeth3)))
+imagesc(squeeze(nanmedian(ExpScoresMeth3)))
 colorbar; 
-yticks((1:2:length(TimeThresh)))
-yticklabels({round(TimeThresh(1:2:end)/60,2)})
-xticks((1:4:length(SimThresh)))
-xticklabels({round(SimThresh(1:4:end),2)})
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
 title('Method 3')
 
 
+%% Figure of Upper 95th percentile
+
+
+figure
+subplot(2,2,1)
+plot(TimeThresh/60, squeeze(prctile(ExpScoresBaseline(:,:,1),95)))
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+ylabel('95th Percentile Adjusted Rand')
+title('Baseline')
+
+subplot(2,2,2)
+imagesc(squeeze(prctile(ExpScoresMeth1,95)))
+colorbar;
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+title('Method 1')
+
+subplot(2,2,3)
+imagesc(squeeze(prctile(ExpScoresMeth2,95)))
+colorbar; 
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+title('Method 2')
+
+subplot(2,2,4)
+imagesc(squeeze(prctile(ExpScoresMeth3,95)))
+colorbar; 
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+title('Method 3')
+
+%% Figure of lower 95th percentile
+
+
+figure
+subplot(2,2,1)
+plot(TimeThresh/60, squeeze(prctile(ExpScoresBaseline(:,:,1),5)))
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+ylabel('95th Percentile Adjusted Rand')
+title('Baseline')
+
+subplot(2,2,2)
+imagesc(squeeze(prctile(ExpScoresMeth1,5)))
+colorbar;
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+title('Method 1')
+
+subplot(2,2,3)
+imagesc(squeeze(prctile(ExpScoresMeth2,5)))
+colorbar; 
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+title('Method 2')
+
+subplot(2,2,4)
+imagesc(squeeze(prctile(ExpScoresMeth3,5)))
+colorbar; 
+yticks((1:6:length(TimeThresh)))
+yticklabels({round(TimeThresh(1:6:end)/60,2)})
+xticks((1:9:length(SimThresh)))
+xticklabels({round(SimThresh(1:9:end),2)})
+title('Method 3')
