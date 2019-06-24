@@ -1,6 +1,6 @@
 % Function for returning the sensitiviery loop
 
-function ExpScoresMeth = runSensitivtyLp(examp,TimeThresh,SimThresh)
+function [ExpScoresMeth nAgents] = runSensitivtyLp(examp,TimeThresh,SimThresh)
 % Returns mxn matrix of adjusted rand scores where m is the length of the
 % time threshold and n is the length of the similarity threshold
 % Input - simulation object, TimeThresh, SimThres
@@ -12,7 +12,7 @@ if nargin ==2
     SimThresh =1;
     
     ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
-   
+    nAgents =ExpScoresMeth;
     
     for jj = 1:length(SimThresh)
         examp.Cluster_id =[];
@@ -25,6 +25,7 @@ if nargin ==2
             examp.toaOnlyCluster();
             examp.getRand();
             ExpScoresMeth(ii,1) = examp.AdjRand;
+            nAgents(ii,1) = length(unique(examp.Cluster_id));
             
         end
         
@@ -33,7 +34,8 @@ if nargin ==2
     
 else % Else there were three variables, so leave well enough alone
     ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
-
+    nAgents =ExpScoresMeth;
+    
     for jj = 1:length(SimThresh)
         examp.Cluster_id =[];
         examp.cutoff = SimThresh(jj);
@@ -45,7 +47,7 @@ else % Else there were three variables, so leave well enough alone
             examp.updateChains;
             examp.getRand();
             ExpScoresMeth(ii,jj) = examp.AdjRand;
-            
+            nAgents(ii,jj) = length(unique(examp.Cluster_id));
         end
         
     end

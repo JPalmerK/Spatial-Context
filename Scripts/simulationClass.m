@@ -16,7 +16,7 @@ classdef simulationClass <handle
     properties
         time_cut = 10*60 % seconds - time beyond which not to corrlelations
         spaceWhale % Structure containing call times and locations of all agents
-        truncateKm = 15 % Distance beyond which calls are excluded (not detected)
+        truncateKm = 10 % Distance beyond which calls are excluded (not detected)
         hydrophone_struct % Hydrophone structure same format as GPL
         array_struct % Array structure - containing hydrophone pairs and
         % expected TDOA grids. GPL and localization format
@@ -193,6 +193,7 @@ classdef simulationClass <handle
             % Pull out for easy reading
             truthAndpreds = obj.truthAndpreds;
             
+            
             cluster_ids = unique(truthAndpreds.PredClust);
             % For each cluster create the classificcation balues
             for ii=1:length(cluster_ids)
@@ -206,73 +207,83 @@ classdef simulationClass <handle
                 % Likelihood ratio for the cluster
                 LR = log(prod(scores./(1-scores)));
                 
+                % Use Geometric mean instead
+                truthAndpreds.GeoMean(idx) = geomean(scores);
+                
                 % Fill in the likelihood ratio
                 truthAndpreds.ClusterScore(idx) = LR;
                 
             end
             
             
-            % Create the confusion matrix for the unclustered data
-            tot_mn = sum(truthAndpreds.TrueSpp ==0);
-            tot_eg = sum(truthAndpreds.TrueSpp ==1);
+            perfStructure = table2struct(truthAndpreds);
             
             
-            % Proportion of right whale calls correctly classified as mn
-            Tp_eg = sum((truthAndpreds.Score > 0.5) .* (truthAndpreds.TrueSpp==1));
-            
-            % Proportion of right whale calls incorrectly tagged as humpbacks
-            Fn_eg = sum(truthAndpreds.Score < 0.5 & truthAndpreds.TrueSpp==1);
-            
-            
-            % Proportion of humpback calls correctly classified as humpack
-            Tp_mn = sum(truthAndpreds.Score < 0.5 & truthAndpreds.TrueSpp==0);
-            
-            % Proportion of humpback callsincorrectly tagged as right whale
-            Fp_mn = sum(truthAndpreds.Score > 0.5 & truthAndpreds.TrueSpp==0);
-            
-            
-            
-            % Create the confusion matrix for the clustered data. Eh, not a
-            % lot of effort ahs been put into this portion
-            
-            % Proportion of right whale calls correctly classified as humpack
-            Tp_egc = sum((truthAndpreds.ClusterScore > 1) .* (truthAndpreds.TrueSpp==1));
-            
-            % Proportion of right whale calls incorrectly tagged as humpbacks
-            Fn_egc = sum((truthAndpreds.ClusterScore < (1)) & (truthAndpreds.TrueSpp==1));
-            
-            
-            % Proportion of humpback calls correctly classified as humpack
-            Tp_mnc = sum((truthAndpreds.ClusterScore < (1)) .* (truthAndpreds.TrueSpp==0));
-            
-            % Proportion of humpback callsincorrectly tagged as right whale
-            Fp_mnc = sum((truthAndpreds.ClusterScore > 1) & (truthAndpreds.TrueSpp==0));
-            
-            % Output structure containing the performance metrics for the
-            % system
-            perfStructure = struct();
-            % Percent of calls correctly classified using the unaided
-            % method
-            perfStructure.totCorrect = (Tp_mn+Tp_eg)/height(truthAndpreds);
-            % Percent of calls correctly classified using the clustering
-            % method
-            perfStructure.totCorrectClassMeth = (Tp_egc+Tp_mnc)/height(truthAndpreds);
-            % Number of chains
-            perfStructure.nChains = length(unique(truthAndpreds.PredClust));
-            
-            % Un updated at the moment, bigger fish to fry
-            perfStructure.tot_eg = tot_eg; % Total simulated sp 1
-            perfStructure.tot_mn = tot_mn;  % Total simulated sp 2
-            perfStructure.Tp_eg=Tp_eg/tot_eg; % Percent EG recovered
-            perfStructure.Fn_eg=Fn_eg/tot_eg; % Percent EG missed
-            perfStructure.Tp_mn=Tp_mn/tot_mn; % Percent MN recovered
-            perfStructure.Fp_mn=Fp_mn/tot_mn; % Percent FP missed
-            
-            perfStructure.Tp_egclassmeth=Tp_egc/tot_eg;
-            perfStructure.Fn_egclassmeth=Fn_egc/tot_eg;
-            perfStructure.Tp_mnclassmeth=Tp_mnc/tot_mn;
-            perfStructure.Fp_mnclassmeth=Fp_mnc/tot_mn;
-            
+%             
+%             % Create the confusion matrix for the unclustered data
+%             tot_mn = sum(truthAndpreds.TrueSpp ==0);
+%             tot_eg = sum(truthAndpreds.TrueSpp ==1);
+%             
+%             
+%             % Proportion of right whale calls correctly classified as mn
+%             Tp_eg = sum((truthAndpreds.Score > 0.5) .* (truthAndpreds.TrueSpp==1));
+%             
+%             % Proportion of right whale calls incorrectly tagged as humpbacks
+%             Fn_eg = sum(truthAndpreds.Score < 0.5 & truthAndpreds.TrueSpp==1);
+%             
+%             
+%             % Proportion of humpback calls correctly classified as humpack
+%             Tp_mn = sum(truthAndpreds.Score < 0.5 & truthAndpreds.TrueSpp==0);
+%             
+%             % Proportion of humpback callsincorrectly tagged as right whale
+%             Fp_mn = sum(truthAndpreds.Score > 0.5 & truthAndpreds.TrueSpp==0);
+%             
+%             
+%             
+%             % Create the confusion matrix for the clustered data. Eh, not a
+%             % lot of effort ahs been put into this portion
+%             
+%             % Proportion of right whale calls correctly classified as humpack
+%             Tp_egc = sum((truthAndpreds.ClusterScore > 1) .* (truthAndpreds.TrueSpp==1));
+%             
+%             % Proportion of right whale calls incorrectly tagged as humpbacks
+%             Fn_egc = sum((truthAndpreds.ClusterScore < (1)) & (truthAndpreds.TrueSpp==1));
+%             
+%             
+%             % Proportion of humpback calls correctly classified as humpack
+%             Tp_mnc = sum((truthAndpreds.ClusterScore < (1)) .* (truthAndpreds.TrueSpp==0));
+%             
+%             % Proportion of humpback callsincorrectly tagged as right whale
+%             Fp_mnc = sum((truthAndpreds.ClusterScore > 1) & (truthAndpreds.TrueSpp==0));
+%             
+%             % Output structure containing the performance metrics for the
+%             % system
+%             perfStructure = struct();
+%             % Percent of calls correctly classified using the unaided
+%             % method
+%             perfStructure.totCorrect = (Tp_mn+Tp_eg)/height(truthAndpreds);
+%             % Percent of calls correctly classified using the clustering
+%             % method
+%             perfStructure.totCorrectClassMeth = (Tp_egc+Tp_mnc)/height(truthAndpreds);
+%             % Number of chains
+%             perfStructure.nChains = length(unique(truthAndpreds.PredClust));
+%             
+%             % Un updated at the moment, bigger fish to fry
+%           
+%             
+%             
+%             perfStructure.tot_eg = tot_eg; % Total simulated sp 1
+%             perfStructure.tot_mn = tot_mn;  % Total simulated sp 2
+%             perfStructure.Tp_eg=Tp_eg/tot_eg; % Percent EG recovered
+%             perfStructure.Fn_eg=Fn_eg/tot_eg; % Percent EG missed
+%             perfStructure.Tp_mn=Tp_mn/tot_mn; % Percent MN recovered
+%             perfStructure.Fp_mn=Fp_mn/tot_mn; % Percent FP missed
+%             
+%             perfStructure.Tp_egclassmeth=Tp_egc/tot_eg;
+%             perfStructure.Fn_egclassmeth=Fn_egc/tot_eg;
+%             perfStructure.Tp_mnclassmeth=Tp_mnc/tot_mn;
+%             perfStructure.Fp_mnclassmeth=Fp_mnc/tot_mn;
+%             
             
         end
         
@@ -326,6 +337,8 @@ classdef simulationClass <handle
                 
             end
             
+            obj.titleStr ='Call Space Similarity Ideal';
+            
             % Grid X/Y space
             % Get distance in meters between the lower and upper right
             grid_v = vdist(min(obj.array_struct.latgrid),...
@@ -362,7 +375,7 @@ classdef simulationClass <handle
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                sig_tot = sqrt(obj.PosUncertsigma/4);
+                sig_tot = sqrt(obj.PosUncertsigma);
                 averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
                 
                 % Figure out the number of time gaps within the maximum
@@ -435,7 +448,7 @@ classdef simulationClass <handle
 %             xlabel('Call ID')
 %             ylabel('Call ID')
             
-            obj.titleStr ='Call Space Similarity Ideal';
+            
             
         end
         
@@ -445,7 +458,7 @@ classdef simulationClass <handle
                 disp(['Updating TDOA values'])
                 UpdateTDOA(obj);
             end
-            
+             obj.titleStr ='Call Space Similarity TDOA Only';
             % Create the empty similarity matrix
             Sim_mat = zeros(length(obj.arrivalArray(:,end)))/0;
             
@@ -518,7 +531,7 @@ classdef simulationClass <handle
 %             ylabel('Call ID')
             
             
-            obj.titleStr ='Call Space Similarity TDOA Only';
+           
         end
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatadHoc(obj)
@@ -533,8 +546,14 @@ classdef simulationClass <handle
                 
             end
             
+            % Set title string for plots, also uesful in similarity matrix
+            % comparion
+            
+            
+            obj.titleStr = 'Call Space Similarity adHoc';
+            
             % Create the empty similarity matrix
-            Sim_mat = zeros(length(obj.TDOA_vals))./0;
+            Sim_mat = zeros(length(obj.arrivalArray))./0;
             
             
             % Step through each arrival and get it's grid probability as
@@ -572,7 +591,7 @@ classdef simulationClass <handle
                     % Total sigma error (standard deviation) five input
                     % variables (four from position uncertainty plus sigma
                     % swim)
-                    sigSD = sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2)/5);
+                    sigSD = sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2));
                     
                     % Step through the time gaps/sigma values getting each
                     % probability loc space and projection
@@ -592,10 +611,7 @@ classdef simulationClass <handle
                         % Get the prob. loc space space of the next call in
                         % the series and normalize
 %                         
-%                         sig_tot = sqrt(obj.PosUncertsigma);
-%                         averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
-%                         
-                        sigma = sqrt(obj.PosUncertsigma/4);
+                        sigma = sqrt(obj.PosUncertsigma);
                         nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sigma);
                         
                         
@@ -638,7 +654,6 @@ classdef simulationClass <handle
 %             ylabel('Call ID')
 %             
             
-            obj.titleStr = 'Call Space Similarity adHoc';
         end
         
         %% Cluster based only on time of arrivals Baseline (step 4)
@@ -1146,71 +1161,30 @@ classdef simulationClass <handle
             % has been projected and call b from later in the sequence that
             % has not
             
-            % Inputs -
-            % ProjectedLklhdSpace - likelihood map for the call projected
-            % across time
-            % nextLklhdSpace - likelihood map for the next call in the
-            % sequence (typically)
-            % Returns-
-            %
-            
-            
-            %
-            %             % Size of area represented by the next call
-            %             b_hiprob = find(nextLklhdSpace> obj.high_prob_threshold);
-            %             size_b_highprob = length(b_hiprob);
-            %
-            %             a_hiprob = find(ProjectedLklhdSpace> obj.high_prob_threshold);
-            %
-            %
-            %             % Determine the percentage of the next call that is covered by
-            %             % the time expanded current call
-            %             simValue = length(intersect(a_hiprob, b_hiprob))/size_b_highprob;
-            %
-            
-            
-            
-            
-            
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            simValue = sum(sum(nextLklhdSpace.*ProjectedLklhdSpace))/...
-                sum(sum(nextLklhdSpace));
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %             figure(1);imagesc(ProjectedLklhdSpace ); colorbar;
-            %             figure(2);imagesc(nextLklhdSpace); colorbar;
-            
+            % Create a mask indicating where the next next call could be in
+            % grid space
             maskidx = find(nextLklhdSpace>0.01);
             
+            % Get the probability values for the mask index
             nextvals = nextLklhdSpace(maskidx);
             projvals = ProjectedLklhdSpace(maskidx);
             
-            aa = projvals./nextvals;
-            aa(aa>1)=1;
-            simValue = sum(aa)/length(nextvals);
+               
+                aa = projvals./nextvals;
+                aa(aa>1)=1;
+                simValue = sum(aa)/length(nextvals);
+                simValue = nanmax(simValue, 0);
+
             
-% 
-%             aa = min([nextvals, projvals],[],2);
-%             simValue = sum(aa)/sum(nextvals);
-%             
-            % Make sure there is always a value, even if it's zero
-            simValue = nanmax(simValue, 0);
+            % Nothing begets nothing
+            if isempty(maskidx)
+                simValue =1;
+            end
             
-        end
-        %% Compare two probability grid spaces
-        function simValue = compTrueLkhddSpace(obj,...
-                ProjectedLklhdSpace, nextLklhdSpace)
-            
-            % Compares likelihood spaces for two calls, typically call a that
-            % has been projected and call b from later in the sequence that
-            % has not. This version works ONLY for arrays with perfect
-            % association
-            
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            simValue = max(nextLklhdSpace.*ProjectedLklhdSpace);
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             
         end
+
         %% Create similarity matrix from projSpace RAM heavy version (below)
         function UpdateSimMat(obj)
             % This previous verion of simMatLowMemory uses the updateProj
@@ -1397,7 +1371,7 @@ classdef simulationClass <handle
             % Hydrophone locations
             hyd_table = struct2table(obj.hydrophone_struct);
             
-            TimeColorVals = parula(obj.spaceWhale.param_sim.dur);
+            TimeColorVals = parula(obj.spaceWhale.param_sim.dur+1);
             ColorVals = lines(length(obj.spaceWhale.agent));
             
             
@@ -1408,14 +1382,23 @@ classdef simulationClass <handle
              scatter(obj.arrivalArray(:,5), obj.arrivalArray(:,4),[],...
                 ColorVals(obj.arrivalArray(:,6),:), 'f')
             scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
-            
+            scatter(hyd_table.location([obj.array_struct.master,...
+                obj.array_struct.slave(obj.child_idx-1)],2),...
+                hyd_table.location([obj.array_struct.master,...
+                obj.array_struct.slave(obj.child_idx-1)],1), 80, 'r', 'filled', 'd')
+            legend
             
             subplot(2,1,2)
             hold on
             scatter(obj.arrivalArray(:,5), obj.arrivalArray(:,4),[],...
                  [TimeColorVals(round(obj.arrivalArray(:,1)),:)], 'f')
-            colorbar
             scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
+             scatter(hyd_table.location([obj.array_struct.master,...
+                obj.array_struct.slave(obj.child_idx-1)],2),...
+                hyd_table.location([obj.array_struct.master,...
+                obj.array_struct.slave(obj.child_idx-1)],1), 80, 'r', 'filled', 'd')
+            colorbar
+            
             
 
             
