@@ -145,7 +145,7 @@ quantLvl1 =0;
 quantLvl2 =.1;
 
 for jj =1:length(perf_meth1)
-    for ii =1:16
+    for ii =1:184
         
         aa = perf_meth1(jj).RandMat(:,:,ii);
         bb = perf_meth1(jj).predAgents(:,:,ii);
@@ -220,20 +220,69 @@ end
 % scatter(timeVal,simVal)
 
 %% Make Plots
-
-
+close all;
+for ii =1:length(perf_meth1)
 figure
+
+subplot(2,2,1)
+plot(TimeThresh,(squeeze(nanmedian(perf_methbaseline(ii).RandMat,3))))
+xlabel('Time Threshold (min)')
+ylabel('Adjusted Ran Index')
+title('Baseline')
+ylim([-.05 .1])
+
+
 subplot(2,2,2)
-imagesc(squeeze(nanmedian(perf_meth1(1).RandMat,3)))
+imagesc(squeeze(nanmedian(perf_meth1(ii).RandMat,3)))
 colorbar; caxis([0 .4])
+xlabel('Time Threshold (min)')
+ylabel('Similarity Threshold')
+title('Method 1- TDOA')
 
 subplot(2,2,3)
-imagesc(squeeze(nanmedian(perf_meth2(1).RandMat,3)))
+imagesc(SimThresh, TimeThresh/60,squeeze(nanmedian(perf_meth2(ii).RandMat,3)))
 colorbar; caxis([0 .4])
+xlabel('Time Threshold (min)')
+ylabel('Similarity Threshold')
+title('Method 2- Spatial Model, Ideal')
+
 
 subplot(2,2,4)
-imagesc(squeeze(nanmedian(perf_meth3(1).RandMat,3)))
+imagesc(squeeze(nanmedian(perf_meth3(ii).RandMat,3)))
 colorbar; caxis([0 .4])
+xlabel('Time Threshold (min)')
+title('Method 2- Spatial Model, ad hoc')
+
+mtit([num2str(nAgents(ii)), ' agents in Simulation'])
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
