@@ -1,5 +1,5 @@
 function spaceWhale = createRandomSpaceWhale(n_hrs, nAgents, hyd_arr,...
-    array_struct,hydrophone_struct, ssp, grid_depth)
+    array_struct,hydrophone_struct, ssp, grid_depth, subArray)
 
 clear spaceWhale
 
@@ -30,10 +30,10 @@ for ii=1:nAgents
     %parm_calling.frequency = 400*rand; 
     
     % Movement parameters for each  agent(s)
-    parm_movement.lat_init =  min(hyd_arr(:,1)) + ...
-        (max(hyd_arr(:,1)) - min(hyd_arr(:,1)))*rand(1);
-    parm_movement.lon_init =  min(hyd_arr(:,2)) +...
-        (max(hyd_arr(:,2)) - min(hyd_arr(:,2)))*rand(1);
+    parm_movement.lat_init =  min(hyd_arr(subArray,1)) + ...
+        (max(hyd_arr(subArray,1)) - min(hyd_arr(subArray,1)))*rand(1);
+    parm_movement.lon_init =  min(hyd_arr(subArray,2)) +...
+        (max(hyd_arr(subArray,2)) - min(hyd_arr(subArray,2)))*rand(1);
     parm_movement.bearing = 180 -360*rand(1); %degrees
     
     % Duration - random number of hours (uniform) times some portion of
