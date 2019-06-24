@@ -12,7 +12,6 @@ load(whereAmI{2})
 load(whereAmI{3})
 
 
-%%
 % Parent hydrophone for the analysis
 parent =5;
 fs = 2000;
@@ -31,13 +30,15 @@ for ii=1:size(dclde_2013_meta,1)
 end
 hyd_arr = struct2cell(hydrophone_struct);
 hyd_arr =vertcat(hyd_arr{2,:,:});
-
+clear whereAmI
+%%
 % Median correct classification rate for species A is 0.8, 0.85, 0.95
-score_mean = [1.39 1.74 2.95];
+%score_mean = [1.39 1.74 2.95];
 score_mean = [1 3 6];
 
+
 score_sd = [4.75 4.75 4.75];
-nRuns = 200;
+nRuns = 100;
 
 % Number of calls included in the analysis
 n_calls = zeros(1, nRuns);
@@ -54,7 +55,7 @@ for ii=1:nRuns
     clear spaceWhale examp
     disp([num2str(ii) ' of ' num2str(nRuns) ' runs'])
     % Create new agents
-    [spaceWhale] =  createRandomSpaceWhale(0.75,6, hyd_arr,...
+    [spaceWhale] =  createRandomSpaceWhale(0.75,7, hyd_arr,...
         array_struct,hydrophone_struct, ssp, grid_depth);
     
     % Populate data and parameters
@@ -66,112 +67,117 @@ for ii=1:nRuns
     examp.time_cut = 10*60;
     examp.randomMiss =0;
 
-
-    
-    % Method 1
+    % Method 1- TDOA only
     examp.clearCalcValues();
     simMatTDOAonly(examp);
+    examp.cutoff = .5;
+    examp.time_cut = 490;
 
     examp.SppCorrRate = score_mean(1);
     examp.SppCorrSd=score_sd(1);
     perf = examp.estClassifierPerf;
-    perf_meth1.Low(ii) = perf;
+    perf_meth1(ii).Low = perf;
     examp.truthAndpreds =[];
+    
     
     examp.SppCorrRate = score_mean(2);
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
-    perf_meth1.Med(ii) = perf;
+    perf_meth1(ii).Med = perf;
     examp.truthAndpreds=[];
     
     examp.SppCorrRate = score_mean(3);
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
-    perf_meth1.High(ii) = perf;
+    perf_meth1(ii).High = perf;
     examp.truthAndpreds=[];
     
 
     % Second Method, ideal
     examp.clearCalcValues();
     examp.simMatIdeal();
-    examp.cutoff = quantile(reshape(examp.Sim_mat,[],1),.9);
+    examp.cutoff = .49;
+    examp.time_cut = 1020;
     
     examp.SppCorrRate = score_mean(1)
     examp.SppCorrSd=score_sd(1);
     perf = examp.estClassifierPerf;
-    perf_meth2.Low(ii) = perf;
+    perf_meth2(ii).Low = perf;
     examp.truthAndpreds =[];
     
     examp.SppCorrRate = score_mean(2)
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
-    perf_meth2.Med(ii) = perf;
+    perf_meth2(ii).Med = perf;
     examp.truthAndpreds=[];
     
     examp.SppCorrRate = score_mean(3)
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
-    perf_meth2.High(ii) = perf;
+    perf_meth2(ii).High = perf;
     examp.truthAndpreds=[];    
     
     
     % Third Method, ad hoc
     examp.clearCalcValues();
     simMatadHoc(examp);
-    examp.cutoff = quantile(reshape(examp.Sim_mat,[],1),.9);
+    examp.cutoff = .15;
+    examp.time_cut = 677;
 
     examp.SppCorrRate = score_mean(1);
     examp.SppCorrSd=score_sd(1);
     updateChains(examp)
     perf = examp.estClassifierPerf;
-    perf_meth3.Low(ii) = perf;
+    perf_meth3(ii).Low = perf;
     examp.truthAndpreds =[];
     
-    examp.SppCorrRate = score_mean(2);
+    examp.SppCorrRate = score_mean(2);chil
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
-    perf_meth3.Med(ii) = perf;
+    perf_meth3(ii).Med = perf;
     examp.truthAndpreds=[];
     
     examp.SppCorrRate = score_mean(3);
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
-    perf_meth3.High(ii) = perf;
+    perf_meth3(ii).High = perf;
     examp.truthAndpreds=[];
 
     % Fourth Method, baseline
     examp.clearCalcValues();
+    examp.time_cut = 81;
     examp.toaOnlyCluster();
     examp.getRand();
 
     examp.SppCorrRate = score_mean(1);
     examp.SppCorrSd=score_sd(1);
     perf = examp.estClassifierPerf;
-    perf_methbaseline.Low(ii) = perf;
+    perf_methbaseline(ii).Low = perf;
     examp.truthAndpreds =[];
     
     examp.SppCorrRate = score_mean(2);
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
-    perf_methbaseline.Med(ii) = perf;
+    perf_methbaseline(ii).Med = perf;
     examp.truthAndpreds=[];
     
     examp.SppCorrRate = score_mean(3);
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
-    perf_methbaseline.High(ii) = perf;
+    perf_methbaseline(ii).High = perf;
     examp.truthAndpreds=[];
     
 
 end
 
-perf1 = cell2mat({perf_meth2.Low([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.Low([1:end]).totCorrect}');
-perf2 = cell2mat({perf_meth2.Med([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.Med([1:end]).totCorrect}');
-perf3 = cell2mat({perf_meth2.High([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.High([1:end]).totCorrect}');
-figure
-hist([perf1 perf2 perf3],20)
-legend('Low', 'Medium', 'High','Location','best')
-
+% 
+% perf1 = cell2mat({perf_meth2.Low([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.Low([1:end]).totCorrect}');
+% perf2 = cell2mat({perf_meth2.Med([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.Med([1:end]).totCorrect}');
+% perf3 = cell2mat({perf_meth2.High([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.High([1:end]).totCorrect}');
+% figure
+% hist([perf1 perf2 perf3],20)
+% legend('Low', 'Medium', 'High','Location','best')
+% 
 
 
 %% Make Figures

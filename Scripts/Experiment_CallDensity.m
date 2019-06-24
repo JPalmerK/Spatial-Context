@@ -38,18 +38,16 @@ grid_depth = localize_struct.parm.grid_depth;
 % Method 4/Baseline - TOA only
 
 
-simThresh = [0.91, 0.45, 0.55];
-timeThresh = [41 13*60 14*60 7*60];
-nRuns = 100;
-nAgents = round(linspace(3,10,6));
+nRuns = 10;
+nAgents = round(linspace(3,11,5));
 
 % Thresholds fo rthe snesitivty analysis
 % Run a default example first
-TimeThresh =linspace(0,2000,50);
+TimeThresh =linspace(0,20*60,50);
 SimThresh = linspace(0,1,50);
 
 
-perf_methbaseline = struct('RandMat', cell(1, length(nAgents)));
+perf_methbaseline = struct('RandMat', cell(1, length(nAgents)), 'predAgents', cell(1, length(nAgents)));
 perf_meth1 = perf_methbaseline;
 perf_meth2 = perf_methbaseline;
 perf_meth3 = perf_methbaseline;
@@ -61,20 +59,19 @@ perf_meth3 = perf_methbaseline;
 
 % Outter Loop - numberof agents in the simulation
 for ii =1:length(nAgents)
-    disp([num2str(nAgents), ' Agents'])
+    disp([num2str(nAgents(ii)), ' Agents'])
     agentNum = nAgents(ii);
     
     for iter=1:nRuns
         
         disp(['Run ', num2str(iter)])
         
-        close all
+        %close all
         clear spaceWhale examp
         %disp([num2str(iter) ' of ' num2str(nRuns) ' runs'])
         % Create new agents
-        [spaceWhale] =  createRandomSpaceWhale(0.75,agentNum, hyd_arr,...
-            array_struct,hydrophone_struct, ssp, grid_depth);
-        
+        [spaceWhale] =  createRandomSpaceWhale(0.75, agentNum, hyd_arr,...
+            array_struct,hydrophone_struct, ssp, grid_depth, [5, 1,2]); 
         % Populate data and parameters
         examp = simulationClass();
         examp.spaceWhale = spaceWhale;
@@ -87,39 +84,47 @@ for ii =1:length(nAgents)
         
         %% First method, baseline
         examp.clearCalcValues();
-        senMat = runSensitivtyLp(examp,TimeThresh);
+        [senMat nAgePreds] = runSensitivtyLp(examp,TimeThresh);
         perf_methbaseline(ii).RandMat = cat(3, perf_methbaseline(ii).RandMat, senMat);
-        
+        perf_methbaseline(ii).predAgents = cat(3, perf_methbaseline(ii).predAgents, nAgePreds);
+        %figure; scatter(nAgents, senMat);
+        title('baseline')
         
         
         %% Second method, TDOA only        
-
+        
         % First method, TDOA only
         examp.clearCalcValues();
         examp.time_cut = max(TimeThresh);
         simMatTDOAonly(examp);
-        senMat = runSensitivtyLp(examp,TimeThresh,SimThresh);
-        figure; imagesc(senMat); colorbar
+        [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
+        
         perf_meth1(ii).RandMat = cat(3, perf_meth1(ii).RandMat, senMat);
-        
-        
-        
+        perf_meth1(ii).predAgents = cat(3, perf_meth1(ii).predAgents, nAgePreds);
+        %         figure; imagesc(senMat); colorbar
+        %         figure; imagesc(nAgents); colorbar
+        %figure; scatter(reshape(nAgents,[],1), reshape(senMat,[],1))
+        %title('Method 1')
         %% Thrid method, ideal localization
         examp.clearCalcValues();
         examp.time_cut = max(TimeThresh);
         simMatIdeal(examp);
-        senMat = runSensitivtyLp(examp,TimeThresh,SimThresh);
-        figure; imagesc(senMat); colorbar
+        [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
+        %figure; imagesc(senMat); colorbar
         perf_meth2(ii).RandMat = cat(3, perf_meth2(ii).RandMat, senMat);
-        
+        perf_meth2(ii).predAgents = cat(3, perf_meth2(ii).predAgents, nAgePreds);
+       % figure; scatter(reshape(nAgents,[],1), reshape(senMat,[],1))
+        %title('Method 2')
         %% Fourth method, ad hoc
         examp.clearCalcValues();
         examp.time_cut = max(TimeThresh);
         simMatadHoc(examp);
-        senMat = runSensitivtyLp(examp,TimeThresh,SimThresh);
-        figure; imagesc(senMat); colorbar
+        [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
+        %figure; imagesc(senMat); colorbar
         perf_meth3(ii).RandMat = cat(3, perf_meth3(ii).RandMat, senMat);
-        
+        perf_meth3(ii).predAgents = cat(3, perf_meth3(ii).predAgents, nAgePreds);
+        %figure; scatter(reshape(nAgents,[],1), reshape(senMat,[],1))
+        %title('Method 3')
 
     end
     
@@ -127,6 +132,70 @@ for ii =1:length(nAgents)
     
     
 end
+
+
+
+%% Try to link number of agents and the thresholds
+
+vals = [];
+methLabel =[];
+quantLvl =.05
+for ii =1:3
+    
+aa = perf_meth1(1).RandMat(:,:,ii);
+bb = perf_meth1(1).predAgents(:,:,ii);
+
+agentQuant = quantile(reshape(bb,[],1), quantLvl);
+vals = [vals; aa(find(bb<=agentQuant))];
+methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))];
+
+aa = perf_meth2(1).RandMat(:,:,ii);
+bb = perf_meth2(1).predAgents(:,:,ii);
+
+agentQuant = quantile(reshape(bb,[],1), quantLvl);
+vals = [vals; aa(find(bb<=agentQuant))];
+methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))+1];
+
+
+aa = perf_meth3(1).RandMat(:,:,ii);
+bb = perf_meth3(1).predAgents(:,:,ii);
+
+agentQuant = quantile(reshape(bb,[],1), quantLvl);
+vals = [vals; aa(find(bb<=agentQuant))];
+methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))+2];
+
+
+
+aa = perf_methbaseline(1).RandMat(:,:,ii);
+bb = perf_methbaseline(1).predAgents(:,:,ii);
+
+agentQuant = quantile(reshape(bb,[],1), quantLvl);
+vals = [vals; aa(find(bb<=agentQuant))];
+methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))+3];
+
+end
+
+figure;boxplot(vals, methLabel)
+%%
+
+% 
+% figure; scatter(reshape(bb,[],1), reshape(aa,[],1))
+% randQuant =quantile(reshape(aa,[],1), .9);
+% 
+% highQuantAgents = bb(find(aa>randQuant));
+% hist(highQuantAgents,4)
+% [randIDx, randIDy] = find(aa>randQuant);
+% hist(aa(sub2ind(size(aa), randIDx, randIDy)));
+% hist(bb(sub2ind(size(bb), randIDx, randIDy)));
+% 
+% figure; scatter(aa(sub2ind(size(aa), randIDx, randIDy)), bb(sub2ind(size(bb), randIDx, randIDy)));
+% 
+% 
+% n_agents = reshape(perf_meth2(1).predAgents(randIDx,randIDx,1);
+% 
+% timeVal = TimeThresh(randIDy)
+% simVal = SimThresh(randIDy)
+% scatter(timeVal,simVal)
 
 %% Make Plots
 
