@@ -139,43 +139,65 @@ end
 
 vals = [];
 methLabel =[];
-quantLvl =.05
-for ii =1:3
-    
-aa = perf_meth1(1).RandMat(:,:,ii);
-bb = perf_meth1(1).predAgents(:,:,ii);
+agentsSim =[];
+agentgroupid=[];
+quantLvl1 =0;
+quantLvl2 =.1;
 
-agentQuant = quantile(reshape(bb,[],1), quantLvl);
-vals = [vals; aa(find(bb<=agentQuant))];
-methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))];
+for jj =1:length(perf_meth1)
+    for ii =1:16
+        
+        aa = perf_meth1(jj).RandMat(:,:,ii);
+        bb = perf_meth1(jj).predAgents(:,:,ii);
+        agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
+        valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+        vals = [vals; valsl];
+        methLabel = [methLabel; ones(size(valsl))];
+        agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
+        
+        aa = perf_meth2(jj).RandMat(:,:,ii);
+        bb = perf_meth2(jj).predAgents(:,:,ii);
+        agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
+       valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+        vals = [vals; valsl];
+        methLabel = [methLabel; ones(size(valsl))+1];
+        agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
 
-aa = perf_meth2(1).RandMat(:,:,ii);
-bb = perf_meth2(1).predAgents(:,:,ii);
+        
+        aa = perf_meth3(jj).RandMat(:,:,ii);
+        bb = perf_meth3(jj).predAgents(:,:,ii);
+        agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
+        valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+        vals = [vals; valsl];
+        methLabel = [methLabel; ones(size(valsl))+2];
+        agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
 
-agentQuant = quantile(reshape(bb,[],1), quantLvl);
-vals = [vals; aa(find(bb<=agentQuant))];
-methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))+1];
-
-
-aa = perf_meth3(1).RandMat(:,:,ii);
-bb = perf_meth3(1).predAgents(:,:,ii);
-
-agentQuant = quantile(reshape(bb,[],1), quantLvl);
-vals = [vals; aa(find(bb<=agentQuant))];
-methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))+2];
-
-
-
-aa = perf_methbaseline(1).RandMat(:,:,ii);
-bb = perf_methbaseline(1).predAgents(:,:,ii);
-
-agentQuant = quantile(reshape(bb,[],1), quantLvl);
-vals = [vals; aa(find(bb<=agentQuant))];
-methLabel = [methLabel; ones(size(aa(find(bb<=agentQuant))))+3];
-
+        
+        aa = perf_methbaseline(jj).RandMat(:,:,ii);
+        bb = perf_methbaseline(jj).predAgents(:,:,ii);
+        agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
+       valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+        vals = [vals; valsl];
+        methLabel = [methLabel; ones(size(valsl))+3];
+        agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
+        
+    end
 end
 
-figure;boxplot(vals, methLabel)
+figure; 
+for ii =1:length(perf_meth1)
+    idx = find(agentsSim == nAgents(ii));
+    subplot(2,3,ii);boxplot(vals(idx), methLabel(idx))
+    title([num2str(nAgents(ii)), ' agents in simulation' ])
+    xlabel('Method Number')
+    ylabel('Adjusted Rand Index')
+    ylim([-.15,1.05])
+end
+
+
+
+
+
 %%
 
 % 
