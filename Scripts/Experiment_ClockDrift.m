@@ -57,7 +57,7 @@ hyd_arr =vertcat(hyd_arr{2,:,:});
 % Number of hours the experiment runs and the number of agents included
 n_hrs = 0.75;
 n_agents = 7;
-nRuns = 1;
+nRuns = 100;
 
 % Number of calls included in the analysis
 n_calls = zeros(1, nRuns);
@@ -89,7 +89,7 @@ for ii =1:nRuns
     spaceWhale=[];
     % Create new agents
     [spaceWhale] =  createRandomSpaceWhale(n_hrs,n_agents, hyd_arr,...
-        array_struct,hydrophone_struct, ssp, grid_depth);
+        array_struct,hydrophone_struct, ssp, grid_depth, [5, 1,2]);
     
     % Populate data and parameters
     examp = simulationClass();
