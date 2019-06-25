@@ -47,6 +47,7 @@ classdef simulationClass <handle
         arrivalArray % Arrival times and ID's of each call
         TDOA_vals % TDOA values to feed to the clustering algorithim
         
+        
         projSpace % The projected space of each call probability map- only
         % used when running high-memory version but useful for data
         % exploration and making figures
@@ -177,18 +178,8 @@ classdef simulationClass <handle
             % clustering to the system where all calls in a cluster are
             % classified together
             
-            % Assume any call with a classification threshold above 0.5 is tagged as RW
-            % and any detection classification less than 0.5 is tagged as a humpback
-            
-            %             % If the classification hasn't been applied, apply it
-            %             if isempty(obj.truthAndpreds)
-            %                 createSpeciesPreds(obj);
-            %             end
             createSpeciesPreds(obj);
-            %             if isempty(obj.chains);
-            %                 updateChains(obj)
-            %             end
-            
+
             
             % Pull out for easy reading
             truthAndpreds = obj.truthAndpreds;
@@ -218,73 +209,7 @@ classdef simulationClass <handle
             
             perfStructure = table2struct(truthAndpreds);
             
-            
-%             
-%             % Create the confusion matrix for the unclustered data
-%             tot_mn = sum(truthAndpreds.TrueSpp ==0);
-%             tot_eg = sum(truthAndpreds.TrueSpp ==1);
-%             
-%             
-%             % Proportion of right whale calls correctly classified as mn
-%             Tp_eg = sum((truthAndpreds.Score > 0.5) .* (truthAndpreds.TrueSpp==1));
-%             
-%             % Proportion of right whale calls incorrectly tagged as humpbacks
-%             Fn_eg = sum(truthAndpreds.Score < 0.5 & truthAndpreds.TrueSpp==1);
-%             
-%             
-%             % Proportion of humpback calls correctly classified as humpack
-%             Tp_mn = sum(truthAndpreds.Score < 0.5 & truthAndpreds.TrueSpp==0);
-%             
-%             % Proportion of humpback callsincorrectly tagged as right whale
-%             Fp_mn = sum(truthAndpreds.Score > 0.5 & truthAndpreds.TrueSpp==0);
-%             
-%             
-%             
-%             % Create the confusion matrix for the clustered data. Eh, not a
-%             % lot of effort ahs been put into this portion
-%             
-%             % Proportion of right whale calls correctly classified as humpack
-%             Tp_egc = sum((truthAndpreds.ClusterScore > 1) .* (truthAndpreds.TrueSpp==1));
-%             
-%             % Proportion of right whale calls incorrectly tagged as humpbacks
-%             Fn_egc = sum((truthAndpreds.ClusterScore < (1)) & (truthAndpreds.TrueSpp==1));
-%             
-%             
-%             % Proportion of humpback calls correctly classified as humpack
-%             Tp_mnc = sum((truthAndpreds.ClusterScore < (1)) .* (truthAndpreds.TrueSpp==0));
-%             
-%             % Proportion of humpback callsincorrectly tagged as right whale
-%             Fp_mnc = sum((truthAndpreds.ClusterScore > 1) & (truthAndpreds.TrueSpp==0));
-%             
-%             % Output structure containing the performance metrics for the
-%             % system
-%             perfStructure = struct();
-%             % Percent of calls correctly classified using the unaided
-%             % method
-%             perfStructure.totCorrect = (Tp_mn+Tp_eg)/height(truthAndpreds);
-%             % Percent of calls correctly classified using the clustering
-%             % method
-%             perfStructure.totCorrectClassMeth = (Tp_egc+Tp_mnc)/height(truthAndpreds);
-%             % Number of chains
-%             perfStructure.nChains = length(unique(truthAndpreds.PredClust));
-%             
-%             % Un updated at the moment, bigger fish to fry
-%           
-%             
-%             
-%             perfStructure.tot_eg = tot_eg; % Total simulated sp 1
-%             perfStructure.tot_mn = tot_mn;  % Total simulated sp 2
-%             perfStructure.Tp_eg=Tp_eg/tot_eg; % Percent EG recovered
-%             perfStructure.Fn_eg=Fn_eg/tot_eg; % Percent EG missed
-%             perfStructure.Tp_mn=Tp_mn/tot_mn; % Percent MN recovered
-%             perfStructure.Fp_mn=Fp_mn/tot_mn; % Percent FP missed
-%             
-%             perfStructure.Tp_egclassmeth=Tp_egc/tot_eg;
-%             perfStructure.Fn_egclassmeth=Fn_egc/tot_eg;
-%             perfStructure.Tp_mnclassmeth=Tp_mnc/tot_mn;
-%             perfStructure.Fp_mnclassmeth=Fp_mnc/tot_mn;
-%             
-            
+ 
         end
         
         %% Function for running the experiment with or/without random missclassification (steps 1-4)
@@ -657,8 +582,8 @@ classdef simulationClass <handle
         end
         
         %% Cluster based only on time of arrivals Baseline (step 4)
-        % Baseline clustering against which all others are compared
-        function toaOnlyCluster(obj)
+        
+        function cluster_vals = tempClust(obj)
             
             % Check if the arrival table is present if not update it
             if isempty(obj.arrivalArray)
@@ -669,9 +594,9 @@ classdef simulationClass <handle
             % Look for gaps bigger than the maximum overlap time
             diff_vals = diff(obj.arrivalArray(:,1));
             
-            % Find gaps bigger than the allowable time
-            time_idx = quantile(diff_vals, .95);
-            
+%             % Find gaps bigger than the allowable time
+%             time_idx = quantile(diff_vals, .95);
+%             
             
             %%%%%%%%%%%%%%%%%%%%%%%%
             % For sensitivity analysis
@@ -681,19 +606,27 @@ classdef simulationClass <handle
             idx = [1; find(diff_vals>time_idx)];
             
             
-            cluster_vals= zeros(size(obj.arrivalArray(:,1)));
+            cluster_vals= zeros(size(obj.arrivalArray(:,1)))+length(idx);
             cluster_id =1;
             
-            for ii = 1:length(idx)
+            
+            for ii = 2:length(idx)-1
                 
-                cluster_vals(idx(ii)) = cluster_id;
+                cluster_vals(idx(ii-1):idx(ii)) = cluster_id;
                 cluster_id = cluster_id +1;
                 
             end
             
             
-            obj.Cluster_id = cluster_vals;
+            cluster_vals;
             
+        end
+        
+        
+        %% Baseline clustering against which all others are compared
+        function toaOnlyCluster(obj)
+        
+        obj.Cluster_id = tempClust(obj);
         end
         
         %% Create function to get TDOA values (step 2)
@@ -977,16 +910,60 @@ classdef simulationClass <handle
 
             % Pull out the arrival array for easy reading
             arrival_array = obj.arrivalArray;
+            trueClusters =unique(arrival_array(:,end));
+            
+            % Create smaller clusters based on the cut time
+            timeClusters = tempClust(obj);
+            
+            
+            % Create a dummy varaible for the clusters
+            NewTruth = (arrival_array(:,end));
+            
+            
+            % step through each true cluster and determine if it crosses a
+            % break. If so it gets a new name;
+            nextIdx = max(trueClusters)+1;
+            for trueClust = 1:length(trueClusters)
+                
+                % Indicies of the true cluster
+                idx = find(arrival_array(:,end)== trueClust);
+                
+                % Predicted values based on time only
+                timeClustsub = timeClusters(idx);
+                
+                % List of time clusters
+                timClustList = unique(timeClustsub);
+                
+                % If the true cluster is in two temporal clusters, then
+                % adjust the cluster indexes
+                if length(timClustList)>1
+                
+                    for jj=2: length(timClustList)
+                        
+                        % Index of the origional calls
+                        new_idx = idx(find(timeClustsub== timClustList(jj)));
+                        NewTruth(new_idx) = nextIdx;
+                        nextIdx =nextIdx+1;
+                    
+                    end
+                    
+                end
+
+            end
+            
+            
+            
+            
             
             % If the arrival array isn't empty, grab the adjusted rand idx
             if ~isempty(arrival_array)
                 
                 % Allign the true clusters and the predicted clusters
-                newClusterId = allignclusters(arrival_array(:,end),...
+                newClusterId = allignclusters(NewTruth,...
                     obj.Cluster_id)+1;
                 
                 % Get the adjusted rand (third party)
-                [f,~,~,~] = RandIndex(newClusterId, arrival_array(:,end));
+                [f,~,~,~] = RandIndex(newClusterId, NewTruth);
                 obj.AdjRand = f;
             else
                 % Otherwise, there were too few data to cluster
@@ -1036,7 +1013,7 @@ classdef simulationClass <handle
             end
             
             % Simply create an array with the predicted clusterid
-            Cluster_id = zeros(length(obj.arrivalArray),1);
+            Cluster_id = zeros(length(obj.arrivalArray),1)+length(obj.chains)+1;
             
             % Step through each chain and grab the cluster
             for ii=1:length(obj.chains);
