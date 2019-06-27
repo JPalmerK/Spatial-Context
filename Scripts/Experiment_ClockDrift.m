@@ -56,8 +56,8 @@ hyd_arr =vertcat(hyd_arr{2,:,:});
 
 % Number of hours the experiment runs and the number of agents included
 n_hrs = 0.75;
-n_agents = 7;
-nRuns = 100;
+n_agents = 8;
+nRuns = 200;
 
 % Number of calls included in the analysis
 n_calls = zeros(1, nRuns);
@@ -80,6 +80,14 @@ Meth3_aRandDrift_10 = zeros(1, nRuns);
 Meth4_aRandDrift_10 = zeros(1, nRuns);
 
 
+perf_meth1 = struct;
+perf_meth2 = struct;
+perf_meth3 = struct;
+perf_methbaseline = struct;
+
+
+
+
 for ii =1:nRuns
     disp(num2str(ii))
 
@@ -89,7 +97,7 @@ for ii =1:nRuns
     spaceWhale=[];
     % Create new agents
     [spaceWhale] =  createRandomSpaceWhale(n_hrs,n_agents, hyd_arr,...
-        array_struct,hydrophone_struct, ssp, grid_depth, [5, 1,2]);
+        array_struct,hydrophone_struct, ssp, grid_depth, array_struct.slave([2,3,4]));
     
     % Populate data and parameters
     examp = simulationClass();
@@ -97,19 +105,23 @@ for ii =1:nRuns
     examp.array_struct = array_struct;
     examp.hydrophone_struct = hydrophone_struct;
     examp.spaceWhale= spaceWhale;
-    examp.time_cut = 7*60;
+    examp.time_cut = 120;
     examp.randomMiss =0;
+    examp.child_idx = [2,3,4];
+    examp.SppCorrRate = 3;
+    examp.SppCorrSd= 4.75;
     
     jj =1;
     
     disp(['Run ', num2str(ii), ' exp ',num2str(jj), ' of 12'])
     
     % First method, TDOA only
-    examp.time_cut = 7*60;
-    examp.cutoff =0.95;
+    examp.cutoff =0.5;
     simMatTDOAonly(examp);
     examp.getRand();
     Meth1_aRand(ii)=examp.AdjRand;
+    perf = examp.estClassifierPerf;
+    perf_meth1(ii).ideal = perf;
     
 
     jj =jj+1;
@@ -118,11 +130,12 @@ for ii =1:nRuns
     
     % Third Method, ad hoc
     examp.clearCalcValues();
-    examp.cutoff =0.95;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     simMatadHoc(examp);
     examp.getRand();
     Meth3_aRand(ii)=examp.AdjRand;
+    perf = examp.estClassifierPerf;
+    perf_meth3(ii).ideal = perf;
     
     
    jj =jj+1;
@@ -131,11 +144,12 @@ for ii =1:nRuns
     
     % Second method, ideal
     examp.clearCalcValues();
-    examp.cutoff =0.6;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     simMatIdeal(examp);
     examp.getRand();
     Meth2_aRand(ii)= examp.AdjRand;
+    perf = examp.estClassifierPerf;
+    perf_meth2(ii).ideal = perf;
     
     
     % Fourth model Baseline
@@ -143,6 +157,8 @@ for ii =1:nRuns
     toaOnlyCluster(examp);
     examp.getRand();
     Meth4_aRand(ii)= examp.AdjRand;
+    perf = examp.estClassifierPerf;
+    perf_methbaseline.ideal = perf;
 
     %%%%%%%%%%%% Slight Drift Present %%%%%%%%%%%%%%%
     
@@ -159,40 +175,45 @@ for ii =1:nRuns
     
     % First method, TDOA only
     examp.clearCalcValues();
-    examp.cutoff =0.95;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     simMatTDOAonly(examp);
     examp.getRand();
     Meth1_aRandDrift_2(ii)=examp.AdjRand;
+    perf = examp.estClassifierPerf;
+    perf_meth1(ii).drift4 = perf;
     
     jj =jj+1;
     disp(['Run ', num2str(ii), ' exp ',num2str(jj) , ' of 12'])
     
     % Third Method, ad hoc
     examp.clearCalcValues();
-    examp.cutoff =0.95;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     simMatadHoc(examp);
     examp.getRand();
     Meth3_aRandDrift_2(ii)=examp.AdjRand;
-
+    perf = examp.estClassifierPerf;
+    perf_meth3(ii).drift4 = perf;
+    
+    
     jj =jj+1;
     disp(['Run ', num2str(ii), ' exp ',num2str(jj) , ' of 12'])
     
     % Second method, ideal
     examp.clearCalcValues();
-    examp.cutoff =0.6;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     simMatIdeal(examp);
     examp.getRand();
     Meth2_aRandDrift_2(ii)= examp.AdjRand;  
+    perf = examp.estClassifierPerf;
+    perf_meth2(ii).drift4 = perf;
     
     % Fourth model Baseline
     examp.clearCalcValues();
     toaOnlyCluster(examp);
     examp.getRand();
     Meth4_aRandDrift_2(ii)= examp.AdjRand; 
-    
+    perf = examp.estClassifierPerf;
+    perf_methbaseline.drift4 = perf;   
     
     %%%%%%%%%% Severe Drift Present %%%%%%%%%%%%%%%
      
@@ -206,32 +227,35 @@ for ii =1:nRuns
     
     % First method, TDOA only
     simMatTDOAonly(examp);
-    examp.cutoff =0.95;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     examp.getRand();
     Meth1_aRandDrift_10(ii)=examp.AdjRand;
+    perf = examp.estClassifierPerf;
+    perf_meth1(ii).drift10 = perf;
     
     jj =jj+1;
     disp(['Run ', num2str(ii), ' exp ',num2str(jj) , ' of 12'])
     
     % Third Method, ad hoc
     examp.clearCalcValues();
-    examp.cutoff =0.95;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     simMatadHoc(examp);
     examp.getRand();
     Meth3_aRandDrift_10(ii)=examp.AdjRand;
+    perf = examp.estClassifierPerf;
+    perf_meth3(ii).drift10 = perf;
     
     jj =jj+1;
     disp(['Run ', num2str(ii), ' exp ',num2str(jj) , ' of 12'])
     
     % Second method, ideal
     examp.clearCalcValues();
-    examp.cutoff =0.6;
-    examp.time_cut = 7*60;
+    examp.cutoff =0.5;
     simMatIdeal(examp);
     examp.getRand();
     Meth2_aRandDrift_10(ii)= examp.AdjRand;    
+    perf = examp.estClassifierPerf;
+    perf_meth2(ii).drift10 = perf;
     
     % Fourth model Baseline
     examp.clearCalcValues();
@@ -245,24 +269,23 @@ end
 
 %%
 
-edges = 0.5:.05:.9;
-
-
+edges = 0:.1:.9;
 h1 = histcounts(Meth1_aRand,edges,  'Normalization', 'probability');
 h2 = histcounts(Meth2_aRand,edges, 'Normalization', 'probability');
 h3 = histcounts(Meth3_aRand,edges, 'Normalization', 'probability');
 h10 = histcounts(Meth4_aRand,edges, 'Normalization', 'probability');
 
-h4 = histcounts(Meth1_aRandDrift_2,edges, 'Normalization', 'probability');
-h5 = histcounts(Meth2_aRandDrift_2,edges, 'Normalization', 'probability');
-h6 = histcounts(Meth3_aRandDrift_2,edges, 'Normalization', 'probability');
-h11 = histcounts(Meth4_aRandDrift_2,edges, 'Normalization', 'probability');
+edges1 = 0:.05:.4
+h4 = histcounts(Meth1_aRandDrift_2,edges1, 'Normalization', 'probability');
+h5 = histcounts(Meth2_aRandDrift_2,edges1, 'Normalization', 'probability');
+h6 = histcounts(Meth3_aRandDrift_2,edges1, 'Normalization', 'probability');
+h11 = histcounts(Meth4_aRandDrift_2,edges1, 'Normalization', 'probability');
 
 
-h7 = histcounts(Meth1_aRandDrift_10,edges, 'Normalization', 'probability');
-h8 = histcounts(Meth2_aRandDrift_10,edges, 'Normalization', 'probability');
-h9 = histcounts(Meth3_aRandDrift_10,edges, 'Normalization', 'probability');
-h12 = histcounts(Meth4_aRandDrift_10,edges, 'Normalization', 'probability');
+h7 = histcounts(Meth1_aRandDrift_10,edges1, 'Normalization', 'probability');
+h8 = histcounts(Meth2_aRandDrift_10,edges1, 'Normalization', 'probability');
+h9 = histcounts(Meth3_aRandDrift_10,edges1, 'Normalization', 'probability');
+h12 = histcounts(Meth4_aRandDrift_10,edges1, 'Normalization', 'probability');
 
 
 cmap = parula(4);
@@ -280,7 +303,7 @@ title('Perfect Association')
 legend('TDOA Only','AdHoc', 'Idealized Spatial Model', 'Baseline', 'Location','best')
 
 subplot(3,1,2)
-b = bar(edges(2:end),[h4; h5; h6; h11]', 'FaceColor','flat')
+b = bar(edges1(2:end),[h4; h5; h6; h11]', 'FaceColor','flat')
 for k = 1:4
     b(k).CData = k;
 end
@@ -291,17 +314,18 @@ title('Random Association 4 Sec')
 
 
 subplot(3,1,3)
-b = bar(edges(2:end),[h7; h8; h9; h12]', 'FaceColor','flat')
+b = bar(edges1(2:end),[h7; h8; h9; h12]', 'FaceColor','flat')
 for k = 1:4
     b(k).CData = k;
 end
-ylim([0 .6])
 xlabel('Percent of Calls Correctly Classified')
 ylabel('Proportion of Runs')
 title('Random Association 60 Sec')
 xlabel('Adjusted Rand Index')
 legend('TDOA Only','AdHoc', 'Idealized Spatial Model', 'Baseline','Location','best')
+ylim([0 .6])
 
+figure;
 subplot(3,1,2)
 hold on
 scatter(n_calls, Meth1_aRand, '.') 

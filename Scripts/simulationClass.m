@@ -96,86 +96,86 @@ classdef simulationClass <handle
             
             truthAndpreds = obj.truthAndpreds;
             
-
-                % Stick the real id's next to the predicted clusters
-                truthAndpreds =[obj.arrivalArray(:,end) obj.Cluster_id];
-                truthAndpreds(:,3)=0; % True class
-                truthAndpreds(:,4)=0; % Score
-                truthAndpreds(:,5)=0; % Prediction after applying likelihood ratio
+            
+            % Stick the real id's next to the predicted clusters
+            truthAndpreds =[obj.arrivalArray(:,end) obj.Cluster_id];
+            truthAndpreds(:,3)=0; % True class
+            truthAndpreds(:,4)=0; % Score
+            truthAndpreds(:,5)=0; % Prediction after applying likelihood ratio
+            
+            truthAndpreds= array2table(truthAndpreds, 'VariableNames',...
+                {'TrueClust','PredClust', 'TrueSpp', 'Score',...
+                'ClusterScore'});
+            
+            
+            % Mean
+            rw_mean = obj.SppCorrRate;
+            rw_sd = obj.SppCorrSd;
+            
+            % For each detected agent, assign a species and classification
+            % probability
+            agent_idxs =unique(truthAndpreds.TrueClust);
+            
+            for ii =1:length(agent_idxs)
                 
-                truthAndpreds= array2table(truthAndpreds, 'VariableNames',...
-                    {'TrueClust','PredClust', 'TrueSpp', 'Score',...
-                    'ClusterScore'});
+                % Agent id
+                agent_id =agent_idxs(ii);
                 
-                
-                % Mean
-                rw_mean = obj.SppCorrRate;
-                rw_sd = obj.SppCorrSd;
-                
-                % For each detected agent, assign a species and classification
-                % probability
-                agent_idxs =unique(truthAndpreds.TrueClust);
-                
-                for ii =1:length(agent_idxs)
+                % If it's odd it's definitely a humpback
+                if mod(agent_id,2)
                     
-                    % Agent id
-                    agent_id =agent_idxs(ii);
+                    % Get the indicies of the calls of that individual
+                    rw_idx = find(truthAndpreds.TrueClust == agent_id);
                     
-                    % If it's odd it's definitely a humpback
-                    if mod(agent_id,2)
-                        
-                        % Get the indicies of the calls of that individual
-                        rw_idx = find(truthAndpreds.TrueClust == agent_id);
-                        
-                        % Pull from distribution to estimate classificaiton probability
-                        
-                        scoreraw =  rw_sd.*randn(length(rw_idx),1) + rw_mean;
-                        
-                        % Transform so that it's between 0 and 1
-                        score = 1./(1+exp(-scoreraw)); % logit (or inverse logit)
-                        
-                        %                     % For Marie
-                        %                     x = -10:.1:10;
-                        %                     y = 1./(1+exp(-x))
-                        %                     figure; plot(x, y); xlabel('Raw Score');
-                        %                     hold on; scatter(scoreraw, score, '*r');
-                        %                     ylabel('Transformed Score');
-                        
-                        % Update the species (binary) and the classifier
-                        % predication score
-                        truthAndpreds.TrueSpp(rw_idx) =1; %yes target spp.!
-                        truthAndpreds.Score(rw_idx) = score';
-                        
-                        
-                    else
-                        
-                        
-                        % Same as above, only other species
-                        
-                        % Get the indicies of the calls of that individual
-                        mn_idx = find(truthAndpreds.TrueClust == agent_id);
-                        scoreraw =  rw_sd.*randn(length(mn_idx),1) + rw_mean;
-                        
-                        % Transform so that it's between 0 and 1
-                        score = 1.-(1./(1+exp(-scoreraw))); % logit (or inverse logit)
-                        
-                        % Update the species (binary) and the classifier
-                        % predication score
-                        truthAndpreds.TrueSpp(mn_idx) = 0; % No! Not target spp.
-                        truthAndpreds.Score(mn_idx) = score';
-                        
-                    end
+                    % Pull from distribution to estimate classificaiton probability
+                    
+                    scoreraw =  rw_sd.*randn(length(rw_idx),1) + rw_mean;
+                    
+                    % Transform so that it's between 0 and 1
+                    score = 1./(1+exp(-scoreraw)); % logit (or inverse logit)
+                    
+                    %                     % For Marie
+                    %                     x = -10:.1:10;
+                    %                     y = 1./(1+exp(-x))
+                    %                     figure; plot(x, y); xlabel('Raw Score');
+                    %                     hold on; scatter(scoreraw, score, '*r');
+                    %                     ylabel('Transformed Score');
+                    
+                    % Update the species (binary) and the classifier
+                    % predication score
+                    truthAndpreds.TrueSpp(rw_idx) =1; %yes target spp.!
+                    truthAndpreds.Score(rw_idx) = score';
                     
                     
+                else
+                    
+                    
+                    % Same as above, only other species
+                    
+                    % Get the indicies of the calls of that individual
+                    mn_idx = find(truthAndpreds.TrueClust == agent_id);
+                    scoreraw =  rw_sd.*randn(length(mn_idx),1) + rw_mean;
+                    
+                    % Transform so that it's between 0 and 1
+                    score = 1.-(1./(1+exp(-scoreraw))); % logit (or inverse logit)
+                    
+                    % Update the species (binary) and the classifier
+                    % predication score
+                    truthAndpreds.TrueSpp(mn_idx) = 0; % No! Not target spp.
+                    truthAndpreds.Score(mn_idx) = score';
                     
                 end
-
+                
+                
+                
+            end
             
-        
-        % Update the object with the new table
-        obj.truthAndpreds =truthAndpreds;
-        
-    end
+            
+            
+            % Update the object with the new table
+            obj.truthAndpreds =truthAndpreds;
+            
+        end
         
         %% Function for applying simulated detector/classifier
         function perfStructure = estClassifierPerf(obj)
@@ -1353,8 +1353,6 @@ classdef simulationClass <handle
             
             TimeColorVals = parula(obj.spaceWhale.param_sim.dur+2);
             ColorVals = lines( max([length(obj.spaceWhale.agent), max(obj.Cluster_id)]));
-            
-            
             child_hyds = obj.array_struct.slave(obj.child_idx-1)
             
             
@@ -1369,23 +1367,27 @@ classdef simulationClass <handle
             scatter(hyd_table.location(:,2),...
                 hyd_table.location(:,1), 80,...
                 'k', 'filled', 'd')
-            scatter(hyd_table.location([obj.array_struct.master,...
-                obj.child_idx],2),...
-                hyd_table.location([obj.array_struct.master,...
-                obj.child_idx],1), 80, 'r', 'filled', 'd')
+            scatter(...
+                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],2),...
+                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],1),...
+                'r', 'filled', 'd')
             
             title('TOA on Parent')
             
             subplot(3,1,1)
             
             hold on
-            scatter(obj.arrivalArray(:,end-1), obj.arrivalArray(:,end-2),[],...
-                [TimeColorVals(round(obj.arrivalArray(:,1)),:)], 'f')
+            scatter(obj.arrivalArray(:,end-1),...
+                obj.arrivalArray(:,end-2),[],...
+                [TimeColorVals(round(obj.arrivalArray(:,1)),:)],...
+                'f')
+            
             scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
-            scatter(hyd_table.location([obj.array_struct.master,...
-                obj.child_idx],2),...
-                hyd_table.location([obj.array_struct.master,...
-                obj.child_idx],1), 80, 'r', 'filled', 'd')
+            scatter(...
+                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],2),...
+                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],1),...
+                'r', 'filled', 'd')
+            
             colorbar
             title('True Cluster')
             
@@ -1399,11 +1401,10 @@ classdef simulationClass <handle
                 scatter(hyd_table.location(:,2), hyd_table.location(:,1),...
                     80, 'k', 'filled', 'd')
                 
-            scatter(hyd_table.location([obj.array_struct.master,...
-                obj.child_idx],2),...
-                hyd_table.location([obj.array_struct.master,...
-                obj.child_idx],1), 80, 'r', 'filled', 'd')
-                
+                scatter(...
+                    hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],2),...
+                    hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],1),...
+                    'r', 'filled', 'd')
                 
                 titlestr = [obj.titleStr, ' Expected Clusters'];
                 title(titlestr)
