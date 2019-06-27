@@ -82,11 +82,11 @@ for ii =1:length(nAgents)
         examp.randomMiss =0;
         examp.UpdateArrArray()
         
+        
         %% First method, baseline
         examp.clearCalcValues();
         examp.time_cut = max(TimeThresh);
         toaOnlyCluster(examp);
-        
         [senMat nAgePreds] = runSensitivtyLp(examp,TimeThresh);
         perf_methbaseline(ii).RandMat = cat(3, perf_methbaseline(ii).RandMat, senMat);
         perf_methbaseline(ii).predAgents = cat(3, perf_methbaseline(ii).predAgents, nAgePreds);
@@ -98,7 +98,6 @@ for ii =1:length(nAgents)
         
         % First method, TDOA only
         examp.clearCalcValues();
-        examp.time_cut = max(TimeThresh);
         simMatTDOAonly(examp);
         [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
         
@@ -110,7 +109,6 @@ for ii =1:length(nAgents)
         %title('Method 1')
         %% Thrid method, ideal localization
         examp.clearCalcValues();
-        examp.time_cut = max(TimeThresh);
         simMatIdeal(examp);
         [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
         %figure; imagesc(senMat); colorbar
@@ -120,7 +118,6 @@ for ii =1:length(nAgents)
         %title('Method 2')
         %% Fourth method, ad hoc
         examp.clearCalcValues();
-        examp.time_cut = max(TimeThresh);
         simMatadHoc(examp);
         [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
         %figure; imagesc(senMat); colorbar
