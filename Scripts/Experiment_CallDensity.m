@@ -38,7 +38,7 @@ grid_depth = localize_struct.parm.grid_depth;
 % Method 4/Baseline - TOA only
 
 
-nRuns = 10;
+nRuns = 5;
 nAgents = round(linspace(3,11,5));
 
 % Thresholds fo rthe snesitivty analysis
@@ -84,11 +84,14 @@ for ii =1:length(nAgents)
         
         %% First method, baseline
         examp.clearCalcValues();
+        examp.time_cut = max(TimeThresh);
+        toaOnlyCluster(examp);
+        
         [senMat nAgePreds] = runSensitivtyLp(examp,TimeThresh);
         perf_methbaseline(ii).RandMat = cat(3, perf_methbaseline(ii).RandMat, senMat);
         perf_methbaseline(ii).predAgents = cat(3, perf_methbaseline(ii).predAgents, nAgePreds);
         %figure; scatter(nAgents, senMat);
-        title('baseline')
+        %title('baseline')
         
         
         %% Second method, TDOA only        
@@ -142,15 +145,15 @@ methLabel =[];
 agentsSim =[];
 agentgroupid=[];
 quantLvl1 =0;
-quantLvl2 =.1;
+quantLvl2 =1;
 
-for jj =1:length(perf_meth1)
-    for ii =1:184
+for jj =1:5
+    for ii =1:5
         
         aa = perf_meth1(jj).RandMat(:,:,ii);
         bb = perf_meth1(jj).predAgents(:,:,ii);
         agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
-        valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+        valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2) & bb>1));
         vals = [vals; valsl];
         methLabel = [methLabel; ones(size(valsl))];
         agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
@@ -158,7 +161,7 @@ for jj =1:length(perf_meth1)
         aa = perf_meth2(jj).RandMat(:,:,ii);
         bb = perf_meth2(jj).predAgents(:,:,ii);
         agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
-       valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+       valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2) & bb>1));
         vals = [vals; valsl];
         methLabel = [methLabel; ones(size(valsl))+1];
         agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
@@ -167,7 +170,7 @@ for jj =1:length(perf_meth1)
         aa = perf_meth3(jj).RandMat(:,:,ii);
         bb = perf_meth3(jj).predAgents(:,:,ii);
         agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
-        valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+        valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2) & bb>1));
         vals = [vals; valsl];
         methLabel = [methLabel; ones(size(valsl))+2];
         agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
@@ -176,7 +179,7 @@ for jj =1:length(perf_meth1)
         aa = perf_methbaseline(jj).RandMat(:,:,ii);
         bb = perf_methbaseline(jj).predAgents(:,:,ii);
         agentQuant = quantile(reshape(bb,[],1), [quantLvl1, quantLvl2]);
-       valsl =aa(find(bb>=agentQuant(1) & bb<= agentQuant(2)));
+        valsl =aa(find( bb>1));
         vals = [vals; valsl];
         methLabel = [methLabel; ones(size(valsl))+3];
         agentsSim = [agentsSim; ones(size(valsl))*nAgents(jj)];
@@ -229,7 +232,7 @@ plot(TimeThresh/60,(squeeze(nanmedian(perf_methbaseline(ii).RandMat,3))))
 xlabel('Time Threshold (min)')
 ylabel('Adjusted Ran Index')
 title('Baseline')
-ylim([-.05 .1])
+ylim([-.05 1])
 
 
 subplot(2,2,2)

@@ -94,83 +94,88 @@ classdef simulationClass <handle
                 updateClusterID(obj);
             end
             
-            % Stick the real id's next to the predicted clusters
-            truthAndpreds =[obj.arrivalArray(:,end) obj.Cluster_id];
-            truthAndpreds(:,3)=0; % True class
-            truthAndpreds(:,4)=0; % Score
-            truthAndpreds(:,5)=0; % Prediction after applying likelihood ratio
+            truthAndpreds = obj.truthAndpreds;
             
-            truthAndpreds= array2table(truthAndpreds, 'VariableNames',...
-                {'TrueClust','PredClust', 'TrueSpp', 'Score',...
-                'ClusterScore'});
-            
-            % Mean
-            rw_mean = obj.SppCorrRate;
-            rw_sd = obj.SppCorrSd;
-            
-            % For each detected agent, assign a species and classification
-            % probability
-            agent_idxs =unique(truthAndpreds.PredClust);
-            
-            for ii =1:length(agent_idxs)
+
+                % Stick the real id's next to the predicted clusters
+                truthAndpreds =[obj.arrivalArray(:,end) obj.Cluster_id];
+                truthAndpreds(:,3)=0; % True class
+                truthAndpreds(:,4)=0; % Score
+                truthAndpreds(:,5)=0; % Prediction after applying likelihood ratio
                 
-                % Agent id
-                agent_id =agent_idxs(ii);
+                truthAndpreds= array2table(truthAndpreds, 'VariableNames',...
+                    {'TrueClust','PredClust', 'TrueSpp', 'Score',...
+                    'ClusterScore'});
                 
-                % If it's odd it's definitely a humpback
-                if mod(agent_id,2)
+                
+                % Mean
+                rw_mean = obj.SppCorrRate;
+                rw_sd = obj.SppCorrSd;
+                
+                % For each detected agent, assign a species and classification
+                % probability
+                agent_idxs =unique(truthAndpreds.TrueClust);
+                
+                for ii =1:length(agent_idxs)
                     
-                    % Get the indicies of the calls of that individual
-                    rw_idx = find(truthAndpreds.PredClust == agent_id);
+                    % Agent id
+                    agent_id =agent_idxs(ii);
                     
-                    % Pull from distribution to estimate classificaiton probability
+                    % If it's odd it's definitely a humpback
+                    if mod(agent_id,2)
+                        
+                        % Get the indicies of the calls of that individual
+                        rw_idx = find(truthAndpreds.TrueClust == agent_id);
+                        
+                        % Pull from distribution to estimate classificaiton probability
+                        
+                        scoreraw =  rw_sd.*randn(length(rw_idx),1) + rw_mean;
+                        
+                        % Transform so that it's between 0 and 1
+                        score = 1./(1+exp(-scoreraw)); % logit (or inverse logit)
+                        
+                        %                     % For Marie
+                        %                     x = -10:.1:10;
+                        %                     y = 1./(1+exp(-x))
+                        %                     figure; plot(x, y); xlabel('Raw Score');
+                        %                     hold on; scatter(scoreraw, score, '*r');
+                        %                     ylabel('Transformed Score');
+                        
+                        % Update the species (binary) and the classifier
+                        % predication score
+                        truthAndpreds.TrueSpp(rw_idx) =1; %yes target spp.!
+                        truthAndpreds.Score(rw_idx) = score';
+                        
+                        
+                    else
+                        
+                        
+                        % Same as above, only other species
+                        
+                        % Get the indicies of the calls of that individual
+                        mn_idx = find(truthAndpreds.TrueClust == agent_id);
+                        scoreraw =  rw_sd.*randn(length(mn_idx),1) + rw_mean;
+                        
+                        % Transform so that it's between 0 and 1
+                        score = 1.-(1./(1+exp(-scoreraw))); % logit (or inverse logit)
+                        
+                        % Update the species (binary) and the classifier
+                        % predication score
+                        truthAndpreds.TrueSpp(mn_idx) = 0; % No! Not target spp.
+                        truthAndpreds.Score(mn_idx) = score';
+                        
+                    end
                     
-                    scoreraw =  rw_sd.*randn(length(rw_idx),1) + rw_mean;
                     
-                    % Transform so that it's between 0 and 1
-                    score = 1./(1+exp(-scoreraw)); % logit (or inverse logit)
-                    
-                    %                     % For Marie
-                    %                     x = -10:.1:10;
-                    %                     y = 1./(1+exp(-x))
-                    %                     figure; plot(x, y); xlabel('Raw Score');
-                    %                     hold on; scatter(scoreraw, score, '*r');
-                    %                     ylabel('Transformed Score');
-                    
-                    % Update the species (binary) and the classifier
-                    % predication score
-                    truthAndpreds.TrueSpp(rw_idx) =1; %yes target spp.!
-                    truthAndpreds.Score(rw_idx) = score';
-                    
-                    
-                else
-                    
-                    
-                    % Same as above, only other species
-                    
-                    % Get the indicies of the calls of that individual
-                    mn_idx = find(truthAndpreds.PredClust == agent_id);
-                    scoreraw =  rw_sd.*randn(length(mn_idx),1) + rw_mean;
-                    
-                    % Transform so that it's between 0 and 1
-                    score = 1.-(1./(1+exp(-scoreraw))); % logit (or inverse logit)
-                    
-                    % Update the species (binary) and the classifier
-                    % predication score
-                    
-                    truthAndpreds.TrueSpp(mn_idx) = 0; % No! Not target spp.
-                    truthAndpreds.Score(mn_idx) = score';
                     
                 end
-                
-                
-                
-            end
+
             
-            % Update the object with the new table
-            obj.truthAndpreds =truthAndpreds;
-            
-        end
+        
+        % Update the object with the new table
+        obj.truthAndpreds =truthAndpreds;
+        
+    end
         
         %% Function for applying simulated detector/classifier
         function perfStructure = estClassifierPerf(obj)
@@ -179,7 +184,7 @@ classdef simulationClass <handle
             % classified together
             
             createSpeciesPreds(obj);
-
+            
             
             % Pull out for easy reading
             truthAndpreds = obj.truthAndpreds;
@@ -206,10 +211,10 @@ classdef simulationClass <handle
                 
             end
             
-            
+            obj.truthAndpreds = truthAndpreds;
             perfStructure = table2struct(truthAndpreds);
             
- 
+            
         end
         
         %% Function for running the experiment with or/without random missclassification (steps 1-4)
@@ -362,16 +367,16 @@ classdef simulationClass <handle
             end
             obj.Sim_mat= Sim_mat;
             
-%             % Plot of the similarity matrix for good meausre
-%             figure;
-%             h =pcolor(Sim_mat);
-%             set(h, 'EdgeColor', 'none');
-%             set (gca, 'ydir', 'reverse' )
-%             colormap(jet);
-%             colorbar
-%             title('Call Space Similarity Ideal')
-%             xlabel('Call ID')
-%             ylabel('Call ID')
+            %             % Plot of the similarity matrix for good meausre
+            %             figure;
+            %             h =pcolor(Sim_mat);
+            %             set(h, 'EdgeColor', 'none');
+            %             set (gca, 'ydir', 'reverse' )
+            %             colormap(jet);
+            %             colorbar
+            %             title('Call Space Similarity Ideal')
+            %             xlabel('Call ID')
+            %             ylabel('Call ID')
             
             
             
@@ -383,80 +388,78 @@ classdef simulationClass <handle
                 disp(['Updating TDOA values'])
                 UpdateTDOA(obj);
             end
-             obj.titleStr ='Call Space Similarity TDOA Only';
+            obj.titleStr ='Call Space Similarity TDOA Only';
             % Create the empty similarity matrix
             Sim_mat = zeros(length(obj.arrivalArray(:,end)))/0;
             
-            % Step through each call in the dataset and calculate the tdoa
-            % values
             for ii =1:(length(obj.arrivalArray)-1)
                 
-                % For each call get the time gaps of the additional calls
-                % that fall within the maximum elapsed time. Use the
-                % maximum delta TDOA as the association value
                 
-                % Current TDOA values
-                tdoa = obj.TDOA_vals(ii,(obj.child_idx)-1);
-                tdoa =tdoa(~isnan(tdoa));
+                tdoa_orig = obj.TDOA_vals(ii,:);
                 
-                % Get later TDOA values for all later calls
-                time_gaps = obj.arrivalArray(ii:end, 1)-...
-                    obj.arrivalArray(ii, 1);
-                time_gaps_idx = find(time_gaps<=obj.time_cut);
-                time_gaps = time_gaps(time_gaps_idx);
                 
-                % Get the TDOA values for the calls within the temporal cutoff
-                % threshold
-                next_tdoa_vals = obj.TDOA_vals(time_gaps_idx +ii-1,:);
+                % index of good tdoa vals
+                
+                
+                % index of all calls within the elapsed time
+                nextTimes = obj.arrivalArray(ii:end,1);
+                time_diffs =  nextTimes- obj.arrivalArray(ii,1);
+                
+                % index/trim diff times greater than the maximum elapsed time
+                okDiffsIdx = find(time_diffs<= obj.time_cut);
+                time_diffs = time_diffs(okDiffsIdx);
+                
+                % Get the TDOA values
+                TDOA_next = obj.TDOA_vals((ii+okDiffsIdx-1),:);
+                
+                
+                
+                % For each hydrophone pair calculate likelihood values
                 deltaTDOALklhd =[];
                 
-                for jj =1:length(tdoa)
+                
+                for jj=1:size(TDOA_next,2)
                     
-                    for kk =1:length(obj.child_idx)
-                        
-                        % Project the TDOA values based on the elapsed time
-                        mu = zeros(length(next_tdoa_vals),1);
-                        sigmaSwim = sqrt((time_gaps * (2*obj.s)/obj.c).^2);
-                        x =sqrt(tdoa(jj) - next_tdoa_vals(:,kk)).^2; %values
-                        
-                        likelihood = normpdf(x,mu,sigmaSwim);
-                        
-                        % Normalizing factor
-                        LikelihoodNormFac= normpdf(0,0,sigmaSwim);
-                        NormLikelihood = likelihood./LikelihoodNormFac;
-                        
-                        % Normalized likelihood
-                        deltaTDOALklhd = [deltaTDOALklhd, NormLikelihood]; % sigma
-                        % Create normalizing factor
-                    end
+                    mu = zeros(length(time_diffs),1);
+                    sigmaSwim = sqrt((time_diffs * (obj.s)/obj.c).^2);
+                    x =(tdoa_orig(jj) - TDOA_next(:,jj)); %values
+                    
+                    likelihood = normpdf(x,mu,sigmaSwim);
+                    
+                    % Normalizing factor
+                    LikelihoodNormFac= normpdf(0,0,sigmaSwim);
+                    NormLikelihood = likelihood./LikelihoodNormFac;
+                    
+                    
+                    % Normalized likelihood
+                    deltaTDOALklhd = [deltaTDOALklhd, NormLikelihood]; % sigma
+                    % Create normalizing factor
+                    
                     
                 end
                 
                 simValues = nanmin(deltaTDOALklhd,[],2);
-                simValues(1)=1;
-                
                 
                 % Take the minimum value and fill in the similarity matrix
-                
+                Sim_mat(ii,ii) = 1;
                 Sim_mat(ii, ii:ii+length(simValues)-1) = simValues;
                 Sim_mat(ii:ii+length(simValues)-1,ii) = simValues;
             end
             
             obj.Sim_mat= Sim_mat;
+            %             % Plot of the similarity matrix for good meausre
+            %             figure;
+            %             h =pcolor(Sim_mat);
+            %             set(h, 'EdgeColor', 'none');
+            %             set (gca, 'ydir', 'reverse' )
+            %             colormap(jet);
+            %             colorbar
+            %             title('Call Space Similarity TDOA Only')
+            %             xlabel('Call ID')
+            %             ylabel('Call ID')
             
-%             % Plot of the similarity matrix for good meausre
-%             figure;
-%             h =pcolor(Sim_mat);
-%             set(h, 'EdgeColor', 'none');
-%             set (gca, 'ydir', 'reverse' )
-%             colormap(jet);
-%             colorbar
-%             title('Call Space Similarity TDOA Only')
-%             xlabel('Call ID')
-%             ylabel('Call ID')
             
             
-           
         end
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatadHoc(obj)
@@ -488,7 +491,7 @@ classdef simulationClass <handle
                 
                 % Get the average prob loc space of the i-th call
                 averageLklhd_space = getAvLkHdSpace(obj, ii); % need to rename this fx...
-            
+                
                 if length(size(averageLklhd_space))>1
                     
                     % sum along third axis, will be normalized later
@@ -511,7 +514,7 @@ classdef simulationClass <handle
                     % suggestion
                     % sigma (error) valuse from the normal distribution
                     
-                    swimSigma =  (time_gaps * (2*(obj.s)/obj.c));
+                    swimSigma =  (time_gaps * ((obj.s)/obj.c));
                     
                     % Total sigma error (standard deviation) five input
                     % variables (four from position uncertainty plus sigma
@@ -535,16 +538,16 @@ classdef simulationClass <handle
                         
                         % Get the prob. loc space space of the next call in
                         % the series and normalize
-%                         
+                        %
                         sigma = sqrt(obj.PosUncertsigma);
                         nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sigma);
                         
                         
-%                         
-%                         close all; figure(1); subplot(2,1,1); 
-%                         imagesc(nextLklhdSpace); colorbar; 
-%                         subplot(2,1,2); imagesc(Lklhd_space_proj); colorbar
-            
+                        %
+                        %                         close all; figure(1); subplot(2,1,1);
+                        %                         imagesc(nextLklhdSpace); colorbar;
+                        %                         subplot(2,1,2); imagesc(Lklhd_space_proj); colorbar
+                        
                         % Get the comparison value of the projected prob
                         % loc space and the next call in the squence
                         simValue = compareLklhdSpace(obj, Lklhd_space_proj,...
@@ -565,19 +568,19 @@ classdef simulationClass <handle
             end
             obj.Sim_mat= Sim_mat;
             
-%             % Plot of the similarity matrix for good meausre
-%             figure;
-%             [nr,nc] = size(Sim_mat);
-%             h =pcolor(flipud((Sim_mat)));
-%             set(h, 'EdgeColor', 'none');
-%             ax = gca;
-%             ax.YTickLabel = flipud(ax.YTickLabel)
-%             colormap(jet);
-%             colorbar
-%             title('Call Space Similarity adHoc')
-%             xlabel('Call ID')
-%             ylabel('Call ID')
-%             
+            %             % Plot of the similarity matrix for good meausre
+            %             figure;
+            %             [nr,nc] = size(Sim_mat);
+            %             h =pcolor(flipud((Sim_mat)));
+            %             set(h, 'EdgeColor', 'none');
+            %             ax = gca;
+            %             ax.YTickLabel = flipud(ax.YTickLabel)
+            %             colormap(jet);
+            %             colorbar
+            %             title('Call Space Similarity adHoc')
+            %             xlabel('Call ID')
+            %             ylabel('Call ID')
+            %
             
         end
         
@@ -594,9 +597,9 @@ classdef simulationClass <handle
             % Look for gaps bigger than the maximum overlap time
             diff_vals = diff(obj.arrivalArray(:,1));
             
-%             % Find gaps bigger than the allowable time
-%             time_idx = quantile(diff_vals, .95);
-%             
+            %             % Find gaps bigger than the allowable time
+            %             time_idx = quantile(diff_vals, .95);
+            %
             
             %%%%%%%%%%%%%%%%%%%%%%%%
             % For sensitivity analysis
@@ -619,14 +622,15 @@ classdef simulationClass <handle
             
             
             cluster_vals;
+            obj.titleStr = 'Baseline - toa Only';
             
         end
         
         
         %% Baseline clustering against which all others are compared
         function toaOnlyCluster(obj)
-        
-        obj.Cluster_id = tempClust(obj);
+            
+            obj.Cluster_id = tempClust(obj);
         end
         
         %% Create function to get TDOA values (step 2)
@@ -644,7 +648,7 @@ classdef simulationClass <handle
             % Time difference of arrivals (can only handle two atm)
             for jj =1:length(obj.child_idx)
                 TDOA_vals = [TDOA_vals, obj.arrivalArray(:, 1)- ...
-                    obj.arrivalArray(:, obj.child_idx(jj))];
+                    obj.arrivalArray(:, jj+1)];
             end
             obj.TDOA_vals = TDOA_vals;
         end
@@ -669,7 +673,7 @@ classdef simulationClass <handle
                 obj.arrivalTable.Location ...
                 obj.arrivalTable.ID];
             
-
+            
             % Remove calls that weren't detected on the parent hydrophone
             array = array(~isnan(array(:,1)),:);
             
@@ -830,7 +834,6 @@ classdef simulationClass <handle
             obj.arrivalArray =[];
             obj.chains =[];
             obj.AdjRand=[];
-            obj.truthAndpreds =[];
             
             
         end
@@ -866,9 +869,9 @@ classdef simulationClass <handle
             end
             
             
-       
             
-         
+            
+            
             
             
             
@@ -907,7 +910,7 @@ classdef simulationClass <handle
                 updateClusterID(obj)
             end
             
-
+            
             % Pull out the arrival array for easy reading
             arrival_array = obj.arrivalArray;
             trueClusters =unique(arrival_array(:,end));
@@ -937,18 +940,18 @@ classdef simulationClass <handle
                 % If the true cluster is in two temporal clusters, then
                 % adjust the cluster indexes
                 if length(timClustList)>1
-                
+                    
                     for jj=2: length(timClustList)
                         
                         % Index of the origional calls
                         new_idx = idx(find(timeClustsub== timClustList(jj)));
                         NewTruth(new_idx) = nextIdx;
                         nextIdx =nextIdx+1;
-                    
+                        
                     end
                     
                 end
-
+                
             end
             
             
@@ -1146,12 +1149,12 @@ classdef simulationClass <handle
             nextvals = nextLklhdSpace(maskidx);
             projvals = ProjectedLklhdSpace(maskidx);
             
-               
-                aa = projvals./nextvals;
-                aa(aa>1)=1;
-                simValue = sum(aa)/length(nextvals);
-                simValue = nanmax(simValue, 0);
-
+            
+            aa = projvals./nextvals;
+            aa(aa>1)=1;
+            simValue = sum(aa)/length(nextvals);
+            simValue = nanmax(simValue, 0);
+            
             
             % Nothing begets nothing
             if isempty(maskidx)
@@ -1161,7 +1164,7 @@ classdef simulationClass <handle
             
             
         end
-
+        
         %% Create similarity matrix from projSpace RAM heavy version (below)
         function UpdateSimMat(obj)
             % This previous verion of simMatLowMemory uses the updateProj
@@ -1312,7 +1315,7 @@ classdef simulationClass <handle
                 time_gaps = time_gaps(time_gaps<obj.time_cut);
                 
                 % sigma (error) valuse from the normal distribution
-                sigma = (time_gaps * (2*obj.s)/obj.c);
+                sigma = (time_gaps * (obj.s)/obj.c);
                 
                 % Need to include other sigma -
                 % clock drift, as well as the uncertainty in
@@ -1348,36 +1351,66 @@ classdef simulationClass <handle
             % Hydrophone locations
             hyd_table = struct2table(obj.hydrophone_struct);
             
-            TimeColorVals = parula(obj.spaceWhale.param_sim.dur+1);
-            ColorVals = lines(length(obj.spaceWhale.agent));
+            TimeColorVals = parula(obj.spaceWhale.param_sim.dur+2);
+            ColorVals = lines( max([length(obj.spaceWhale.agent), max(obj.Cluster_id)]));
+            
+            
+            child_hyds = obj.array_struct.slave(obj.child_idx-1)
             
             
             figure;
-           
-            subplot(2,1,1)
-             hold on
-             scatter(obj.arrivalArray(:,5), obj.arrivalArray(:,4),[],...
-                ColorVals(obj.arrivalArray(:,6),:), 'f')
+            
+            subplot(3,1,2)
+            hold on
+            scatter(obj.arrivalArray(:,end-1),...
+                obj.arrivalArray(:,end-2),[],...
+                ColorVals(obj.arrivalArray(:,end),:), 'f')
+            
+            scatter(hyd_table.location(:,2),...
+                hyd_table.location(:,1), 80,...
+                'k', 'filled', 'd')
+            scatter(hyd_table.location([obj.array_struct.master,...
+                obj.child_idx],2),...
+                hyd_table.location([obj.array_struct.master,...
+                obj.child_idx],1), 80, 'r', 'filled', 'd')
+            
+            title('TOA on Parent')
+            
+            subplot(3,1,1)
+            
+            hold on
+            scatter(obj.arrivalArray(:,end-1), obj.arrivalArray(:,end-2),[],...
+                [TimeColorVals(round(obj.arrivalArray(:,1)),:)], 'f')
             scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
             scatter(hyd_table.location([obj.array_struct.master,...
-                obj.array_struct.slave(obj.child_idx-1)],2),...
+                obj.child_idx],2),...
                 hyd_table.location([obj.array_struct.master,...
-                obj.array_struct.slave(obj.child_idx-1)],1), 80, 'r', 'filled', 'd')
-            legend
-            
-            subplot(2,1,2)
-            hold on
-            scatter(obj.arrivalArray(:,5), obj.arrivalArray(:,4),[],...
-                 [TimeColorVals(round(obj.arrivalArray(:,1)),:)], 'f')
-            scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
-             scatter(hyd_table.location([obj.array_struct.master,...
-                obj.array_struct.slave(obj.child_idx-1)],2),...
-                hyd_table.location([obj.array_struct.master,...
-                obj.array_struct.slave(obj.child_idx-1)],1), 80, 'r', 'filled', 'd')
+                obj.child_idx],1), 80, 'r', 'filled', 'd')
             colorbar
+            title('True Cluster')
+            
+            if ~isempty(obj.Cluster_id)
+                
+                subplot(3,1,3)
+                hold on
+                scatter(obj.arrivalArray(:,end-1), obj.arrivalArray(:,end-2),[],...
+                    ColorVals(obj.Cluster_id,:), 'f')
+                
+                scatter(hyd_table.location(:,2), hyd_table.location(:,1),...
+                    80, 'k', 'filled', 'd')
+                
+            scatter(hyd_table.location([obj.array_struct.master,...
+                obj.child_idx],2),...
+                hyd_table.location([obj.array_struct.master,...
+                obj.child_idx],1), 80, 'r', 'filled', 'd')
+                
+                
+                titlestr = [obj.titleStr, ' Expected Clusters'];
+                title(titlestr)
+                
+            end
             
             
-
             
         end
         

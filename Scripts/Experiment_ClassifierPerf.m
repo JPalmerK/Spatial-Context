@@ -38,7 +38,7 @@ score_mean = [1 3 6];
 
 
 score_sd = [4.75 4.75 4.75];
-nRuns = 100;
+nRuns = 200;
 
 % Number of calls included in the analysis
 n_calls = zeros(1, nRuns);
@@ -49,14 +49,13 @@ perf_meth2 = struct;
 perf_meth3 = struct;
 perf_methbaseline = struct;
 
-
 for ii=1:nRuns
     close all
     clear spaceWhale examp
     disp([num2str(ii) ' of ' num2str(nRuns) ' runs'])
     % Create new agents
-    [spaceWhale] =  createRandomSpaceWhale(0.75,7, hyd_arr,...
-        array_struct,hydrophone_struct, ssp, grid_depth);
+    [spaceWhale] =  createRandomSpaceWhale(0.75,8, hyd_arr,...
+        array_struct,hydrophone_struct, ssp, grid_depth, [1:10]);
     
     % Populate data and parameters
     examp = simulationClass();
@@ -64,88 +63,90 @@ for ii=1:nRuns
     examp.array_struct = array_struct;
     examp.hydrophone_struct = hydrophone_struct;
     examp.spaceWhale= spaceWhale;
-    examp.time_cut = 10*60;
     examp.randomMiss =0;
+    examp.child_idx = [2,3,4]
 
     % Method 1- TDOA only
     examp.clearCalcValues();
+    examp.cutoff = .1;
+    examp.time_cut = 60;
     simMatTDOAonly(examp);
-    examp.cutoff = .5;
-    examp.time_cut = 490;
+    examp.updateClusterID;
+    examp.drawAgents
+
 
     examp.SppCorrRate = score_mean(1);
     examp.SppCorrSd=score_sd(1);
     perf = examp.estClassifierPerf;
     perf_meth1(ii).Low = perf;
-    examp.truthAndpreds =[];
-    
+
     
     examp.SppCorrRate = score_mean(2);
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
     perf_meth1(ii).Med = perf;
-    examp.truthAndpreds=[];
+
     
     examp.SppCorrRate = score_mean(3);
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
     perf_meth1(ii).High = perf;
-    examp.truthAndpreds=[];
-    
 
+    
     % Second Method, ideal
     examp.clearCalcValues();
     examp.simMatIdeal();
-    examp.cutoff = .49;
-    examp.time_cut = 1020;
+    examp.cutoff = .5;
+    examp.time_cut = 60;
     
-    examp.SppCorrRate = score_mean(1)
+    examp.SppCorrRate = score_mean(1);
     examp.SppCorrSd=score_sd(1);
     perf = examp.estClassifierPerf;
     perf_meth2(ii).Low = perf;
-    examp.truthAndpreds =[];
+  
     
-    examp.SppCorrRate = score_mean(2)
+    examp.SppCorrRate = score_mean(2);
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
     perf_meth2(ii).Med = perf;
-    examp.truthAndpreds=[];
-    
-    examp.SppCorrRate = score_mean(3)
+
+    examp.SppCorrRate = score_mean(3);
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
     perf_meth2(ii).High = perf;
-    examp.truthAndpreds=[];    
+
+    
     
     
     % Third Method, ad hoc
     examp.clearCalcValues();
     simMatadHoc(examp);
-    examp.cutoff = .15;
-    examp.time_cut = 677;
+    examp.cutoff = .5;
+    examp.time_cut = 60;
 
     examp.SppCorrRate = score_mean(1);
     examp.SppCorrSd=score_sd(1);
-    updateChains(examp)
+    updateClusterID(examp)
     perf = examp.estClassifierPerf;
     perf_meth3(ii).Low = perf;
-    examp.truthAndpreds =[];
-    
-    examp.SppCorrRate = score_mean(2);chil
+
+    examp.SppCorrRate = score_mean(2);
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
     perf_meth3(ii).Med = perf;
-    examp.truthAndpreds=[];
+
     
     examp.SppCorrRate = score_mean(3);
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
     perf_meth3(ii).High = perf;
-    examp.truthAndpreds=[];
 
+    
+    
+    
     % Fourth Method, baseline
     examp.clearCalcValues();
-    examp.time_cut = 81;
+    examp.time_cut = 60;
     examp.toaOnlyCluster();
     examp.getRand();
 
@@ -153,31 +154,158 @@ for ii=1:nRuns
     examp.SppCorrSd=score_sd(1);
     perf = examp.estClassifierPerf;
     perf_methbaseline(ii).Low = perf;
-    examp.truthAndpreds =[];
-    
+
     examp.SppCorrRate = score_mean(2);
     examp.SppCorrSd=score_sd(2);
     perf = examp.estClassifierPerf;
     perf_methbaseline(ii).Med = perf;
-    examp.truthAndpreds=[];
-    
+
     examp.SppCorrRate = score_mean(3);
     examp.SppCorrSd=score_sd(3);
     perf = examp.estClassifierPerf;
     perf_methbaseline(ii).High = perf;
-    examp.truthAndpreds=[];
-    
 
+    
+    
+    
 end
 
-% 
-% perf1 = cell2mat({perf_meth2.Low([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.Low([1:end]).totCorrect}');
-% perf2 = cell2mat({perf_meth2.Med([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.Med([1:end]).totCorrect}');
-% perf3 = cell2mat({perf_meth2.High([1:end]).totCorrectClassMeth})'-cell2mat({perf_meth2.High([1:end]).totCorrect}');
-% figure
-% hist([perf1 perf2 perf3],20)
-% legend('Low', 'Medium', 'High','Location','best')
-% 
+
+
+%% Compare Results
+correct_classMeth1 =table(zeros(nRuns,1), zeros(nRuns,1), zeros(nRuns,1),zeros(nRuns,1), 'VariableNames', {'Low', 'Medium', 'High', 'Method'});
+correct_classMeth4 =correct_classMeth1;
+correct_classMeth3 = correct_classMeth1;
+correct_classMeth2 = correct_classMeth1;
+
+for ii=1:length(perf_meth1)
+    mod = struct2table(perf_meth1(ii).Low);
+    
+    % 1s correctly classified as 1
+    nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth1.Low(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_meth1(ii).Med);
+    
+    % 1s correctly classified as 1
+     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth1.Medium(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_meth1(ii).High);
+    
+    % 1s correctly classified as 1
+     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect = nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth1.High(ii) = methCorrect - methUnaided;
+    correct_classMeth1.Method(ii) =1;
+end
+
+
+
+for ii=1:length(perf_meth1)
+    mod = struct2table(perf_meth1(ii).Low);
+    
+    % 1s correctly classified as 1
+    nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth2.Low(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_meth1(ii).Med);
+    
+    % 1s correctly classified as 1
+     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth2.Medium(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_meth1(ii).High);
+    
+    % 1s correctly classified as 1
+     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect = nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth2.High(ii) = methCorrect - methUnaided;
+    correct_classMeth2.Method(ii) =2;
+end
+
+
+
+
+
+for ii=1:length(perf_meth2)
+    mod = struct2table(perf_meth2(ii).Low);
+    
+    % 1s correctly classified as 1
+    nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth3.Low(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_meth2(ii).Med);
+    
+    % 1s correctly classified as 1
+     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth3.Medium(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_meth2(ii).High);
+    
+    % 1s correctly classified as 1
+     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect = nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth3.High(ii) = methCorrect - methUnaided;
+    correct_classMeth3.Method(ii) = 3;
+end
+
+
+
+for ii=1:length(perf_methbaseline)
+    mod = struct2table(perf_methbaseline(ii).Low);
+    
+    % 1s correctly classified as 1
+    nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<=.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth4.Low(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_methbaseline(ii).Med);
+    
+    % 1s correctly classified as 1
+    nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect =nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<=.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth4.Medium(ii) = methCorrect - methUnaided;
+    mod = struct2table(perf_methbaseline(ii).High);
+    
+    % 1s correctly classified as 1
+     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
+    methCorrect = nCorrect/height(mod);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) + length(find(mod.Score<=.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMeth4.High(ii) = methCorrect - methUnaided;
+    correct_classMeth4.Method(ii) =4;
+end
+
+aa =[correct_classMeth1; correct_classMeth2; correct_classMeth3; correct_classMeth4];
+aa.Method(aa.Method==0)=2
+
+xaxtitle = {'Method 1', 'Method 2', 'Method 3', 'Baseline'};
+
+figure
+subplot(3,1,1)
+boxplot(aa.Low, aa.Method)
+title('Low')
+set(gca, 'XTickLabel',xaxtitle)
+
+subplot(3,1,2)
+boxplot(aa.Medium, aa.Method)
+title('Medium')
+set(gca, 'XTickLabel', xaxtitle)
+
+subplot(3,1,3)
+boxplot(aa.High, aa.Method)
+title('High')
+set(gca, 'XTickLabel',xaxtitle)
 
 
 %% Make Figures
