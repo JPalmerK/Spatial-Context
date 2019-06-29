@@ -33,12 +33,22 @@ hyd_arr =vertcat(hyd_arr{2,:,:});
 clear whereAmI
 %%
 % Median correct classification rate for species A is 0.8, 0.85, 0.95
-%score_mean = [1.39 1.74 2.95];
-score_mean = [1 3 6];
+score_mean = [1.39 1.74 2.95];
+betaParm1= [8, 10, 10]
+% betaParm2=[1.5, 1,.6]    
+% figure;
+% for ii=1:3
+% 
+% 
+% subplot(3,1,ii)
+% hist(betarnd(betaParm1(ii),betaParm2(ii),[1 1000]), 20)
+% 
+% end
 
 
-score_sd = [4.75 4.75 4.75];
-nRuns = 100;
+nRuns = 20;
+
+
 
 % Number of calls included in the analysis
 n_calls = zeros(1, nRuns);
@@ -68,27 +78,27 @@ for ii=1:nRuns
 
     % Method 1- TDOA only
     examp.clearCalcValues();
-    examp.cutoff = .5;
-    examp.time_cut = 120;
+    examp.cutoff = .75;
+    examp.time_cut = 5*60;
     simMatTDOAonly(examp);
     examp.updateClusterID;
 
 
 
-    examp.SppCorrRate = score_mean(1);
-    examp.SppCorrSd=score_sd(1);
+    examp.betaParm1 = betaParm1(1);
+    examp.betaParm2=betaParm2(1);
     perf = examp.estClassifierPerf;
     perf_meth1(ii).Low = perf;
 
     
-    examp.SppCorrRate = score_mean(2);
-    examp.SppCorrSd=score_sd(2);
+    examp.betaParm1 = betaParm1(2);
+    examp.betaParm2=betaParm2(2);
     perf = examp.estClassifierPerf;
     perf_meth1(ii).Med = perf;
 
     
-    examp.SppCorrRate = score_mean(3);
-    examp.SppCorrSd=score_sd(3);
+    examp.betaParm1 = betaParm1(3);
+    examp.betaParm2=betaParm2(3);
     perf = examp.estClassifierPerf;
     perf_meth1(ii).High = perf;
 
@@ -97,21 +107,21 @@ for ii=1:nRuns
     examp.clearCalcValues();
     examp.simMatIdeal();
     examp.cutoff = .5;
-    examp.time_cut = 120;
+    examp.time_cut = 5*60;
     
-    examp.SppCorrRate = score_mean(1);
-    examp.SppCorrSd=score_sd(1);
+    examp.betaParm1 = betaParm1(1);
+    examp.betaParm2=betaParm2(1);
     perf = examp.estClassifierPerf;
     perf_meth2(ii).Low = perf;
   
     
-    examp.SppCorrRate = score_mean(2);
-    examp.SppCorrSd=score_sd(2);
+    examp.betaParm1 = betaParm1(2);
+    examp.betaParm2=betaParm2(2);
     perf = examp.estClassifierPerf;
     perf_meth2(ii).Med = perf;
 
-    examp.SppCorrRate = score_mean(3);
-    examp.SppCorrSd=score_sd(3);
+    examp.betaParm1 = betaParm1(3);
+    examp.betaParm2=betaParm2(3);
     perf = examp.estClassifierPerf;
     perf_meth2(ii).High = perf;
 
@@ -122,22 +132,22 @@ for ii=1:nRuns
     examp.clearCalcValues();
     simMatadHoc(examp);
     examp.cutoff = .5;
-    examp.time_cut = 120;
+    examp.time_cut = 5*60;
 
-    examp.SppCorrRate = score_mean(1);
-    examp.SppCorrSd=score_sd(1);
+    examp.betaParm1 = betaParm1(1);
+    examp.betaParm2=betaParm2(1);
     updateClusterID(examp)
     perf = examp.estClassifierPerf;
     perf_meth3(ii).Low = perf;
 
-    examp.SppCorrRate = score_mean(2);
-    examp.SppCorrSd=score_sd(2);
+    examp.betaParm1 = betaParm1(2);
+    examp.betaParm2=betaParm2(2);
     perf = examp.estClassifierPerf;
     perf_meth3(ii).Med = perf;
 
     
-    examp.SppCorrRate = score_mean(3);
-    examp.SppCorrSd=score_sd(3);
+    examp.betaParm1 = betaParm1(3);
+    examp.betaParm2=betaParm2(3);
     perf = examp.estClassifierPerf;
     perf_meth3(ii).High = perf;
 
@@ -146,22 +156,22 @@ for ii=1:nRuns
     
     % Fourth Method, baseline
     examp.clearCalcValues();
-    examp.time_cut = 120;
+    examp.time_cut = 60;
     examp.toaOnlyCluster();
     examp.getRand();
 
-    examp.SppCorrRate = score_mean(1);
-    examp.SppCorrSd=score_sd(1);
+    examp.betaParm1 = betaParm1(1);
+    examp.betaParm2=betaParm2(1);
     perf = examp.estClassifierPerf;
     perf_methbaseline(ii).Low = perf;
 
-    examp.SppCorrRate = score_mean(2);
-    examp.SppCorrSd=score_sd(2);
+    examp.betaParm1 = betaParm1(2);
+    examp.betaParm2=betaParm2(2);
     perf = examp.estClassifierPerf;
     perf_methbaseline(ii).Med = perf;
 
-    examp.SppCorrRate = score_mean(3);
-    examp.SppCorrSd=score_sd(3);
+    examp.betaParm1 = betaParm1(3);
+    examp.betaParm2=betaParm2(3);
     perf = examp.estClassifierPerf;
     perf_methbaseline(ii).High = perf;
 
