@@ -40,6 +40,7 @@ classdef simulationClass <handle
         %cutoff = 0.8; % Correlation threshold cutoff - how similar do call
         % spaces need to be in order to be clustered
         cutoff = 0.5;
+        maxEltTime = 60; % maximum time between calls to start another cluster
         
         % The following variables are created as the system is run
         arrivalTable % Table containing arrival times, locations etc of
@@ -69,8 +70,9 @@ classdef simulationClass <handle
         PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
         
         % Logit of the correct classification rate for the
-        SppCorrRate
-        SppCorrSd
+        betaParm1
+        betaParm2
+        
         
         % Title string for simulation plots
         titleStr
@@ -108,9 +110,9 @@ classdef simulationClass <handle
                 'ClusterScore'});
             
             
-            % Mean
-            rw_mean = obj.SppCorrRate;
-            rw_sd = obj.SppCorrSd;
+            % Detector Parameters
+            rw_mean = obj.betaParm1;
+            rw_sd = obj.betaParm2;
             
             % For each detected agent, assign a species and classification
             % probability
@@ -128,21 +130,8 @@ classdef simulationClass <handle
                     rw_idx = find(truthAndpreds.TrueClust == agent_id);
                     
                     % Pull from distribution to estimate classificaiton probability
+                    score = betarnd(obj.betaParm1, obj.betaParm1,[1 length(rw_idx)]);
                     
-                    scoreraw =  rw_sd.*randn(length(rw_idx),1) + rw_mean;
-                    
-                    % Transform so that it's between 0 and 1
-                    score = 1./(1+exp(-scoreraw)); % logit (or inverse logit)
-                    
-                    %                     % For Marie
-                    %                     x = -10:.1:10;
-                    %                     y = 1./(1+exp(-x))
-                    %                     figure; plot(x, y); xlabel('Raw Score');
-                    %                     hold on; scatter(scoreraw, score, '*r');
-                    %                     ylabel('Transformed Score');
-                    
-                    % Update the species (binary) and the classifier
-                    % predication score
                     truthAndpreds.TrueSpp(rw_idx) =1; %yes target spp.!
                     truthAndpreds.Score(rw_idx) = score';
                     
@@ -154,10 +143,9 @@ classdef simulationClass <handle
                     
                     % Get the indicies of the calls of that individual
                     mn_idx = find(truthAndpreds.TrueClust == agent_id);
-                    scoreraw =  rw_sd.*randn(length(mn_idx),1) + rw_mean;
                     
                     % Transform so that it's between 0 and 1
-                    score = 1.-(1./(1+exp(-scoreraw))); % logit (or inverse logit)
+                    score = 1- betarnd(obj.betaParm1, obj.betaParm1,[1 length(mn_idx)]); % logit (or inverse logit)
                     
                     % Update the species (binary) and the classifier
                     % predication score
@@ -305,7 +293,7 @@ classdef simulationClass <handle
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                sig_tot = sqrt(obj.PosUncertsigma);
+                sig_tot = sqrt(obj.PosUncertsigma +obj.drift^2);
                 averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
                 
                 % Figure out the number of time gaps within the maximum
@@ -366,18 +354,7 @@ classdef simulationClass <handle
                 %    num2str(length(obj.arrivalArray))])
             end
             obj.Sim_mat= Sim_mat;
-            
-            %             % Plot of the similarity matrix for good meausre
-            %             figure;
-            %             h =pcolor(Sim_mat);
-            %             set(h, 'EdgeColor', 'none');
-            %             set (gca, 'ydir', 'reverse' )
-            %             colormap(jet);
-            %             colorbar
-            %             title('Call Space Similarity Ideal')
-            %             xlabel('Call ID')
-            %             ylabel('Call ID')
-            
+
             
             
         end
@@ -447,16 +424,7 @@ classdef simulationClass <handle
             end
             
             obj.Sim_mat= Sim_mat;
-            %             % Plot of the similarity matrix for good meausre
-            %             figure;
-            %             h =pcolor(Sim_mat);
-            %             set(h, 'EdgeColor', 'none');
-            %             set (gca, 'ydir', 'reverse' )
-            %             colormap(jet);
-            %             colorbar
-            %             title('Call Space Similarity TDOA Only')
-            %             xlabel('Call ID')
-            %             ylabel('Call ID')
+
             
             
             
@@ -539,7 +507,7 @@ classdef simulationClass <handle
                         % Get the prob. loc space space of the next call in
                         % the series and normalize
                         %
-                        sigma = sqrt(obj.PosUncertsigma);
+                        sigma = sqrt(obj.PosUncertsigma+ obj.drift^2);
                         nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sigma);
                         
                         
@@ -604,7 +572,7 @@ classdef simulationClass <handle
             %%%%%%%%%%%%%%%%%%%%%%%%
             % For sensitivity analysis
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            time_idx = obj.time_cut;
+            time_idx = obj.maxEltTime;
             
             idx = [1; find(diff_vals>time_idx)];
             
