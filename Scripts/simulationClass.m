@@ -24,7 +24,7 @@ classdef simulationClass <handle
         NChidlHyd = 2 % Minimum number of hydrophones over which to
         % look at. This is currently fixed at 2, but should be expanded
         % for one hydrophone and 2+ hydrophone pairs
-        child_idx =[2,3]; % Column index for the child arrays
+        child_idx ; % Column index for the child arrays
         
         randomMiss =0 % Bool for random misassosiation (0) for ideal assoc.
         assSec = 4 % Number of seconds beyond the expected arraival time
@@ -56,7 +56,11 @@ classdef simulationClass <handle
         chains % Structure with all linked call indexes and number of calls
         % in each cluster
         Cluster_id % Array size of included agent calls indicating the
+        
         % predicted cluster ID for each call
+        tweakedRand =1% Bool for whether or not to adjust the truth values for the clusters. 
+        % Only reason you wouldn't do this is when looking for the true
+        % rand.
         AdjRand % Adjusted rand index
         truthAndpreds % Matrix containing the call id's and the predicated
         % call ID's based on the algorithim
@@ -188,6 +192,10 @@ classdef simulationClass <handle
                 % Gt the classifier scores
                 scores = truthAndpreds.Score(idx);
                 
+                if mod(ii,2)
+                    scores =1-scores;
+                end
+                
                 % Likelihood ratio for the cluster
                 LR = log(prod(scores./(1-scores)));
                 
@@ -293,7 +301,7 @@ classdef simulationClass <handle
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                sig_tot = sqrt(obj.PosUncertsigma +obj.drift^2);
+                sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
                 averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
                 
                 % Figure out the number of time gaps within the maximum
@@ -342,6 +350,13 @@ classdef simulationClass <handle
                         % loc space and the next call in the squence
                         simValue = compareLklhdSpace(obj, Lklhd_space_proj,...
                             nextLklhdSpace);
+%                         figure
+%                         subplot(2,1,1)
+%                         imagesc(Lklhd_space_proj); colorbar
+%                         
+%                         subplot(2,1,2)
+%                         imagesc(nextLklhdSpace); colorbar
+%                         
                         
                         % Populate the simulation matrix
                         Sim_mat(ii, ii+jj-1) = simValue;
@@ -460,18 +475,16 @@ classdef simulationClass <handle
                 % Get the average prob loc space of the i-th call
                 averageLklhd_space = getAvLkHdSpace(obj, ii); % need to rename this fx...
                 
-                if length(size(averageLklhd_space))>1
-                    
-                    % sum along third axis, will be normalized later
-                    averageLklhd_space = max(averageLklhd_space,[],3);
-                    
-                end
-                
+                %contourf(obj.array_struct.longrid, obj.array_struct.latgrid, averageLklhd_space1)
                 % Figure out the number of time gaps within the maximum
                 % allowed correlation time (time_cut)
                 time_gaps = obj.arrivalArray(ii:end, 1)-...
                     obj.arrivalArray(ii, 1);
                 time_gaps = time_gaps(time_gaps<obj.time_cut);
+                
+                
+
+                
                 
                 % If there are more than one time gap over which we need to
                 % look then do the projections
@@ -482,7 +495,7 @@ classdef simulationClass <handle
                     % suggestion
                     % sigma (error) valuse from the normal distribution
                     
-                    swimSigma =  (time_gaps * ((obj.s)/obj.c));
+                    swimSigma =  2*(time_gaps * ((obj.s)/obj.c));
                     
                     % Total sigma error (standard deviation) five input
                     % variables (four from position uncertainty plus sigma
@@ -500,7 +513,7 @@ classdef simulationClass <handle
                             normpdf(0, 0, sigSD(jj));
                         
                         if ndims(Lklhd_space_proj)>2
-                            Lklhd_space_proj = nanmin(Lklhd_space_proj,[],3);
+                            Lklhd_space_proj = sum(Lklhd_space_proj,3);
                         end
                         
                         
@@ -536,24 +549,10 @@ classdef simulationClass <handle
             end
             obj.Sim_mat= Sim_mat;
             
-            %             % Plot of the similarity matrix for good meausre
-            %             figure;
-            %             [nr,nc] = size(Sim_mat);
-            %             h =pcolor(flipud((Sim_mat)));
-            %             set(h, 'EdgeColor', 'none');
-            %             ax = gca;
-            %             ax.YTickLabel = flipud(ax.YTickLabel)
-            %             colormap(jet);
-            %             colorbar
-            %             title('Call Space Similarity adHoc')
-            %             xlabel('Call ID')
-            %             ylabel('Call ID')
-            %
             
         end
         
         %% Cluster based only on time of arrivals Baseline (step 4)
-        
         function cluster_vals = tempClust(obj)
             
             % Check if the arrival table is present if not update it
@@ -597,7 +596,6 @@ classdef simulationClass <handle
         
         %% Baseline clustering against which all others are compared
         function toaOnlyCluster(obj)
-            
             obj.Cluster_id = tempClust(obj);
         end
         
@@ -613,10 +611,11 @@ classdef simulationClass <handle
                 
             end
             TDOA_vals =[];
+            
             % Time difference of arrivals (can only handle two atm)
             for jj =1:length(obj.child_idx)
-                TDOA_vals = [TDOA_vals, obj.arrivalArray(:, 1)- ...
-                    obj.arrivalArray(:, jj+1)];
+                TDOA_vals = [TDOA_vals,...
+                    obj.arrivalArray(:, jj+1)-obj.arrivalArray(:, 1)];
             end
             obj.TDOA_vals = TDOA_vals;
         end
@@ -637,7 +636,8 @@ classdef simulationClass <handle
             end
             
             % Array containing the parent and children hydrophones
-            array = [obj.arrivalTable.ArrivalSec(:,[obj.array_struct.master,obj.child_idx])...
+            array = [obj.arrivalTable.ArrivalSec(:,...
+                [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)])...
                 obj.arrivalTable.Location ...
                 obj.arrivalTable.ID];
             
@@ -680,7 +680,7 @@ classdef simulationClass <handle
                 % step through each child hydrophone and caluculate the
                 % TDOA and maximum expected TDOA based on the hydrophone
                 % array
-                for channum =1:obj.NChidlHyd
+                for channum =1:length(obj.child_idx)
                     
                     % Shift the arrivals to simulate clock drift by either
                     % positive or negative values
@@ -760,8 +760,9 @@ classdef simulationClass <handle
                 spaceWhaleloc.agent(1).RangeKm,...
                 spaceWhaleloc.agent(1).location(spaceWhaleloc.agent(1).call_times,:),...
                 ones(length(spaceWhaleloc.agent(1).call_times),1),...
+                struct2array( spaceWhaleloc.agent(1).tdoa(obj.array_struct.master)),...
                 'VariableNames',{'callTimes','ArrivalSec', 'RangeKm',...
-                'Location','ID'});
+                'Location','ID', 'TDOA'});
             
             % Fill in the arrivals table with data from the rest of the
             % agents
@@ -773,7 +774,9 @@ classdef simulationClass <handle
                     spaceWhaleloc.agent(ii).location(...
                     spaceWhaleloc.agent(ii).call_times,:),...
                     ones(length(spaceWhaleloc.agent(ii).call_times),1)*ii,...
-                    'VariableNames',{'callTimes','ArrivalSec', 'RangeKm', 'Location','ID'});
+                    struct2array( spaceWhaleloc.agent(ii).tdoa(obj.array_struct.master)),...
+                    'VariableNames',{'callTimes','ArrivalSec', 'RangeKm',...
+                    'Location','ID', 'TDOA'});
                 at = [at ; Tnew];
             end
             
@@ -813,14 +816,12 @@ classdef simulationClass <handle
             % Returns an averaged likelihood space for a given TDOA
             
             % Pick the set of call delays (number of calls)
-            delays = (obj.TDOA_vals(callIdx, obj.child_idx-1));
-            
-            % Remove nans, but keep the indexes for hydrophone pairs
-            delays = delays(~isnan(delays));
-            
-            child_idx = obj.child_idx(~isnan(delays));
+            delays = (obj.TDOA_vals(callIdx, :));
             
             
+            child_idx = obj.child_idx;
+            
+            child_hyds = obj.array_struct.slave(obj.child_idx)
             delay_mat = ones(length(obj.array_struct.latgrid),...
                 length(obj.array_struct.longrid),...
                 length(child_idx));
@@ -830,19 +831,18 @@ classdef simulationClass <handle
             for ii=1:length(child_idx)
                 
                 % Get the expected delay spaces for the hydrophone pairs
-                toa_space = cell2mat(obj.array_struct.toa_diff(child_idx(ii)));
-                
+                toa_space = cell2mat(obj.array_struct.toa_diff(child_idx(ii)+1));
+
                 % Delta TOA space
-                averageLklhd_space(:,:,ii) = sqrt((toa_space - delays(ii)).^2);
+                averageLklhd_space(:,:,ii) = (toa_space - delays(ii));
+                
+                
+                figure;
+                contourf(obj.array_struct.longrid, obj.array_struct.latgrid, (toa_space))
+                hold on
+                scatter(obj.arrivalArray(1,end-1), obj.arrivalArray(1,end-2))
             end
-            
-            
-            
-            
-            
-            
-            
-            
+ 
         end
         
         %% Retruns Normalized Likelihood
@@ -893,6 +893,7 @@ classdef simulationClass <handle
             
             % step through each true cluster and determine if it crosses a
             % break. If so it gets a new name;
+            if obj.tweakedRand ==1
             nextIdx = max(trueClusters)+1;
             for trueClust = 1:length(trueClusters)
                 
@@ -920,6 +921,9 @@ classdef simulationClass <handle
                     
                 end
                 
+            end
+            else
+                NewTruth = (arrival_array(:,end));
             end
             
             
@@ -1321,7 +1325,7 @@ classdef simulationClass <handle
             
             TimeColorVals = parula(obj.spaceWhale.param_sim.dur+2);
             ColorVals = lines( max([length(obj.spaceWhale.agent), max(obj.Cluster_id)]));
-            child_hyds = obj.array_struct.slave(obj.child_idx-1)
+            child_hyds = obj.array_struct.slave(obj.child_idx)
             
             
             figure;
@@ -1336,8 +1340,10 @@ classdef simulationClass <handle
                 hyd_table.location(:,1), 80,...
                 'k', 'filled', 'd')
             scatter(...
-                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],2),...
-                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],1),...
+                hyd_table.location([obj.array_struct.master,...
+                obj.array_struct.slave(obj.child_idx)],2),...
+                hyd_table.location([obj.array_struct.master,...
+                obj.array_struct.slave(obj.child_idx)],1),...
                 'r', 'filled', 'd')
             
             title('TOA on Parent')
@@ -1352,8 +1358,8 @@ classdef simulationClass <handle
             
             scatter(hyd_table.location(:,2), hyd_table.location(:,1), 80, 'k', 'filled', 'd')
             scatter(...
-                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],2),...
-                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],1),...
+                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx)],2),...
+                hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx)],1),...
                 'r', 'filled', 'd')
             
             colorbar
@@ -1370,8 +1376,8 @@ classdef simulationClass <handle
                     80, 'k', 'filled', 'd')
                 
                 scatter(...
-                    hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],2),...
-                    hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx-1)],1),...
+                    hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx)],2),...
+                    hyd_table.location([obj.array_struct.master, obj.array_struct.slave(obj.child_idx)],1),...
                     'r', 'filled', 'd')
                 
                 titlestr = [obj.titleStr, ' Expected Clusters'];

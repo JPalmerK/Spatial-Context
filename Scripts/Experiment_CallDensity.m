@@ -38,9 +38,9 @@ grid_depth = localize_struct.parm.grid_depth;
 % Method 4/Baseline - TOA only
 
 
-nRuns = 10;
+nRuns = 2;
 nAgents = round(linspace(2,8,4));
-
+nAgents =4,8;
 % Thresholds fo rthe snesitivty analysis
 % Run a default example first
 TimeThresh =linspace(0,20*60,50);
@@ -56,6 +56,7 @@ perf_meth3 = perf_methbaseline;
 
 %% Run the loop
 
+child_idx = [5 6 7 8];
 
 % Outter Loop - numberof agents in the simulation
 for ii =1:length(nAgents)
@@ -70,8 +71,10 @@ for ii =1:length(nAgents)
         clear spaceWhale examp
         %disp([num2str(iter) ' of ' num2str(nRuns) ' runs'])
         % Create new agents- id values of the hydrophone array
-        [spaceWhale] =  createRandomSpaceWhale(0.75, agentNum, hyd_arr,...
-            array_struct,hydrophone_struct, ssp, grid_depth, [1:3,5]); 
+        [spaceWhale] =   createRandomSpaceWhale(0.75,8, hyd_arr,...
+        array_struct,hydrophone_struct, ssp, grid_depth,...
+        [array_struct.master, array_struct.slave(child_idx)]);
+    
         % Populate data and parameters
         examp = simulationClass();
         examp.spaceWhale = spaceWhale;
@@ -80,7 +83,7 @@ for ii =1:length(nAgents)
         examp.spaceWhale= spaceWhale;
         examp.randomMiss =0;
         examp.UpdateArrArray();
-        examp.child_idx = [2,3,4];
+        examp.child_idx = child_idx;
         UpdateArrArray(examp)
         
         
@@ -142,7 +145,7 @@ quantLvl1 =2;
 quantLvl2 =100;
 agentQuant=[2 100]
 for jj =1:4
-    for ii =1:nRuns
+    for ii =1:6
         
         aa = perf_meth1(jj).RandMat(:,:,ii);
         bb = perf_meth1(jj).predAgents(:,:,ii);

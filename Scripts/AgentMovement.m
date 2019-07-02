@@ -390,7 +390,7 @@ for zz= 1:length(empty_locs)
     for jj=1:length(hydrophone_struct)
         master= jj;
         
-        for kk=1:10
+        for kk=1:length(hydrophone_struct)
             % TDOA between hydrophone 1 and remaining hydrophones
             TDOA_struct.hyd(master).td(:,kk)= Arrival_times(:,kk)...
                 -Arrival_times(:,master);
