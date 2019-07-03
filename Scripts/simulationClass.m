@@ -58,7 +58,7 @@ classdef simulationClass <handle
         Cluster_id % Array size of included agent calls indicating the
         
         % predicted cluster ID for each call
-        tweakedRand =1% Bool for whether or not to adjust the truth values for the clusters. 
+        tweakedRand =1% Bool for whether or not to adjust the truth values for the clusters.
         % Only reason you wouldn't do this is when looking for the true
         % rand.
         AdjRand % Adjusted rand index
@@ -134,7 +134,7 @@ classdef simulationClass <handle
                     rw_idx = find(truthAndpreds.TrueClust == agent_id);
                     
                     % Pull from distribution to estimate classificaiton probability
-                    score = betarnd(obj.betaParm1, obj.betaParm1,[1 length(rw_idx)]);
+                    score = betarnd(obj.betaParm1, obj.betaParm2,[1 length(rw_idx)]);
                     
                     truthAndpreds.TrueSpp(rw_idx) =1; %yes target spp.!
                     truthAndpreds.Score(rw_idx) = score';
@@ -149,7 +149,7 @@ classdef simulationClass <handle
                     mn_idx = find(truthAndpreds.TrueClust == agent_id);
                     
                     % Transform so that it's between 0 and 1
-                    score = 1- betarnd(obj.betaParm1, obj.betaParm1,[1 length(mn_idx)]); % logit (or inverse logit)
+                    score = 1- betarnd(obj.betaParm1, obj.betaParm2,[1 length(mn_idx)]); % logit (or inverse logit)
                     
                     % Update the species (binary) and the classifier
                     % predication score
@@ -192,9 +192,6 @@ classdef simulationClass <handle
                 % Gt the classifier scores
                 scores = truthAndpreds.Score(idx);
                 
-                if mod(ii,2)
-                    scores =1-scores;
-                end
                 
                 % Likelihood ratio for the cluster
                 LR = log(prod(scores./(1-scores)));
@@ -204,6 +201,17 @@ classdef simulationClass <handle
                 
                 % Fill in the likelihood ratio
                 truthAndpreds.ClusterScore(idx) = LR;
+                
+                %Simple Voting
+                pos_votes = sum(scores>0.5); neg_votes=sum(scores<=.5);
+                
+                if pos_votes>neg_votes
+                    truthAndpreds.Voting(idx) = ones(size(scores));
+                elseif pos_votes<neg_votes
+                    truthAndpreds.Voting(idx) = zeros(size(scores));
+                elseif pos_votes==neg_votes
+                     truthAndpreds.Voting(idx) = zeros(size(scores))+binornd(1,.5);
+                end
                 
             end
             
@@ -350,13 +358,13 @@ classdef simulationClass <handle
                         % loc space and the next call in the squence
                         simValue = compareLklhdSpace(obj, Lklhd_space_proj,...
                             nextLklhdSpace);
-%                         figure
-%                         subplot(2,1,1)
-%                         imagesc(Lklhd_space_proj); colorbar
-%                         
-%                         subplot(2,1,2)
-%                         imagesc(nextLklhdSpace); colorbar
-%                         
+                        %                         figure
+                        %                         subplot(2,1,1)
+                        %                         imagesc(Lklhd_space_proj); colorbar
+                        %
+                        %                         subplot(2,1,2)
+                        %                         imagesc(nextLklhdSpace); colorbar
+                        %
                         
                         % Populate the simulation matrix
                         Sim_mat(ii, ii+jj-1) = simValue;
@@ -369,7 +377,7 @@ classdef simulationClass <handle
                 %    num2str(length(obj.arrivalArray))])
             end
             obj.Sim_mat= Sim_mat;
-
+            
             
             
         end
@@ -413,7 +421,7 @@ classdef simulationClass <handle
                 for jj=1:size(TDOA_next,2)
                     
                     mu = zeros(length(time_diffs),1);
-                    sigmaSwim = sqrt((time_diffs * (obj.s)/obj.c).^2);
+                    sigmaSwim = 2* sqrt((time_diffs * (obj.s)/obj.c).^2);
                     x =(tdoa_orig(jj) - TDOA_next(:,jj)); %values
                     
                     likelihood = normpdf(x,mu,sigmaSwim);
@@ -439,7 +447,6 @@ classdef simulationClass <handle
             end
             
             obj.Sim_mat= Sim_mat;
-
             
             
             
@@ -483,9 +490,6 @@ classdef simulationClass <handle
                 time_gaps = time_gaps(time_gaps<obj.time_cut);
                 
                 
-
-                
-                
                 % If there are more than one time gap over which we need to
                 % look then do the projections
                 
@@ -495,12 +499,12 @@ classdef simulationClass <handle
                     % suggestion
                     % sigma (error) valuse from the normal distribution
                     
-                    swimSigma =  2*(time_gaps * ((obj.s)/obj.c));
+                    swimSigma =  (time_gaps * ((obj.s)/obj.c));
                     
                     % Total sigma error (standard deviation) five input
                     % variables (four from position uncertainty plus sigma
                     % swim)
-                    sigSD = sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2));
+                    sigSD = 2*sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2));
                     
                     % Step through the time gaps/sigma values getting each
                     % probability loc space and projection
@@ -513,14 +517,14 @@ classdef simulationClass <handle
                             normpdf(0, 0, sigSD(jj));
                         
                         if ndims(Lklhd_space_proj)>2
-                            Lklhd_space_proj = sum(Lklhd_space_proj,3);
+                            Lklhd_space_proj= nanmean(Lklhd_space_proj,3);
                         end
                         
                         
                         % Get the prob. loc space space of the next call in
                         % the series and normalize
                         %
-                        sigma = sqrt(obj.PosUncertsigma+ obj.drift^2);
+                        sigma = 2*sqrt(obj.PosUncertsigma+ obj.drift^2);
                         nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sigma);
                         
                         
@@ -821,28 +825,28 @@ classdef simulationClass <handle
             
             child_idx = obj.child_idx;
             
-            child_hyds = obj.array_struct.slave(obj.child_idx)
-            delay_mat = ones(length(obj.array_struct.latgrid),...
-                length(obj.array_struct.longrid),...
-                length(child_idx));
+            child_hyds = obj.array_struct.slave(obj.child_idx);
             
-            averageLklhd_space = zeros(size(delay_mat))./0;
+            
+            averageLklhd_space = [];
             
             for ii=1:length(child_idx)
                 
                 % Get the expected delay spaces for the hydrophone pairs
                 toa_space = cell2mat(obj.array_struct.toa_diff(child_idx(ii)+1));
-
+                
                 % Delta TOA space
                 averageLklhd_space(:,:,ii) = (toa_space - delays(ii));
                 
-                
-                figure;
-                contourf(obj.array_struct.longrid, obj.array_struct.latgrid, (toa_space))
-                hold on
-                scatter(obj.arrivalArray(1,end-1), obj.arrivalArray(1,end-2))
+%                 
+%                 figure;
+%                 contourf(obj.array_struct.longrid, obj.array_struct.latgrid, (averageLklhd_space(:,:,ii)))
+%                 colorbar;
+%                 caxis([-3 3])
+%                 hold on
+%                 scatter(obj.arrivalArray(callIdx,end-1), obj.arrivalArray(callIdx,end-2))
             end
- 
+            
         end
         
         %% Retruns Normalized Likelihood
@@ -856,13 +860,13 @@ classdef simulationClass <handle
             
             % Create ambiguity surface and normalize
             averageLklhd_space = normpdf(averageLklhd_space, 0, sigma)./...
-                normpdf(0, 0, sig_tot);
+                normpdf(0, 0, sigma);
             
             
-            if length(size(averageLklhd_space))>1
+            if ndims(averageLklhd_space)>1
                 
                 % sum along third axis, will be normalized later
-                averageLklhd_space = min(averageLklhd_space,[],3);
+                averageLklhd_space = nanmean(averageLklhd_space,3);
                 
             end
             
@@ -894,34 +898,34 @@ classdef simulationClass <handle
             % step through each true cluster and determine if it crosses a
             % break. If so it gets a new name;
             if obj.tweakedRand ==1
-            nextIdx = max(trueClusters)+1;
-            for trueClust = 1:length(trueClusters)
-                
-                % Indicies of the true cluster
-                idx = find(arrival_array(:,end)== trueClust);
-                
-                % Predicted values based on time only
-                timeClustsub = timeClusters(idx);
-                
-                % List of time clusters
-                timClustList = unique(timeClustsub);
-                
-                % If the true cluster is in two temporal clusters, then
-                % adjust the cluster indexes
-                if length(timClustList)>1
+                nextIdx = max(trueClusters)+1;
+                for trueClust = 1:length(trueClusters)
                     
-                    for jj=2: length(timClustList)
+                    % Indicies of the true cluster
+                    idx = find(arrival_array(:,end)== trueClust);
+                    
+                    % Predicted values based on time only
+                    timeClustsub = timeClusters(idx);
+                    
+                    % List of time clusters
+                    timClustList = unique(timeClustsub);
+                    
+                    % If the true cluster is in two temporal clusters, then
+                    % adjust the cluster indexes
+                    if length(timClustList)>1
                         
-                        % Index of the origional calls
-                        new_idx = idx(find(timeClustsub== timClustList(jj)));
-                        NewTruth(new_idx) = nextIdx;
-                        nextIdx =nextIdx+1;
+                        for jj=2: length(timClustList)
+                            
+                            % Index of the origional calls
+                            new_idx = idx(find(timeClustsub== timClustList(jj)));
+                            NewTruth(new_idx) = nextIdx;
+                            nextIdx =nextIdx+1;
+                            
+                        end
                         
                     end
                     
                 end
-                
-            end
             else
                 NewTruth = (arrival_array(:,end));
             end
@@ -1029,7 +1033,7 @@ classdef simulationClass <handle
             while s1>1
                 flag=1;
                 
-                % call element index, start at 1 and examine columns
+                % call element index, start at 1 and examine columnsmaxas
                 elt=1; % first element of cluster is always upper left
                 % hand element
                 index=[];
@@ -1109,208 +1113,70 @@ classdef simulationClass <handle
         function simValue = compareLklhdSpace(obj,...
                 ProjectedLklhdSpace, nextLklhdSpace)
             
-            % Compares likelihood spaces for two calls, typically call a that
-            % has been projected and call b from later in the sequence that
-            % has not
+            %             % Compares likelihood spaces for two calls, typically call a that
+            %             % has been projected and call b from later in the sequence that
+            %             % has not
+            %
+            %             % Create a mask indicating where the next next call could be in
+            %             % grid space
+            %             maskidx = find(nextLklhdSpace>0.01);
+            %
+            %             % Get the probability values for the mask index
+            %             nextvals = nextLklhdSpace(maskidx);
+            %             projvals = ProjectedLklhdSpace(maskidx);
+            %
+            %
+            %             aa = projvals./nextvals;
+            %             aa(aa>1)=1;
+            %             simValue = sum(aa)/length(nextvals);
+            %             simValue = nanmax(simValue, 0);
+            %
+            %
+            %             % Nothing begets nothing
+            %             if isempty(maskidx)
+            %                 simValue =1;
+            %             end
+            %
             
-            % Create a mask indicating where the next next call could be in
-            % grid space
-            maskidx = find(nextLklhdSpace>0.01);
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % And now for somthing completely different
             
-            % Get the probability values for the mask index
-            nextvals = nextLklhdSpace(maskidx);
-            projvals = ProjectedLklhdSpace(maskidx);
-            
-            
-            aa = projvals./nextvals;
-            aa(aa>1)=1;
-            simValue = sum(aa)/length(nextvals);
-            simValue = nanmax(simValue, 0);
-            
-            
-            % Nothing begets nothing
-            if isempty(maskidx)
-                simValue =1;
-            end
+%             
+%             % total area represented by the 'next' likelihood space
+%             areaNext = sum(sum(nextLklhdSpace));
+%             
+%             % Proportion of the next ambiguity space covered by the
+%             % current (projected ambiguity surface)
+%             prctCover = nextLklhdSpace./ProjectedLklhdSpace;
+%             prctCover(prctCover>1) =1;
+%             
+%             adjARea = sum(sum(nextLklhdSpace.*prctCover));
+%             
+%             
+%             
+%             simValue = adjARea/sum(sum(areaNext));
             
             
             
-        end
-        
-        %% Create similarity matrix from projSpace RAM heavy version (below)
-        function UpdateSimMat(obj)
-            % This previous verion of simMatLowMemory uses the updateProj
-            % spaces to create the similarity matrix. Not needed if running
-            % low memory version.
+            % more of the same
             
-            % Check if the arrival projection space is present if not update it
-            if isempty(obj.projSpace)
-                disp('Updating Projections')
-                UpdateprojSpace(obj)
-            end
             
-            Sim_mat = zeros(length(obj.TDOA_vals))/0;
-            for ii =1:(length(obj.projSpace)-1)
-                
-                % The call we are currently looking at
-                Current_call = obj.projSpace(ii).projection;
-                
-                % Compare the call and it's temporal projections to the next calls in
-                % the sequence. If only one call in the sequence move to the next.
-                coef_vals = 1;
-                if length(size(Current_call))>2
-                    
-                    % Figure out the max number of calls to look ahead, runs into
-                    % problems near the end otherwise
-                    
-                    max_lookahead = min([size(Current_call,3)-1,...
-                        (length(obj.projSpace)-1)-size(Current_call,3)-1+ii]);
-                    
-                    % Don't go beyoned the end of the matrix
-                    if max_lookahead >0
-                        for jj =1: max_lookahead
-                            
-                            % Call a projected at time of call b
-                            call_a =Current_call(:,:,jj);
-                            
-                            % Next call in the sequence, if more than one dimension only
-                            % take first grid space
-                            call_b = obj.projSpace(ii+jj-1).projection;
-                            
-                            if length(size(call_b))>2
-                                call_b = call_b(:,:,1);
-                            end
-                            
-                            
-                            % Normalize both call a and call b such that we are looking at
-                            % the probabiliyt that eacg grid space COULD have the whale in
-                            % it
-                            call_b = (call_b - min(min(call_b)))./...
-                                ( max(max(call_b)) - min(min(call_b)));
-                            
-                            call_a = (call_a - min(min(call_a)))./...
-                                ( max(max(call_a)) - min(min(call_a)));
-                            
-                            
-                            % Size of area represented by the next call
-                            b_hiprob = find(call_b>.99);
-                            a_hiprob = find(call_a>.99);
-                            size_b_highprob = length(b_hiprob);
-                            
-                            % Determine the percentage of the next call that is covered by
-                            % the time expanded current call (mm)
-                            coef = length(intersect(a_hiprob, b_hiprob))/size_b_highprob;
-                            coef_vals = [coef_vals, coef];
-                            
-                        end
-                    end
-                end
-                
-                % Insert the coefficients
-                Sim_mat(ii,ii:(ii+length(coef_vals)-1)) = coef_vals;
-                Sim_mat(ii:(ii+length(coef_vals)-1),ii) = coef_vals;
-                
-                
-            end
+            nextArea = find(nextLklhdSpace>0.05);
+            projArea = find(ProjectedLklhdSpace>.05);
             
-            % Update the property
-            obj.Sim_mat = Sim_mat;
+            commonvals = intersect(nextArea, projArea);
             
+            simValue = sum(nextLklhdSpace(commonvals))/sum(sum(nextLklhdSpace));
+
+
+
+            
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
         end
         
-        %% Create all habitat/area projections within time cut (RAM heavy!)
-        function UpdateprojSpace(obj)
-            % This is a previous version of the simMatLowMemory function.
-            % It saves all projected spaces in the array and as such often
-            % causes the program to crash due to memory requirements.
-            % However, it is useful for saving and investigating differen
-            % projected and non/habitat spaces for making figures and
-            % Developing comparison algorithithms.
-            
-            % Check if the arrival table is present if not update it
-            if isempty(obj.TDOA_vals)
-                disp(['Updating TDOA values'])
-                UpdateArrTable(obj);
-                UpdateTDOA(obj)
-                
-            end
-            
-            
-            % Create structure for each call and it's projected space
-            Proj_space = struct();
-            
-            % Step through each arrival and get it's grid probability as
-            % well as the projected grid probabilities for times at all
-            % subsiquent calls but within the maximum time cuttoff
-            for ii =1:length(obj.arrivalArray)
-                
-                % Pick a set of call delays (number of calls)
-                delays = (obj.TDOA_vals(ii,:));
-                
-                % Remove nans
-                delays = delays(~isnan(delays));
-                
-                averageLklhd_space = [];
-                
-                % Iterate through the hydrophone pairs and get the combined
-                % TDOAs
-                for jj = 1:length(delays)
-                    
-                    % Get the tdoa space
-                    toa_space = (cell2mat(...
-                        obj.array_struct(1).toa_diff(jj+1)));
-                    
-                    % potential toa space
-                    posLocSpace = (toa_space - delays(jj)).^2;
-                    
-                    % Convert tdoa space to probability space
-                    averageLklhd_space(:,:,jj) = posLocSpace;
-                    
-                end
-                
-                % If there were multiple arrivals of the same call on each
-                % hydrophone take the average of the normalized PDF space
-                if length(delays)>1
-                    
-                    % average along the third axis
-                    averageLklhd_space = mean(averageLklhd_space,3);
-                    
-                end
-                
-                % Do the time projection up to the maximum correlation time
-                % figure out which calls are within the alotted fimeframe
-                time_gaps = obj.arrivalArray(ii:end, 1)-...
-                    obj.arrivalArray(ii, 1);
-                
-                % Only interested in time gaps less than the time cut
-                time_gaps = time_gaps(time_gaps<obj.time_cut);
-                
-                % sigma (error) valuse from the normal distribution
-                sigma = (time_gaps * (obj.s)/obj.c);
-                
-                % Need to include other sigma -
-                % clock drift, as well as the uncertainty in
-                % the correlation, and hydrophone position
-                %
-                
-                % Iterate through  the time gaps and create the projections
-                for jj= 1:length(time_gaps)
-                    
-                    %                     % Grow the likelihood space
-                    %                     Lklhd_space =  normpdf(averageLklhd_space, 0,...
-                    %                         (1+sigma(jj)));
-                    
-                    Proj_space(ii).projection(:,:,jj) = Lklhd_space;
-                end
-                if mod(ii,20)==0
-                    %disp([num2str(ii), ' of ', num2str(length(obj.arrivalArray))])
-                end
-            end
-            
-            % Set the projection spaces property
-            obj.projSpace = Proj_space;
-        end
+        
         
         %% Draw the Agents
         function drawAgents(obj)

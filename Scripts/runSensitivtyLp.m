@@ -21,7 +21,7 @@ if nargin ==2
         for ii = 1:length(TimeThresh)
             
             examp.Cluster_id =[];
-            examp.time_cut=(TimeThresh(ii));
+            examp.maxEltTime=(TimeThresh(ii));
             examp.toaOnlyCluster();
             examp.getRand();
             ExpScoresMeth(ii,1) = examp.AdjRand;
@@ -43,7 +43,7 @@ else % Else there were three variables, so leave well enough alone
         for ii = 1:length(TimeThresh)
             
             examp.Cluster_id =[];
-            examp.time_cut=(TimeThresh(ii));
+            examp.maxEltTime=(TimeThresh(ii));
             examp.updateChains;
             examp.getRand();
             ExpScoresMeth(ii,jj) = examp.AdjRand;
