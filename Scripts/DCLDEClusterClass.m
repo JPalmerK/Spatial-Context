@@ -1,26 +1,31 @@
-
-
+1+1
+%%
 clear all; close all; clc
 
-cd('/home/kpalmer/AnacondaProjects/Localisation/Scripts')
+close all; clear all
+clear classes; clc
 
-% Load the meta data for array plotting
-dclde_2013_meta = xlsread(strcat('/cache/kpalmer/quick_ssd/data/',...
-    'DCLDE_2013_10Channel/DCL2013_NEFSC_SBNMS_200903_metadata.xlsx'));
-
-load('/home/kpalmer/AnacondaProjects/Localisation/Scripts/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_array_struct1_671.mat')
-load('/home/kpalmer/AnacondaProjects/Localisation/Scripts/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_localize_struct_671.mat')
-
+whereAmI = loadSimspace();
+dclde_2013_meta = xlsread(whereAmI{1});
+load(whereAmI{2})
+load(whereAmI{3})
+clear whereAmI
 
 
-close all
-fs =2000;
-array_idx=1
-LSQ_plot_thres =.0008; % Plotting only
-cor_thresh = .2;
-time_cut = 10*60; %30 minutes
-NChidlHyd = 2; % Number of pairs of hydrophones
+hydrophone_struct= struct();
+for ii=1:size(dclde_2013_meta,1)
+    hydrophone_struct(ii).name = num2str(dclde_2013_meta(ii,1));
+    hydrophone_struct(ii).location = dclde_2013_meta(ii,[11:12]);
+    hydrophone_struct(ii).depth= abs(dclde_2013_meta(ii, 13));
+    hydrophone_struct(ii).channel=ii;
+end
+hyd_arr = struct2cell(hydrophone_struct);
+hyd_arr =vertcat(hyd_arr{2,:,:});
 
+parent =5;
+fs = 2000;
+ssp = localize_struct.parm.ssp;
+grid_depth = localize_struct.parm.grid_depth;
 
 % Set up data parameters
 DCLDE2013Cluster  = clusterDataGPLclass();

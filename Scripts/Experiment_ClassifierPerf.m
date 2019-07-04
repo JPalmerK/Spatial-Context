@@ -42,7 +42,7 @@ betaParm1= [20 20 20];
 betaParm2=[19 17 15];  
 titlevals = [ {'Poor Classifier'}, {'Med Classifier'},{'Good Classifier'}]
 
-for ii=1:nruns
+for ii=1:3
 
 figure(1)
 subplot(3,1,ii)
@@ -57,7 +57,7 @@ title(titlevals(ii))
 end
 %%
 
-nRuns = 20;
+nRuns = 10;
 
 
 
@@ -185,7 +185,7 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     % Fourth Method, baseline
     examp.clearCalcValues();
     examp.toaOnlyCluster();
-    examp.time_cut = quantile(diff(examp.arrivalArray(:,1)),.95);
+    examp.time_cut = quantile(diff(examp.arrivalArray(:,1)),.85);
     examp.getRand();
     examp.AdjRand
 

@@ -1161,8 +1161,8 @@ classdef simulationClass <handle
             % more of the same
             
             
-            nextArea = find(nextLklhdSpace>0.05);
-            projArea = find(ProjectedLklhdSpace>.05);
+            nextArea = find(nextLklhdSpace>0.01);
+            projArea = find(ProjectedLklhdSpace>.01);
             
             commonvals = intersect(nextArea, projArea);
             
@@ -1175,9 +1175,7 @@ classdef simulationClass <handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
         end
-        
-        
-        
+           
         %% Draw the Agents
         function drawAgents(obj)
             
