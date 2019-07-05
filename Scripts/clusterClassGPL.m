@@ -1,7 +1,7 @@
 % Create clusters of data from GPL localization struct
 classdef clusterClassGPL <simulationClass
     properties
-        CrossScore= .8
+        CrossScore= .05
         localize_struct % Localize struct if using GPL
         ravenTable % Raven sound selection table
         limitTime % to limit the time over which to analyse the data fill here (seconds)
@@ -27,7 +27,6 @@ classdef clusterClassGPL <simulationClass
             
             % Parent hydrophone
             parent = obj.array_struct.master;
-            
             child_hyd = obj.array_struct.slave;
             
             ParentArrival = obj.localize_struct.hyd(parent).rtimes'./obj.fs;
@@ -57,21 +56,10 @@ classdef clusterClassGPL <simulationClass
                 'VariableNames',{'ArrivalSec', 'Location','CrossScore', 'TDOA'});
             at.ID = zeros(height(at),1)/0;
             % Clear out any detections greater than Xkm from the receiver
-            crossScore_bool = ones(size(at.CrossScore));
-            crossScore_bool(at.CrossScore>obj.CrossScore) = nan;
-            
-            % Add an extra column for the parent hydropone
-            at.CrossScore = at.CrossScore.*crossScore_bool;
-            at.ArrivalSec = at.ArrivalSec.*crossScore_bool;
-            
-            % Remove rows wehre the cross correlation score isn't as good
-            % as the minimum
-            cross_scores = sum(crossScore_bool(:,child_hyd(obj.child_idx)),2);
-            good_idx = logical(~isnan(cross_scores));
-            
-            at = at(good_idx,:);
+
             
             
+            % limit the amount of time considered
             if ~isempty(obj.limitTime)
                 good_idx = logical(cumsum(diff(ArrivalSec(:, parent)))<obj.limitTime);
                 at = at(good_idx,:);
