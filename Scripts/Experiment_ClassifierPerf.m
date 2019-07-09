@@ -57,7 +57,7 @@ title(titlevals(ii))
 end
 %%
 
-nRuns = 10;
+nRuns = 200;
 
 
 
@@ -123,7 +123,7 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     examp.time_cut = 5*60;
     examp.simMatIdeal();
     
-    examp.cutoff = .85;
+    examp.cutoff = .95;
     examp.updateClusterID;
     examp.getRand
     examp.AdjRand
@@ -185,7 +185,7 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     % Fourth Method, baseline
     examp.clearCalcValues();
     examp.toaOnlyCluster();
-    examp.time_cut = quantile(diff(examp.arrivalArray(:,1)),.85);
+    examp.time_cut = quantile(diff(examp.arrivalArray(:,1)),.95);
     examp.getRand();
     examp.AdjRand
 
@@ -214,6 +214,7 @@ correct_classMeth1 =table(zeros(nRuns,1), zeros(nRuns,1),...
 correct_classMeth4 =correct_classMeth1;
 correct_classMeth3 = correct_classMeth1;
 correct_classMeth2 = correct_classMeth1;
+correct_classMethUncluster = correct_classMeth1;
 
 for ii=1:length(perf_meth1)
     mod = struct2table(perf_meth1(ii).Low);
@@ -224,7 +225,6 @@ for ii=1:length(perf_meth1)
         + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     prct_improvement = -(methUnaided- methCorrect)/methUnaided;
     correct_classMeth1.Low(ii) = prct_improvement;
-    
     
     mod = struct2table(perf_meth1(ii).Med);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
@@ -245,6 +245,10 @@ for ii=1:length(perf_meth1)
     prct_improvement = -(methUnaided- methCorrect)/methUnaided;
     correct_classMeth1.High(ii) = prct_improvement;
     correct_classMeth1.Method(ii) =1;
+    
+ 
+    
+    
 end
 
 
@@ -269,6 +273,7 @@ for ii=1:length(perf_meth2)
         length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     prct_improvement = -(methUnaided- methCorrect)/methUnaided;
     correct_classMeth2.Medium(ii) = prct_improvement;
+    
     
         % 1s correctly classified as 1
     mod = struct2table(perf_meth2(ii).High);
@@ -306,6 +311,7 @@ for ii=1:length(perf_meth3)
         length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     prct_improvement = -(methUnaided- methCorrect)/methUnaided;
     correct_classMeth3.Medium(ii) = prct_improvement;
+
     
     mod = struct2table(perf_meth3(ii).High);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
@@ -316,6 +322,7 @@ for ii=1:length(perf_meth3)
     prct_improvement = -(methUnaided- methCorrect)/methUnaided;
     correct_classMeth3.High(ii) = prct_improvement;
     correct_classMeth3.Method(ii) = 3;
+ 
 end
 
 
@@ -329,7 +336,6 @@ for ii=1:length(perf_methbaseline)
         length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     prct_improvement = -(methUnaided- methCorrect)/methUnaided;
     correct_classMeth4.Low(ii) = prct_improvement;
-    
     
     % 1s correctly classified as 1
     mod = struct2table(perf_methbaseline(ii).Med);
@@ -354,19 +360,47 @@ for ii=1:length(perf_methbaseline)
     correct_classMeth4.Method(ii) =4;
 end
 
-aa =[correct_classMeth1; correct_classMeth2; correct_classMeth3; correct_classMeth4];
 
-xaxtitle = {['TDOA'], ['Idealize Spatial'], ['AdHoc Spatial'], ['Baseline']};
+% Get unaided
+for ii=1:length(perf_methbaseline)
+    mod = struct2table(perf_methbaseline(ii).Low);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) +...
+        length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMethUncluster.Low(ii) = 1-methUnaided;
+
+    
+    % 1s correctly classified as 1
+    mod = struct2table(perf_methbaseline(ii).Med);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) +...
+        length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMethUncluster.Medium(ii) = 1-methUnaided;
+    
+    
+    % 1s correctly classified as 1
+    mod = struct2table(perf_methbaseline(ii).High);
+    methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) +...
+        length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
+    correct_classMethUncluster.High(ii) = 1-methUnaided;
+    correct_classMethUncluster.Method(ii) =5;
+end
+
+
+
+
+aa =[correct_classMeth1; correct_classMeth2; correct_classMeth3;...
+    correct_classMeth4; correct_classMethUncluster];
+
+xaxtitle = {['TDOA'], ['Idealize Spatial'], ['AdHoc Spatial'],['Baseline'], ['Unclustered Error']};
 
 
 figure
 subplot(3,1,1)
 Y = (aa.Low*100);
-Y = reshape(Y, [], 4)
+Y = reshape(Y, [], 5)
 violin(Y,'xlabel',xaxtitle, 'edgecolor', [], 'mc', [], 'quan', '--k', 'plotlegend',[])
 fix_xticklabels(gca,0.1,{'FontSize',9});
-textvals = strcat(repmat(['Median = '],4,1),(num2str(round(median(Y),2)')));
-text([1:4]-.17', ones(1,4)*70, textvals)
+textvals = strcat(repmat(['Median = '],5,1),(num2str(round(median(Y),2)')));
+text([1:5]-.17', ones(1,5)*70, textvals)
 title('Low Performance Classifier')
 ylabel('Percent Improvement')
 ylim([-120 120])
@@ -374,11 +408,11 @@ ylim([-120 120])
 
 subplot(3,1,2)
 Y = (aa.Medium*100);
-Y = reshape(Y, [], 4)
+Y = reshape(Y, [], 5)
 violin(Y,'xlabel',xaxtitle, 'edgecolor', [], 'mc', [], 'quan', '--k', 'plotlegend',[])
 fix_xticklabels(gca,0.1,{'FontSize',9});
-textvals = strcat(repmat(['Median = '],4,1),(num2str(round(median(Y),2)')));
-text([1:4]-.17', ones(1,4)*70, textvals)
+textvals = strcat(repmat(['Median = '],5,1),(num2str(round(median(Y),2)')));
+text([1:5]-.17', ones(1,5)*70, textvals)
 title('Mid Performance Classifier')
 ylabel('Percent Improvement')
 ylim([-120 120])
@@ -386,11 +420,11 @@ ylim([-120 120])
 
 subplot(3,1,3)
 Y = (aa.High*100);
-Y = reshape(Y, [], 4)
+Y = reshape(Y, [], 5)
 violin(Y,'xlabel',xaxtitle, 'edgecolor', [], 'mc', [], 'quan', '--k', 'plotlegend',[])
 fix_xticklabels(gca,0.1,{'FontSize',9});
-textvals = strcat(repmat(['Median = '],4,1),(num2str(round(median(Y),2)')));
-text([1:4]-.17', ones(1,4)*70, textvals)
+textvals = strcat(repmat(['Median = '],5,1),(num2str(round(median(Y),2)')));
+text([1:5]-.17', ones(1,5)*70, textvals)
 title('High Performance Classifier')
 ylabel('Percent Improvement')
 ylim([-120 120])
