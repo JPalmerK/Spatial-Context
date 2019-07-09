@@ -59,10 +59,10 @@ all_tt = [0:spaceWhale.param_sim.dur];
 ave_z = [1.51, 0.57,0.21, 0.6, 0.63];
 
 % Spacing between each call in each cluster
-ave_call_spacing = [0.33,0.33,0.17,0.25,0.2];
+ave_call_spacing = [0.33, 0.33, 0.17, 0.25, 0.2];
 
 % Number of calls in each cluster
-ave_size = median([1.03,1.43,1.54,1.96,4.13]);
+ave_size = median([1.03,1.43,1.54,1.96, 4.13]);
 
 
 
