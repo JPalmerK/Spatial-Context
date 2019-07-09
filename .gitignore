@@ -2,3 +2,7 @@
 *.asv
 
 *.m~
+
+Scripts/Bin/
+
+*.mat

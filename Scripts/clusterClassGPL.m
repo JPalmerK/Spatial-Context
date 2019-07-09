@@ -5,9 +5,18 @@ classdef clusterClassGPL <simulationClass
         localize_struct % Localize struct if using GPL
         ravenTable % Raven sound selection table
         limitTime % to limit the time over which to analyse the data fill here (seconds)
+        
+        % 
+        ravenColumnHeadings ={'Selection', 'View', 'Channel', 'Begin Time (s)', 'End Time (s)', 'Low Freq (Hz)', 'High Freq (Hz)'};
+        
+        
     end
+    
+    
     methods
         function UpdateArrTable(obj)
+            % Create the arrival table based on either GPL output or raven
+            % selection table
             
             if isempty(obj.localize_struct) & isempty(obj.ravenTable)
                 disp('Raven Selection Table or GPL localization Structure needed')
@@ -23,7 +32,53 @@ classdef clusterClassGPL <simulationClass
             end
         end
         
+        
+        function RavenTable = exportRavenTxt(obj, outputDir)
+            % Function ofr creating and exporting detections as Raven
+            % compatable .txt file
+            
+            if nargin==2
+                fnameloc = outputDir;
+            end
+            
+            arivalArr = obj.arrivalArray;
+            
+            arrivaltable = array2table(zeros(0,7),'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
+            
+            % Loop through the child indexes and create the arrival tables
+            hyds = [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)]
+            
+            for ii =1:length(hyds)
+                n_calls =sum(~isnan(arivalArr(:,ii)));
+            
+
+            
+                
+                aa = table(...
+                [1:n_calls]',...
+                repmat(['Spectrogram'],[n_calls,1]),...
+                repmat(hyds(ii), [n_calls,1]),...
+                arivalArr(~isnan(arivalArr(:,ii)),ii),...
+                arivalArr(~isnan(arivalArr(:,ii)),ii)+.5,...
+                repmat(20, [n_calls,1]),...
+                repmat(200, [n_calls,1]),...
+              'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
+          
+                arrivaltable =[arrivaltable; aa];
+            
+            end
+            
+            
+            
+            
+            
+            RavenTable =1;
+            
+        end
+        
+        
         function updateArrTableGPL(obj)
+            % Update the arrival table using GPL detections
             
             % Parent hydrophone
             parent = obj.array_struct.master;

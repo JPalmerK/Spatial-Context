@@ -22,6 +22,7 @@ parm_movement.duration = 60*60*n_hrs;
 
 % Make call parameters
 parm_calling.model = 'Bout';
+%parm_calling.model = 'random';
 
 
 % Create 10 agents with different movement behaviours

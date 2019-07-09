@@ -75,6 +75,7 @@ close all;
     updateArrTableGPL(examp) % Run this first!
     simMatTDOAonly(examp)
     examp.updateClusterID
+    examp.exportRavenTxt()
     examp.drawSimMat
     examp.drawAgents
         %%
