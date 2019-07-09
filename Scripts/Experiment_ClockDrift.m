@@ -36,8 +36,8 @@ grid_depth = localize_struct.parm.grid_depth;
 
 % Number of hours the experiment runs and the number of agents included
 n_hrs = 0.75;
-n_agents = 6;
-nRuns = 20;
+n_agents = 4;
+nRuns = 200;
 
 % Number of calls included in the analysis
 n_calls = zeros(1, nRuns);
@@ -68,7 +68,7 @@ perf_methbaseline = struct;
 
 %%
 
-for ii =11:20
+for ii =1:nRuns
     disp(num2str(ii))
 
     clear spaceWhale examp
@@ -100,7 +100,7 @@ for ii =11:20
     % First method, TDOA only
     simMatTDOAonly(examp);
     examp.getRand();
-    examp.maxEltTime =  quantile(diff(examp.arrivalArray(:,1)), .85);
+    examp.maxEltTime =  quantile(diff(examp.arrivalArray(:,1)), .95);
     Meth1_aRand(ii)=examp.AdjRand;
     perf = examp.estClassifierPerf;
     perf_meth1(ii).ideal = perf;
@@ -145,8 +145,8 @@ for ii =11:20
 
     % Shift by two seconds allow for 4 seconds of drift (default)
     examp.randomMiss =1;
-    examp.assSec = 4;
-    examp.drift=2;
+    examp.assSec = 2;
+    examp.drift=1;
     
     
 
@@ -195,8 +195,8 @@ for ii =11:20
     %%%%%%%%%% Severe Drift Present %%%%%%%%%%%%%%%
      
     % Shift by 10 seconds allow for 15 seconds association time
-    examp.assSec =7;
-    examp.drift=5;
+    examp.assSec =2.5;
+    examp.drift=1.5;
       
     
     jj =jj+1;
@@ -214,7 +214,7 @@ for ii =11:20
     
     % Third Method, ad hoc
     examp.clearCalcValues();
-    examp.cutoff =0.5;
+    examp.cutoff =0.95;
     simMatadHoc(examp);
     examp.getRand();
     Meth3_aRandDrift_10(ii)=examp.AdjRand;
@@ -335,7 +335,6 @@ title('Random Association 60 Sec')
 legend('TDOA Only','AdHoc', 'Idealized Spatial Model', 'Baseline')
 
 %% Classifier Performance
-
 
 correct_classMeth1 =table(zeros(nRuns,1), zeros(nRuns,1), zeros(nRuns,1),zeros(nRuns,1), 'VariableNames', {'Low', 'Medium', 'High', 'Method'});
 correct_classMeth4 =correct_classMeth1;
