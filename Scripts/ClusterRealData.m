@@ -63,10 +63,10 @@ close all;
     examp = clusterClassGPL();
     examp.array_struct = array_struct;
     examp.hydrophone_struct = hydrophone_struct;
-    examp.cutoff = .9;
+    examp.cutoff = .7;
     examp.time_cut = 70*60;
     examp.randomMiss =0;
-    examp.child_idx = [1,2,3];
+    examp.child_idx = [1:8];
     examp.localize_struct =localize_struct;
     examp.limitTime =24*60*60;
     examp.maxEltTime =60*10;
@@ -78,7 +78,8 @@ close all;
     examp.exportRavenTxt()
     examp.drawSimMat
     examp.drawAgents
-        %%
+    
+    %%
     examp.clearCalcValues
     updateArrTableGPL(examp) % Run this first!
     toaOnlyCluster(examp);
@@ -86,7 +87,9 @@ close all;
     %%
     examp.clearCalcValues;
     examp.simMatIdeal;
+    examp.updateChains;
     examp.updateClusterID;
     examp.drawAgents
+    
 
 
