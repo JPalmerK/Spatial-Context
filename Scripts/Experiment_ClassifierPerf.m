@@ -57,7 +57,7 @@ title(titlevals(ii))
 end
 %%
 
-nRuns = 200;
+nRuns = 20;
 
 
 
@@ -68,7 +68,7 @@ n_calls = zeros(1, nRuns);
 % Slave index of the child array
 child_idx = [1 2 3];
 
-for ii=length(perf_meth1): length(perf_meth1)+nRuns
+for ii=1: nRuns
     close all
     clear spaceWhale examp
     disp([num2str(ii) ' of ' num2str(nRuns) ' runs'])
@@ -76,6 +76,7 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     [spaceWhale] =  createRandomSpaceWhale(0.75,6, hyd_arr,...
         array_struct,hydrophone_struct, ssp, grid_depth,...
         [array_struct.master, array_struct.slave(child_idx)]);
+    
     
     % Populate data and parameters
     examp = simulationClass();
@@ -93,7 +94,7 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     examp.cutoff = .95;
     examp.time_cut = 5*60;
     simMatTDOAonly(examp);
-    examp.maxEltTime =  quantile(diff(examp.arrivalArray(:,1)), .85);
+    examp.maxEltTime =  quantile(diff(examp.arrivalArray(:,1)), .95);
     examp.updateClusterID;
     examp.getRand
     examp.AdjRand
@@ -101,22 +102,28 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
 
     examp.betaParm1 = betaParm1(1);
     examp.betaParm2=betaParm2(1);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth1(ii).Low = perf;
-
+    
     
     examp.betaParm1 = betaParm1(2);
     examp.betaParm2=betaParm2(2);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth1(ii).Med = perf;
-
+    
     
     examp.betaParm1 = betaParm1(3);
     examp.betaParm2=betaParm2(3);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth1(ii).High = perf;
-
-
+    
+    
     
     % Second Method, ideal
     examp.clearCalcValues();
@@ -127,24 +134,30 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     examp.updateClusterID;
     examp.getRand
     examp.AdjRand
-
+    
     
     examp.betaParm1 = betaParm1(1);
     examp.betaParm2=betaParm2(1);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1)
     perf_meth2(ii).Low = perf;
-  
+    
     
     examp.betaParm1 = betaParm1(2);
     examp.betaParm2=betaParm2(2);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth2(ii).Med = perf;
-
+    
     examp.betaParm1 = betaParm1(3);
     examp.betaParm2=betaParm2(3);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth2(ii).High = perf;
-
+    
     
     
     
@@ -153,32 +166,38 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     simMatadHoc(examp);
     
     examp.time_cut = 5*60;
-    examp.cutoff = .95; 
+    examp.cutoff = .95;
     examp.Cluster_id=[];
     examp.chains =[];
     examp.updateClusterID;
     examp.getRand
     examp.AdjRand
     
-
+    
     examp.betaParm1 = betaParm1(1);
     examp.betaParm2 =betaParm2(1);
     updateClusterID(examp)
-
-    perf = examp.estClassifierPerf;
+    
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth3(ii).Low = perf;
-
+    
     examp.betaParm1 = betaParm1(2);
     examp.betaParm2=betaParm2(2);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth3(ii).Med = perf;
-
+    
     
     examp.betaParm1 = betaParm1(3);
     examp.betaParm2=betaParm2(3);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);    
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_meth3(ii).High = perf;
-
+    
     
     
     
@@ -188,22 +207,28 @@ for ii=length(perf_meth1): length(perf_meth1)+nRuns
     examp.time_cut = quantile(diff(examp.arrivalArray(:,1)),.95);
     examp.getRand();
     examp.AdjRand
-
+    
     examp.betaParm1 = betaParm1(1);
     examp.betaParm2=betaParm2(1);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);    
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_methbaseline(ii).Low = perf;
-
+    
     examp.betaParm1 = betaParm1(2);
     examp.betaParm2=betaParm2(2);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);    
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_methbaseline(ii).Med = perf;
-
+    
     examp.betaParm1 = betaParm1(3);
     examp.betaParm2=betaParm2(3);
-    perf = examp.estClassifierPerf;
+    perf = struct2table(examp.estClassifierPerf);    
+    perf.Loc = examp.arrivalArray(:,end-2:end-1);
+    perf.Time =examp.arrivalArray(:,1);
     perf_methbaseline(ii).High = perf;
- 
+    
 end
 
 
@@ -217,7 +242,7 @@ correct_classMeth2 = correct_classMeth1;
 correct_classMethUncluster = correct_classMeth1;
 
 for ii=1:length(perf_meth1)
-    mod = struct2table(perf_meth1(ii).Low);
+    mod = (perf_meth1(ii).Low);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<=0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -226,7 +251,7 @@ for ii=1:length(perf_meth1)
     prct_improvement = -(methUnaided- methCorrect)/methUnaided;
     correct_classMeth1.Low(ii) = prct_improvement;
     
-    mod = struct2table(perf_meth1(ii).Med);
+    mod = (perf_meth1(ii).Med);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -236,7 +261,7 @@ for ii=1:length(perf_meth1)
     correct_classMeth1.Medium(ii) = prct_improvement;
     
     % 1s correctly classified as 1
-    mod = struct2table(perf_meth1(ii).High);
+    mod = (perf_meth1(ii).High);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -255,7 +280,7 @@ end
 
 for ii=1:length(perf_meth2)
     
-    mod = struct2table(perf_meth2(ii).Low);
+    mod = (perf_meth2(ii).Low);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -265,7 +290,7 @@ for ii=1:length(perf_meth2)
     correct_classMeth2.Low(ii) = prct_improvement;
     
     % 1s correctly classified as 1
-    mod = struct2table(perf_meth2(ii).Med);
+    mod = (perf_meth2(ii).Med);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1))...
         + length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -276,7 +301,7 @@ for ii=1:length(perf_meth2)
     
     
         % 1s correctly classified as 1
-    mod = struct2table(perf_meth2(ii).High);
+    mod = (perf_meth2(ii).High);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -292,7 +317,7 @@ end
 
 
 for ii=1:length(perf_meth3)
-    mod = struct2table(perf_meth3(ii).Low);    
+    mod = (perf_meth3(ii).Low);    
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -303,7 +328,7 @@ for ii=1:length(perf_meth3)
     
     
     % 1s correctly classified as 1
-    mod = struct2table(perf_meth3(ii).Med);
+    mod = (perf_meth3(ii).Med);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -313,7 +338,7 @@ for ii=1:length(perf_meth3)
     correct_classMeth3.Medium(ii) = prct_improvement;
 
     
-    mod = struct2table(perf_meth3(ii).High);
+    mod = (perf_meth3(ii).High);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -328,7 +353,7 @@ end
 
 
 for ii=1:length(perf_methbaseline)
-    mod = struct2table(perf_methbaseline(ii).Low);
+    mod = (perf_methbaseline(ii).Low);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -338,7 +363,7 @@ for ii=1:length(perf_methbaseline)
     correct_classMeth4.Low(ii) = prct_improvement;
     
     % 1s correctly classified as 1
-    mod = struct2table(perf_methbaseline(ii).Med);
+    mod = (perf_methbaseline(ii).Med);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -349,7 +374,7 @@ for ii=1:length(perf_methbaseline)
     
     
     % 1s correctly classified as 1
-    mod = struct2table(perf_methbaseline(ii).High);
+    mod = (perf_methbaseline(ii).High);
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
@@ -363,21 +388,21 @@ end
 
 % Get unaided
 for ii=1:length(perf_methbaseline)
-    mod = struct2table(perf_methbaseline(ii).Low);
+    mod = (perf_methbaseline(ii).Low);
     methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) +...
         length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     correct_classMethUncluster.Low(ii) = 1-methUnaided;
 
     
     % 1s correctly classified as 1
-    mod = struct2table(perf_methbaseline(ii).Med);
+    mod = (perf_methbaseline(ii).Med);
     methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) +...
         length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     correct_classMethUncluster.Medium(ii) = 1-methUnaided;
     
     
     % 1s correctly classified as 1
-    mod = struct2table(perf_methbaseline(ii).High);
+    mod = (perf_methbaseline(ii).High);
     methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1)) +...
         length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     correct_classMethUncluster.High(ii) = 1-methUnaided;
