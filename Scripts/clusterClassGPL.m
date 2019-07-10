@@ -2,12 +2,18 @@
 classdef clusterClassGPL <simulationClass
     properties
         CrossScore= .05
-        localize_struct % Localize struct if using GPL
-        ravenTable % Raven sound selection table
+        
+         
         limitTime % to limit the time over which to analyse the data fill here (seconds)
         
-        % 
+        % Exporting and comparing
         ravenColumnHeadings ={'Selection', 'View', 'Channel', 'Begin Time (s)', 'End Time (s)', 'Low Freq (Hz)', 'High Freq (Hz)'};
+        RavenTable
+        
+        % Importing data (GPL or selection table)
+        localize_struct % Localize struct if using GPL
+        raventLoc % Location of Raven selection table
+        
         
         
     end
@@ -18,21 +24,33 @@ classdef clusterClassGPL <simulationClass
             % Create the arrival table based on either GPL output or raven
             % selection table
             
-            if isempty(obj.localize_struct) & isempty(obj.ravenTable)
+            if isempty(obj.localize_struct) & isempty(obj.raventLoc)
                 disp('Raven Selection Table or GPL localization Structure needed')
                 return
-            elseif  isempty(obj.localize_struct) & ~isempty(obj.ravenTable)
+            
+            elseif  isempty(obj.localize_struct) & ~isempty(obj.raventLoc)
                 updateArrTableRaven(obj) % Not implemented
                 disp('Ravent table access not yet implemented')
-            elseif ~isempty(obj.localize_struct) & isempty(obj.ravenTable)
+            
+            elseif ~isempty(obj.localize_struct) & isempty(obj.raventLoc)
                 updateArrTableGPL(obj)
-            else ~isempty(obj.localize_struct) & ~isempty(obj.ravenTable)
+            
+            else ~isempty(obj.localize_struct) & ~isempty(obj.raventLoc)
                 disp('Raven selection table OR GPL localize struct needed')
                 return
             end
         end
         
+        %%  Create the array table from Ravent Textfile
+        function updateArrTableRaven(obj)
+            
+            ravenTable = readtable(obj.ravenLoc)
         
+        
+        end
+        
+        
+        %% Create a Raven Compatable Selection table 
         function RavenTable = exportRavenTxt(obj, outputDir)
             % Function ofr creating and exporting detections as Raven
             % compatable .txt file
@@ -43,7 +61,7 @@ classdef clusterClassGPL <simulationClass
             
             arivalArr = obj.arrivalArray;
             
-            arrivaltable = array2table(zeros(0,7),'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
+            RavenTable = array2table(zeros(0,7),'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
             
             % Loop through the child indexes and create the arrival tables
             hyds = [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)]
@@ -62,9 +80,9 @@ classdef clusterClassGPL <simulationClass
                 arivalArr(~isnan(arivalArr(:,ii)),ii)+.5,...
                 repmat(20, [n_calls,1]),...
                 repmat(200, [n_calls,1]),...
-              'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
+                'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
           
-                arrivaltable =[arrivaltable; aa];
+                RavenTable =[RavenTable; aa];
             
             end
             
@@ -72,11 +90,11 @@ classdef clusterClassGPL <simulationClass
             
             
             
-            RavenTable =1;
+            obj.RavenTable =RavenTable;
             
         end
         
-        
+        %% Create the array table from GPL data
         function updateArrTableGPL(obj)
             % Update the arrival table using GPL detections
             
@@ -123,6 +141,7 @@ classdef clusterClassGPL <simulationClass
             obj.arrivalTable =at;
         end
         
+        %% Draw the locations (where knonw) and color by cluster ID
         function drawAgents(obj)
             
             % Update the arrival array
