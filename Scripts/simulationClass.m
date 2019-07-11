@@ -39,8 +39,8 @@ classdef simulationClass <handle
         
         %cutoff = 0.8; % Correlation threshold cutoff - how similar do call
         % spaces need to be in order to be clustered
-        cutoff = 0.5;
-        maxEltTime = 60; % maximum time between calls to start another cluster
+        cutoff 
+        maxEltTime  % maximum time between calls to start another cluster
         
         % The following variables are created as the system is run
         arrivalTable % Table containing arrival times, locations etc of
@@ -48,10 +48,6 @@ classdef simulationClass <handle
         arrivalArray % Arrival times and ID's of each call
         TDOA_vals % TDOA values to feed to the clustering algorithim
         
-        
-        projSpace % The projected space of each call probability map- only
-        % used when running high-memory version but useful for data
-        % exploration and making figures
         Sim_mat % Similarity matrix for the call probability spaces
         chains % Structure with all linked call indexes and number of calls
         % in each cluster
@@ -673,9 +669,6 @@ classdef simulationClass <handle
             % arrival array
             if obj.randomMiss == 1
                 
-                
-                
-                
                 % Create a matrix that incorporates miss association
                 ArrivalsMiss = zeros(size(array));
                 ArrivalsMiss(:,1)  = array(:,1);
@@ -690,12 +683,14 @@ classdef simulationClass <handle
                     % positive or negative values
                     clock_shift = (mod(channum, 2)*2-1) * obj.drift;
                     
-                    array(:,channum) = array(:,channum) + clock_shift;
+                    array(:,channum+1) = array(:,channum+1) + clock_shift;
+                    
+                    % Allow for Mis Association %%%%%%%%%%%%%%%%%
                     
                     % Distance between two sensors - maximum exptected TDOA
                     % depth between calling whale and array
                     depth_range = obj.hydrophone_struct(obj.array_struct.master).depth...
-                        - obj.hydrophone_struct(channum).depth ;
+                        - obj.hydrophone_struct(obj.array_struct.slave(channum)).depth ;
                     
                     % Calculate the horizontal distance between the calling
                     % locations and the hydrophone
@@ -703,11 +698,12 @@ classdef simulationClass <handle
                         vdist(lats, lons,...
                         obj.hydrophone_struct(obj.array_struct.master).location(1),...
                         obj.hydrophone_struct(obj.array_struct.master).location(2)),...
-                        obj.hydrophone_struct(obj.child_idx(channum)).location(1),...
-                        obj.hydrophone_struct(obj.child_idx(channum)).location(2));
+                        obj.hydrophone_struct(obj.array_struct.slave(channum)).location(1),...
+                        obj.hydrophone_struct(obj.array_struct.slave(channum)).location(2));
                     
                     
-                    % Maximum expected tdoa between channel 1 and 2
+                    % Maximum expected tdoa between parent and child
+                    % (channum)
                     MaxTOA_1 = sqrt(depth_range^2 + ...
                         horizontal_distance.^2)/obj.c;
                     
@@ -718,8 +714,9 @@ classdef simulationClass <handle
                         
                         % Get index of all calls that fall within the
                         % association zone plus the wiggle room
-                        corr_idxs = find(abs(array(:,channum+1)...
-                            -array(ii,1))<MaxTOA_1+obj.assSec);
+                        corr_idxs = find(...
+                            abs(array(:,(channum+1))-array(ii,1))<...
+                            MaxTOA_1+obj.assSec);
                         
                         % If more than one index falls in the correlation
                         % zone pick one
@@ -802,7 +799,7 @@ classdef simulationClass <handle
             % parameters
             obj.arrivalTable=[];
             obj.TDOA_vals=[];
-            obj.projSpace=[];
+
             obj.Cluster_id=[];
             obj.AdjRand=[];
             obj.Sim_mat =[];
