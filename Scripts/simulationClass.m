@@ -131,6 +131,8 @@ classdef simulationClass <handle
                     
                     % Pull from distribution to estimate classificaiton probability
                     score = betarnd(obj.betaParm1, obj.betaParm2,[1 length(rw_idx)]);
+                    %score = .6;
+                    
                     
                     truthAndpreds.TrueSpp(rw_idx) =1; %yes target spp.!
                     truthAndpreds.Score(rw_idx) = score';
@@ -146,6 +148,7 @@ classdef simulationClass <handle
                     
                     % Transform so that it's between 0 and 1
                     score = 1- betarnd(obj.betaParm1, obj.betaParm2,[1 length(mn_idx)]); % logit (or inverse logit)
+                    %score = .4;
                     
                     % Update the species (binary) and the classifier
                     % predication score
@@ -636,10 +639,21 @@ classdef simulationClass <handle
             end
             
             % Array containing the parent and children hydrophones
+            
+            % Get ID vlue, if simulated data then ID if GPL then dex
+            % reference
+            if ~isempty(obj.calls)
+                disp('GPL Calls Detected, array ID variable being filled by dex')
+                IDval = obj.arrivalTable.dex+1; % Bug in GPL code leave this in until recieved fix from Tyler XXX
+            else
+                IDval = obj.arrivalTable.ID;
+            end
+            
+            
             array = [obj.arrivalTable.ArrivalSec(:,...
                 [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)])...
                 obj.arrivalTable.Location ...
-                obj.arrivalTable.ID];
+                IDval];
             
             
             % Remove calls that weren't detected on the parent hydrophone
@@ -1186,7 +1200,7 @@ classdef simulationClass <handle
             
             TimeColorVals = parula(obj.spaceWhale.param_sim.dur+2);
             ColorVals = lines( max([length(obj.spaceWhale.agent), max(obj.Cluster_id)]));
-            child_hyds = obj.array_struct.slave(obj.child_idx)
+            child_hyds = obj.array_struct.slave(obj.child_idx);
             
             
             figure;
