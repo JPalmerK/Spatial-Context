@@ -67,7 +67,7 @@ array_struct.latgrid=[42.0:.001: 42.3];  %defines total search area for localiza
 array_struct.longrid=[-70.5:.001:-70.1];
 
 
-[localize_struct,array_struct]=localize_parameter_input(hydrophone_struct,array_struct,parm);
+
 
 % Create labels for plotting locations (undocumented function)
 
@@ -97,7 +97,7 @@ localize_struct.parm.pow = 1.5 %FFT power of the call to cross corelate
 
 %localize_struct.parm.phase=600;
 
-
+[localize_struct,array_struct]=localize_parameter_input(hydrophone_struct,array_struct,parm);
 
 
 
@@ -210,7 +210,7 @@ for file_index=gstart:finish
         
         
         
-        cd('/home/kpalmer/AnacondaProjects/Localisation/Scripts');
+        cd('/home/kpalmer/AnacondaProjects/Spatial-Context/Scripts');
         
         [calls]=process_RW_sub(data(hydrophone_struct(j).channel,:),...
             parm,...
@@ -251,9 +251,9 @@ sizeOfSave=whos('calls');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_Mar21_calls',num2str(gstart),'_',num2str(finish)),'calls')
+    save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_July1119_calls',num2str(gstart),'_',num2str(finish)),'calls')
     
-else save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_Mar21_calls',num2str(gstart),'_',num2str(finish)),'calls', '-v7.3')
+else save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_July1119_calls',num2str(gstart),'_',num2str(finish)),'calls', '-v7.3')
     
 end
 
@@ -272,7 +272,7 @@ all_hyd = [1 2 3 5 6 7 8 9 10];
 
 %for ii=1:length(all_hyd)
 
-for ii=1:length(all_hyd)
+for ii=4
     
     
     
@@ -315,9 +315,9 @@ sizeOfSave=whos('localize_struct');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW_localizations',prefix,'_all12_timed_Mar21_calls',num2str(gstart),'_',num2str(finish)),'localize_struct')
+    save(strcat('DCLDE2013_RW_localizations',prefix,'_all12_timed_July1119_calls',num2str(gstart),'_',num2str(finish)),'localize_struct')
     
-else save(strcat('DCLDE2013RW_localizations',prefix,'_all12_timed_Mar21_calls',num2str(gstart),'_',num2str(finish)),'localize_struct', '-v7.3')
+else save(strcat('DCLDE2013RW_localizations',prefix,'_all12_timed_JUly1119_calls',num2str(gstart),'_',num2str(finish)),'localize_struct', '-v7.3')
     
 end
 
@@ -331,9 +331,9 @@ sizeOfSave=whos('hyd');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_Mar21_calls',num2str(gstart),'_',num2str(finish)),'hyd')
+    save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_July1119_calls',num2str(gstart),'_',num2str(finish)),'hyd')
     
-else save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_Mar21_calls',num2str(gstart),'_',num2str(finish)),'hyd', '-v7.3')
+else save(strcat('DCLDE2013_RW_localizations_',prefix,'_all12_timed_July1119_calls',num2str(gstart),'_',num2str(finish)),'hyd', '-v7.3')
     
 end
 

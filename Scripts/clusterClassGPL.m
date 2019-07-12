@@ -1,8 +1,7 @@
 % Create clusters of data from GPL localization struct
 classdef clusterClassGPL <simulationClass
     properties
-        CrossScore= .05
-        
+
          
         limitTime % to limit the time over which to analyse the data fill here (seconds)
         
@@ -14,7 +13,8 @@ classdef clusterClassGPL <simulationClass
         localize_struct % Localize struct if using GPL
         raventLoc % Location of Raven selection table
         
-        
+        % For referencing time of GPL detections
+        calls
         
     end
     
@@ -58,31 +58,39 @@ classdef clusterClassGPL <simulationClass
             if nargin==2
                 fnameloc = outputDir;
             end
-            
+            parent = obj.array_struct.master;
             arivalArr = obj.arrivalArray;
             
             RavenTable = array2table(zeros(0,7),'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
             
             % Loop through the child indexes and create the arrival tables
-            hyds = [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)]
+            hyds = [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)];
+            
+            % Calls 
+            calls = struct2table(obj.calls);
+            
+           
             
             for ii =1:length(hyds)
                 n_calls =sum(~isnan(arivalArr(:,ii)));
-            
-
-            
+                call_ids =obj.localize_struct.hyd(parent).dex(logical(~isnan(arivalArr(:,ii))));
                 
+                % Start Time
+                start_times = calls.start_time(call_ids)/obj.fs;
+                
+                % End Times (DOOoooOOOoOOOoOOM!)
+                end_times = calls.end_time(call_ids)/obj.fs;
                 aa = table(...
-                [1:n_calls]',...
-                repmat(['Spectrogram'],[n_calls,1]),...
-                repmat(hyds(ii), [n_calls,1]),...
-                arivalArr(~isnan(arivalArr(:,ii)),ii),...
-                arivalArr(~isnan(arivalArr(:,ii)),ii)+.5,...
-                repmat(20, [n_calls,1]),...
-                repmat(200, [n_calls,1]),...
-                'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
-          
-                RavenTable =[RavenTable; aa];
+                    [height(RavenTable)+1:height(RavenTable)+n_calls]',...
+                    repmat(['Spectrogram'],[n_calls,1]),...
+                    repmat(hyds(ii), [n_calls,1]),...
+                   start_times,...
+                    end_times,...
+                    repmat(20, [n_calls,1]),...
+                    repmat(200, [n_calls,1]),...
+                    'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
+            
+            RavenTable =[RavenTable; aa];
             
             end
             
@@ -119,6 +127,10 @@ classdef clusterClassGPL <simulationClass
             
             x=squeeze(obj.localize_struct.hyd(parent).coordinates(2,1,:));
             x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(2,2,:));
+            
+            % Index of the detection
+            idx = obj.localize_struct.hyd(parent).dex';
+            
             %
             % Create the arrivals table (at) from the localize structure
             at = table(...
@@ -126,7 +138,8 @@ classdef clusterClassGPL <simulationClass
                 x,...
                 CrossScores,...
                 TDOA,...
-                'VariableNames',{'ArrivalSec', 'Location','CrossScore', 'TDOA'});
+                idx,...
+                'VariableNames',{'ArrivalSec', 'Location','CrossScore', 'TDOA', 'dex'});
             at.ID = zeros(height(at),1)/0;
             % Clear out any detections greater than Xkm from the receiver
 

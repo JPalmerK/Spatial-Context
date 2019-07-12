@@ -66,22 +66,25 @@ close all;
     examp.cutoff = .7;
     examp.time_cut = 70*60;
     examp.randomMiss =0;
+    examp.s =6;
     examp.child_idx = [1:8];
     examp.localize_struct =localize_struct;
     examp.limitTime =24*60*60;
     examp.maxEltTime =60*10;
-
+    examp.calls =localize_struct.hyd(5).calls;
+    
     examp.clearCalcValues
-    updateArrTableGPL(examp) % Run this first!
+    UpdateArrTable(examp) % Run this first!
     simMatTDOAonly(examp)
     examp.updateClusterID
+    
     examp.exportRavenTxt()
     examp.drawSimMat
     examp.drawAgents
     
     %%
     examp.clearCalcValues
-    updateArrTableGPL(examp) % Run this first!
+    updateArrTable(examp) % Run this first!
     toaOnlyCluster(examp);
     examp.drawAgents
     %%
@@ -90,6 +93,34 @@ close all;
     examp.updateChains;
     examp.updateClusterID;
     examp.drawAgents
-    
+%% Compare GPL clustered detections with verified calls
+
+
+% Load the calls
+ load('/home/kpalmer/AnacondaProjects/bin/SpatialContext/Scripts/DCLDE2013_RW_localizations_DCLDE_2013_10_Chan_all12_timed_Mar21_calls1_671.mat')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
