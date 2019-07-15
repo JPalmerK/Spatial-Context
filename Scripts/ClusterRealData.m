@@ -10,6 +10,7 @@ whereAmI = loadSimspace();
 dclde_2013_meta = xlsread(whereAmI{1});
 load(whereAmI{2});
 load(whereAmI{3});
+load(whereAmI{4});
 clear whereAmI
 
 
@@ -24,6 +25,9 @@ hyd_arr = struct2cell(hydrophone_struct);
 hyd_arr =vertcat(hyd_arr{2,:,:});
 
 
+if ~isfield(localize_struct.hyd(5), 'calls')
+    localize_struct.hyd(5).calls = hyd(5).detection.calls;
+end
 parent =5;
 fs = 2000;
 ssp = localize_struct.parm.ssp;
@@ -63,15 +67,16 @@ close all;
     examp = clusterClassGPL();
     examp.array_struct = array_struct;
     examp.hydrophone_struct = hydrophone_struct;
-    examp.cutoff = .7;
+    examp.cutoff = .9;
     examp.time_cut = 70*60;
     examp.randomMiss =0;
-    examp.s =6;
+    examp.s =8;
     examp.child_idx = [1:8];
     examp.localize_struct =localize_struct;
-    examp.limitTime =24*60*60;
+    examp.limitTime =36*60*60;
     examp.maxEltTime =60*10;
     examp.calls =localize_struct.hyd(5).calls;
+    examp.callParm =  hyd(5).detection.parm;       
     
     examp.clearCalcValues
     UpdateArrTable(examp) % Run this first!
@@ -84,7 +89,7 @@ close all;
     
     %%
     examp.clearCalcValues
-    updateArrTable(examp) % Run this first!
+    UpdateArrTable(examp) % Run this first!
     toaOnlyCluster(examp);
     examp.drawAgents
     %%
