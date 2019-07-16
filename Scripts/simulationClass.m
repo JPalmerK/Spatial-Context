@@ -256,7 +256,141 @@ classdef simulationClass <handle
             
             
         end
-        
+  %%      
+        function simMatIdealNewSim(obj)
+                      % This function creates the simulation matrix using the low
+            % memory approach. This should be used in most cases where not
+            % exploring the algorithims in depth.
+            
+            % Check if the arrival table is present if not update it
+            if isempty(obj.TDOA_vals)
+                disp(['Updating TDOA values'])
+                UpdateTDOA(obj);
+                
+            end
+            
+            obj.titleStr ='Call Space Similarity Ideal';
+            
+            % Grid X/Y space
+            % Get distance in meters between the lower and upper right
+            grid_v = vdist(min(obj.array_struct.latgrid),...
+                min(obj.array_struct.longrid),...
+                max(obj.array_struct.latgrid),...
+                min(obj.array_struct.longrid));
+            
+            
+            % Get distance in meters between the lower left and lower right
+            grid_h = vdist(min(obj.array_struct.latgrid),...
+                min(obj.array_struct.longrid),...
+                min(obj.array_struct.latgrid),...
+                max(obj.array_struct.longrid));
+            
+            
+            % Create the empty similarity matrix
+            Sim_mat = zeros(length(obj.TDOA_vals))/0;
+            
+            
+            % Grid X/Y space
+            deltalat_space = grid_v/ (length(obj.array_struct.latgrid)-1);
+            deltalon_space = grid_h/ (length(obj.array_struct.longrid)-1);
+            
+            % How many grid squares per second can the whale move
+            lat_persec = obj.s / deltalat_space;
+            lon_persec = obj.s / deltalon_space;
+            
+            
+            % Step through each arrival and get it's grid probability as
+            % well as the projected grid probabilities for times at all
+            % subsiquent calls but within the maximum time cuttoff
+            for ii =1:length(obj.arrivalArray)
+                
+                % Get the average prob loc space of the i-th call with
+                % delta sigma t
+                
+                sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
+                averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
+                
+                % Figure out the number of time gaps within the maximum
+                % allowed correlation time (time_cut)
+                time_gaps = obj.arrivalArray(ii:end, 1)-...
+                    obj.arrivalArray(ii, 1);
+                time_gaps = time_gaps(time_gaps<obj.time_cut);
+                
+                % If there are more than one time gap over which we need to
+                % look then do the projections
+                
+                if length(time_gaps)>1
+                    
+                    % Calculate the sigma values based on EM Nosal
+                    % suggestion
+                    % sigma (error) valuse from the normal distribution
+                    
+                    
+                    % Step through the time gaps/sigma values getting each
+                    % probability loc space and projection
+                    for jj= 1:length(time_gaps)
+                        
+                        
+%                         % Grow the likelihood space based using image
+%                         % processing max filter. Set the filter size based
+%                         % on the maximum swim speed
+%                         filt_size_lat = ceil(lat_persec * time_gaps(jj));
+%                         filt_size_lon = ceil(lon_persec * time_gaps(jj));
+%                         filt_size = max([filt_size_lat filt_size_lon]);
+%                         
+%                         % If there a filter then project the space,
+%                         % otherwise don't. use 3d max filter based on the
+%                         % time gaps
+%                         if filt_size>1
+%                             Lklhd_space_proj = imdilate(averageLklhd_space,...
+%                                 true(filt_size));
+%                         else
+%                             Lklhd_space_proj =averageLklhd_space;
+%                         end
+                        
+                        % Get the prob. loc space space of the next call in
+                        % the series
+                        nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sig_tot);
+                        
+                        % Get the comparison value of the projected prob
+                        % loc space and the next call in the squence
+                        aa = sum(averageLklhd_space,1);
+                        bb = sum(averageLklhd_space,2);
+                        
+                        
+                        aa2 = sum(nextLklhdSpace,1);
+                        bb2 = sum(nextLklhdSpace,2);
+                        
+                        cor1 = corrcoef(aa,aa2);
+                        cor2 = corrcoef(bb,bb2);
+                        
+                        simValue = (cor1(1,2) + cor2(1,2))/2;
+                        
+%                         simValue = compareLklhdSpace(obj, Lklhd_space_proj,...
+%                             nextLklhdSpace);
+                        %                         figure
+                        %                         subplot(2,1,1)
+                        %                         imagesc(Lklhd_space_proj); colorbar
+                        %
+                        %                         subplot(2,1,2)
+                        %                         imagesc(nextLklhdSpace); colorbar
+                        %
+                        
+                        % Populate the simulation matrix
+                        Sim_mat(ii, ii+jj-1) = simValue;
+                        Sim_mat(ii+jj-1 ,ii) = simValue;
+                        
+                    end
+                    
+                end
+                %disp([num2str(ii), ' of ',...
+                %    num2str(length(obj.arrivalArray))])
+            end
+            obj.Sim_mat= Sim_mat;
+            
+            
+            
+        end
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatIdeal(obj)
             % This function creates the simulation matrix using the low
@@ -355,6 +489,8 @@ classdef simulationClass <handle
                         
                         % Get the comparison value of the projected prob
                         % loc space and the next call in the squence
+
+                        
                         simValue = compareLklhdSpace(obj, Lklhd_space_proj,...
                             nextLklhdSpace);
                         %                         figure
@@ -642,7 +778,7 @@ classdef simulationClass <handle
             
             % Get ID vlue, if simulated data then ID if GPL then dex
             % reference
-            if ~isempty(obj.calls)
+            if isfield(obj, {'calls'}) && ~isempty(obj.calls)
                 disp('GPL Calls Detected, array ID variable being filled by dex')
                 IDval = obj.arrivalTable.dex+1; % Bug in GPL code leave this in until recieved fix from Tyler XXX
             else
@@ -1123,49 +1259,6 @@ classdef simulationClass <handle
         %% Compare two probability grid spaces (Help me!)
         function simValue = compareLklhdSpace(obj,...
                 ProjectedLklhdSpace, nextLklhdSpace)
-            
-            %             % Compares likelihood spaces for two calls, typically call a that
-            %             % has been projected and call b from later in the sequence that
-            %             % has not
-            %
-            %             % Create a mask indicating where the next next call could be in
-            %             % grid space
-            %             maskidx = find(nextLklhdSpace>0.01);
-            %
-            %             % Get the probability values for the mask index
-            %             nextvals = nextLklhdSpace(maskidx);
-            %             projvals = ProjectedLklhdSpace(maskidx);
-            %
-            %
-            %             aa = projvals./nextvals;
-            %             aa(aa>1)=1;
-            %             simValue = sum(aa)/length(nextvals);
-            %             simValue = nanmax(simValue, 0);
-            %
-            %
-            %             % Nothing begets nothing
-            %             if isempty(maskidx)
-            %                 simValue =1;
-            %             end
-            %
-            
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % And now for somthing completely different
-            
-%             
-%             % total area represented by the 'next' likelihood space
-%             areaNext = sum(sum(nextLklhdSpace));
-%             
-%             % Proportion of the next ambiguity space covered by the
-%             % current (projected ambiguity surface)
-%             prctCover = nextLklhdSpace./ProjectedLklhdSpace;
-%             prctCover(prctCover>1) =1;
-%             
-%             adjARea = sum(sum(nextLklhdSpace.*prctCover));
-%             
-%             
-%             
-%             simValue = adjARea/sum(sum(areaNext));
             
             
             
