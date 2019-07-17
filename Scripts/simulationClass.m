@@ -298,6 +298,7 @@ classdef simulationClass <handle
             lat_persec = obj.s / deltalat_space;
             lon_persec = obj.s / deltalon_space;
             
+            sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
             
             % Step through each arrival and get it's grid probability as
             % well as the projected grid probabilities for times at all
@@ -307,7 +308,7 @@ classdef simulationClass <handle
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
+                
                 averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
                 
                 % Figure out the number of time gaps within the maximum
@@ -330,26 +331,7 @@ classdef simulationClass <handle
                     % probability loc space and projection
                     for jj= 1:length(time_gaps)
                         
-                        
-%                         % Grow the likelihood space based using image
-%                         % processing max filter. Set the filter size based
-%                         % on the maximum swim speed
-%                         filt_size_lat = ceil(lat_persec * time_gaps(jj));
-%                         filt_size_lon = ceil(lon_persec * time_gaps(jj));
-%                         filt_size = max([filt_size_lat filt_size_lon]);
-%                         
-%                         % If there a filter then project the space,
-%                         % otherwise don't. use 3d max filter based on the
-%                         % time gaps
-%                         if filt_size>1
-%                             Lklhd_space_proj = imdilate(averageLklhd_space,...
-%                                 true(filt_size));
-%                         else
-%                             Lklhd_space_proj =averageLklhd_space;
-%                         end
-                        
-                        % Get the prob. loc space space of the next call in
-                        % the series
+                       
                         nextLklhdSpace = getTruHdSpace(obj, (ii+jj-1), sig_tot);
                         
                         % Get the comparison value of the projected prob
