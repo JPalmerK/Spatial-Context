@@ -54,7 +54,8 @@ dt=parm.skip/parm.sample_freq;
    [lc,dummy]=size(calls);
    unblocked=zeros(parm.nbin,1);
    for j=1:lc
-       unblocked(calls(j,1):calls(j,2))=1;end
+       unblocked(calls(j,1):calls(j,2))=1;
+   end
 
     % disallow any detections from before
     tst=unblocked - blocked;
@@ -70,7 +71,8 @@ dt=parm.skip/parm.sample_freq;
 
     % merge  
     [k1,k2]=sort(calls(:,1));
-    st=calls(k2,1);fn=calls(k2,2);
+    st=calls(k2,1);
+    fn=calls(k2,2);
     k=find(st(2:end)-fn(1:end-1)<parm.overlap);
     omit=length(k);
     if omit>0
