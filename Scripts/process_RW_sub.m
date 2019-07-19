@@ -12,10 +12,15 @@ end
 data=data';
 fr=linspace(parm.freq_lo,parm.freq_hi,parm.bin_hi-parm.bin_lo+1);
 calls=[];
+
+
 for(j=1:num_slates_file)  %change this depending on length of record reading in per file
     sub_data=data(1+(j-1)*parm.nrec:((j-1)*parm.nrec)+parm.nrec);
     
-    
+%     disp(['End section ',...
+%         num2str(round(((j-1)*parm.nrec+parm.nrec)/2000/60,2)),...
+%         ' min'])
+%     
     [GPL_struct]=GPL_v3(sub_data,parm);
     
     
@@ -33,28 +38,28 @@ for(j=1:num_slates_file)  %change this depending on length of record reading in 
         
         % If there were data present then save the detections
         if~isempty(non_zero_sums)
-        gaps = diff(non_zero_sums);
-        first_gap =0;
-        
-        if sum(gaps)>length(gaps)
-            % get the first gap for f min
-            first_gap = find(gaps>1,1);
-            fmin = fr(first_gap+1);
-        else
-            fmin = fr(min(non_zero_sums));
-        end
-        
-        
-        % Get the second gap for f max
-        first_gap = non_zero_sums(first_gap+1:end);
-        gaps = diff(first_gap);
-        if sum(gaps)> length(gaps)
-            last_gap =  max(find(gaps>5));
-            fmax = fr(first_gap(last_gap));
-        else
-            fmax = fr(max(first_gap));
-        end
-        
+            gaps = diff(non_zero_sums);
+            first_gap =0;
+            
+            if sum(gaps)>length(gaps)
+                % get the first gap for f min
+                first_gap = find(gaps>1,1);
+                fmin = fr(first_gap+1);
+            else
+                fmin = fr(min(non_zero_sums));
+            end
+            
+            
+            % Get the second gap for f max
+            first_gap = non_zero_sums(first_gap+1:end);
+            gaps = diff(first_gap);
+            if sum(gaps)> length(gaps)
+                last_gap =  max(find(gaps>5));
+                fmax = fr(first_gap(last_gap));
+            else
+                fmax = fr(max(first_gap));
+            end
+            
         else
             fmin = 0/0;
             fmax = fmin;
@@ -69,9 +74,9 @@ for(j=1:num_slates_file)  %change this depending on length of record reading in 
     
     
     
+calls=[calls,GPL_struct];
     
 end
 
-calls=[calls,GPL_struct];
 
 end
