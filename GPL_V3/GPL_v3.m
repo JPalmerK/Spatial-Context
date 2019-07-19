@@ -125,7 +125,8 @@ if (siz(1) > 0)
         
    for k=1:siz(1);
        GPL_struct(k).start_time=times(k,1);
-       GPL_struct(k).end_time=times(k,2);end
+       GPL_struct(k).end_time=times(k,2);
+   end
   
    
 
@@ -152,6 +153,9 @@ if parm.filter==1
 end
 
 if parm.plot==1
+    
+    
+    
     ks=find(baseline0<=parm.noise_ceiling);  
     ns=[1:length(baseline0)]*parm.skip/parm.sample_freq;
 
@@ -167,7 +171,7 @@ if parm.plot==1
     for j=1:length(start)
     plot(ns(start(j):finish(j)),log10(abs(baseline0(start(j):finish(j)))),'r');
     end
-    l1=log10(parm.noise_ceiling*noise_floor);
+    l1=log10(parm.noise_ceiling*noise_floor); 
     l2=log10(parm.thresh*noise_floor);
     plot(ns,l1+0*ns,'k--');
     plot(ns,l2+0*ns,'g--');
@@ -179,7 +183,7 @@ if parm.plot==1
     imagesc(ns,fr,20*log10(abs(sp_loop)/max(max(sp_whiten))),[-40,0]); 
     axis xy; title('Whitened Spectrogram');
     
-    drawnow;
+     drawnow;
     pause;
 end
 
