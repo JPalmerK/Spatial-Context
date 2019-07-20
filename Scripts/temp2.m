@@ -44,7 +44,7 @@ close all;
     examp.s =8;
     examp.child_idx = [1:8];
     examp.localize_struct =localize_struct;
-    examp.limitTime =24*60*60;
+    examp.limitTime =3*60*60;
     examp.maxEltTime =60*10;
     examp.calls =calls_arrivals;
     examp.callParm =  hyd(5).detection.parm;       
@@ -52,13 +52,15 @@ close all;
     examp.clearCalcValues
     UpdateArrTable(examp) % Run this first!
     UpdateArrArray(examp)
-    examp.simMatIdealNewSim();
+    examp.simMatTDOAonly()
+    %examp.simMatIdealNewSim();
+    updateClusterID(examp)
     examp.updateClusterID;
     examp.drawAgents
     
 parent = array_struct.master;
 arivalArr = examp.arrivalArray;
-%%
+%% Create a raven table from the detections
 RavenTable = array2table(zeros(0,9),...
     'VariableNames',{'Selection', 'View', 'Channel',...
     'BeginS', 'EndS', 'LowF', 'HighF','ClusterId', 'MtlbDtStr'});
@@ -70,15 +72,36 @@ hyds = [array_struct.master, array_struct.slave(examp.child_idx)];
 
 hyd_idx = [array_struct.master array_struct.slave]
 
+
 calls =struct2table(hyd(5).detection.calls);
 
-    calls.duration = (calls.end_time-calls.start_time)/2000;
+calls.duration = (calls.end_time-calls.start_time)/2000;
+child_idx =1;
 
 for ii =1:length(hyd_idx)
     
     
     % Current hydrophone id
     hyd_id = hyd_idx(ii);
+    
+    % Delay time to add, if parent add nothing
+    if hyd_id~= parent
+        hyd_delay = localize_struct.hyd(parent).delays(:,child_idx);
+        child_idx= child_idx+1;
+    else
+        hyd_delay =0;
+    end
+    
+    % Arrival times
+    Arrival_times = localize_struct.hyd(parent).rtimes'/2000+hyd_delay;
+    
+    start_times = Arrival_times-(0.5*calls.duration(localize_struct.hyd(parent).dex));
+    end_times = start_times + calls.duration(localize_struct.hyd(parent).dex);
+    
+    % Low and High FRequency
+    low_f = calls.flow(localize_struct.hyd(parent).dex);    
+    high_f =calls.high(localize_struct.hyd(parent).dex); 
+    
     
     % Call detected on the hydrophone
     arra_ids = find(~isnan(arivalArr(:,ii)));
@@ -87,22 +110,12 @@ for ii =1:length(hyd_idx)
     % Index of the parent call
     call_ids =examp.localize_struct.hyd(parent).dex(arra_ids);    
     
-
     
-    % Start Time
-    arrivalTime = arivalArr(arra_ids,ii);
-    start_times = arrivalTime-(0.5*calls.duration(call_ids));
-    
-  
-    % End Times (DOOoooOOOoOOOoOOM!)
-    end_times =  arrivalTime +(0.5*calls.duration(call_ids));
     
   
     
     % Get the high and low frewuency based on the spectrogram
     % parameters
-    low_f = calls.flow(call_ids);    
-    high_f =calls.high(call_ids); 
     
 
     
@@ -116,10 +129,10 @@ for ii =1:length(hyd_idx)
     aa = table(Selection,...
         View, ...
         Channel,...
-        start_times,...
-        end_times,...
-        low_f,...
-        high_f,...
+        start_times(arra_ids),...
+        end_times(arra_ids),...
+        low_f(arra_ids),...
+        high_f(arra_ids),...
         ClusterId,...
         matlabDate,...
         'VariableNames',{'Selection', 'View', 'Channel',...
@@ -129,7 +142,7 @@ for ii =1:length(hyd_idx)
     
 end
 
-
+%% Compare GPL raven table to truth raven table
 % Find the indicies that coinced with the truth table
 % Load the calls
 %truth = readtable('C:\Users\Kaitlin\Desktop\NOPP6_EST_20090328.selections.txt');
