@@ -15,6 +15,7 @@ classdef clusterClassGPL <simulationClass
         
         % For referencing time of GPL detections
         calls
+        callParm
         
     end
     
@@ -55,13 +56,13 @@ classdef clusterClassGPL <simulationClass
             % Function ofr creating and exporting detections as Raven
             % compatable .txt file
             
-            if nargin==2
-                fnameloc = outputDir;
-            end
+
             parent = obj.array_struct.master;
             arivalArr = obj.arrivalArray;
             
-            RavenTable = array2table(zeros(0,7),'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
+            RavenTable = array2table(zeros(0,8),...
+                'VariableNames',{'Selection', 'View', 'Channel',...
+                'BeginS', 'EndS', 'LowF', 'HighF','ClusterId'});
             
             % Loop through the child indexes and create the arrival tables
             hyds = [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)];
@@ -69,36 +70,65 @@ classdef clusterClassGPL <simulationClass
             % Calls 
             calls = struct2table(obj.calls);
             
+            % frequency information
+            f_low = obj.callParm.freq_lo; % frequency limits
+            f_high = obj.callParm.freq_hi;
+            
+            df = (f_high-f_low)/(obj.callParm.bin_hi-obj.callParm.bin_lo);
+            
            
             
             for ii =1:length(hyds)
                 n_calls =sum(~isnan(arivalArr(:,ii)));
                 call_ids =obj.localize_struct.hyd(parent).dex(logical(~isnan(arivalArr(:,ii))));
                 
+                % Error in code
+                call_ids = call_ids;
+                
                 % Start Time
                 start_times = calls.start_time(call_ids)/obj.fs;
                 
                 % End Times (DOOoooOOOoOOOoOOM!)
                 end_times = calls.end_time(call_ids)/obj.fs;
-                aa = table(...
-                    [height(RavenTable)+1:height(RavenTable)+n_calls]',...
-                    repmat(['Spectrogram'],[n_calls,1]),...
-                    repmat(hyds(ii), [n_calls,1]),...
-                   start_times,...
+                
+                % Get the high and low frewuency based on the spectrogram
+                % parameters
+                low_f = zeros(length(end_times),1);
+                high_f = low_f;
+                
+                for jj=1:n_calls
+                    [rr, cc]=ind2sub(calls.cm(call_ids(jj)).size, calls.cm(call_ids(jj)).index);
+                    low_f(jj) = f_low+(df*min(rr));
+                    high_f(jj) = f_low+(df*max(rr));
+                end
+                
+                
+                Selection =  [height(RavenTable)+1:height(RavenTable)+n_calls]';
+                View =repmat({'Spectrogram'},[n_calls,1]);
+                Channel =  repmat(hyds(ii), [n_calls,1]);
+                ClusterId = obj.Cluster_id(logical(~isnan(arivalArr(:,ii))));
+                
+                aa = table(Selection,...
+                    View, ...
+                    Channel,...
+                    start_times,...
                     end_times,...
-                    repmat(20, [n_calls,1]),...
-                    repmat(200, [n_calls,1]),...
-                    'VariableNames',{'Selection', 'View', 'Channel', 'BeginS', 'EndS', 'LowF', 'HighF'});
-            
-            RavenTable =[RavenTable; aa];
-            
+                    low_f,...
+                    high_f,...
+                    ClusterId,...
+                    'VariableNames',{'Selection', 'View', 'Channel',...
+                    'BeginS', 'EndS', 'LowF', 'HighF', 'ClusterId'});
+                
+                RavenTable =[RavenTable; aa];
+                
             end
             
             
-            
-            
-            
             obj.RavenTable =RavenTable;
+            
+            if nargin==2
+                fnameloc = outputDir;
+            end
             
         end
         
@@ -129,7 +159,7 @@ classdef clusterClassGPL <simulationClass
             x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(2,2,:));
             
             % Index of the detection
-            idx = obj.localize_struct.hyd(parent).dex';
+            idx = obj.localize_struct.hyd(parent).dex'+1;
             
             %
             % Create the arrivals table (at) from the localize structure

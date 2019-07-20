@@ -37,7 +37,7 @@ if ~isempty(hyd(hyd_idx).detection.calls)
    
     Selection =  [height(RavenTable)+1:height(RavenTable)+n_calls]';
     View =repmat({'Spectrogram'},[n_calls,1]);
-    Channel =  repmat(hyd_idx, [n_calls,1]);
+    Channel =  repmat(ii, [n_calls,1]);
     ClusterId = ones([n_calls, 1]);
     matlabDate = calls.julian_start_time;
    
@@ -53,9 +53,7 @@ if ~isempty(hyd(hyd_idx).detection.calls)
         'VariableNames',{'Selection', 'View', 'Channel',...
         'BeginS', 'EndS', 'LowF', 'HighF', 'ClusterId','MtlbDtStr'});
     
-    % Remove calls with no frequency values 
-    aa = aa(~isnan(aa.LowF),:);
-   
+
     RavenTable =[RavenTable; aa];
 end
 

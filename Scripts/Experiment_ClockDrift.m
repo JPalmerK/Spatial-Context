@@ -85,7 +85,7 @@ for ii =1:nRuns
     examp.array_struct = array_struct;
     examp.hydrophone_struct = hydrophone_struct;
     examp.spaceWhale= spaceWhale;
-    examp.cutoff = .95;
+    examp.cutoff = .85;
     examp.time_cut = 5*60;
     examp.randomMiss =0;
     examp.child_idx = [1,2,3];
@@ -96,11 +96,14 @@ for ii =1:nRuns
     jj =1;
     
     disp(['Run ', num2str(ii), ' exp ',num2str(jj), ' of 12'])
+    examp.assSec =2;
+    examp.drift=1.5;
     
     % First method, TDOA only
     simMatTDOAonly(examp);
+    examp.maxEltTime =  quantile(diff(examp.arrivalArray(:,1)), .85);
     examp.getRand();
-    examp.maxEltTime =  quantile(diff(examp.arrivalArray(:,1)), .95);
+
     Meth1_aRand(ii)=examp.AdjRand;
     perf = examp.estClassifierPerf;
     perf_meth1(ii).ideal = perf;
@@ -195,7 +198,7 @@ for ii =1:nRuns
     %%%%%%%%%% Severe Drift Present %%%%%%%%%%%%%%%
      
     % Shift by 10 seconds allow for 15 seconds association time
-    examp.assSec =2.5;
+    examp.assSec =2;
     examp.drift=1.5;
       
     
@@ -214,7 +217,7 @@ for ii =1:nRuns
     
     % Third Method, ad hoc
     examp.clearCalcValues();
-    examp.cutoff =0.95;
+    examp.cutoff =0.85;
     simMatadHoc(examp);
     examp.getRand();
     Meth3_aRandDrift_10(ii)=examp.AdjRand;
