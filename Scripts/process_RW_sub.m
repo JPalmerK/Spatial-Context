@@ -38,36 +38,11 @@ for(j=1:num_slates_file)  %change this depending on length of record reading in 
         
         % If there were data present then save the detections
         if~isempty(non_zero_sums)
-            gaps = diff(non_zero_sums);
-            
-            
-            if sum(gaps)>length(gaps)
-                first_gap =0;
-                
-                if sum(gaps)>length(gaps)
-                    % get the first gap for f min
-                    first_gap = find(gaps>1,1);
-                    fmin = fr(first_gap+1);
-                else
-                    fmin = fr(min(non_zero_sums));
-                end
-                
-                
-                % Get the second gap for f max
-                first_gap = non_zero_sums(first_gap+1:end);
-                gaps = diff(first_gap);
-                if sum(gaps)> length(gaps)
-                    last_gap =  max(find(gaps>5));
-                    fmax = fr(first_gap(last_gap));
-                else
-                    fmax = fr(max(first_gap));
-                end
-                
-            else
+           
             
                 fmin = fr(min(non_zero_sums));
                 fmax = fr(max(non_zero_sums));
-            end
+
         
             
         else 
