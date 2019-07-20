@@ -95,12 +95,12 @@ for ii =1:length(hyd_idx)
     % Arrival times
     Arrival_times = localize_struct.hyd(parent).rtimes'/2000+hyd_delay;
     
-    start_times = Arrival_times-(0.5*calls.duration(localize_struct.hyd(parent).dex));
-    end_times = start_times + calls.duration(localize_struct.hyd(parent).dex);
+    start_times = Arrival_times-(0.5*calls.duration(localize_struct.hyd(parent).dex+1));
+    end_times = start_times + calls.duration(localize_struct.hyd(parent).dex+1);
     
     % Low and High FRequency
-    low_f = calls.flow(localize_struct.hyd(parent).dex);    
-    high_f =calls.high(localize_struct.hyd(parent).dex); 
+    low_f = calls.flow(localize_struct.hyd(parent).dex+1);    
+    high_f =calls.high(localize_struct.hyd(parent).dex+1); 
     
     
     % Call detected on the hydrophone
@@ -108,16 +108,9 @@ for ii =1:length(hyd_idx)
     n_calls =length(arra_ids);
     
     % Index of the parent call
-    call_ids =examp.localize_struct.hyd(parent).dex(arra_ids);    
+    call_ids =examp.localize_struct.hyd(parent).dex(arra_ids)-1;    
     
     
-    
-  
-    
-    % Get the high and low frewuency based on the spectrogram
-    % parameters
-    
-
     
     
     Selection =  [height(RavenTable)+1:height(RavenTable)+n_calls]';
@@ -141,18 +134,44 @@ for ii =1:length(hyd_idx)
     RavenTable =[RavenTable; aa];
     
 end
+% 
+% fname ='/home/kpalmer/Desktop/cluster_test.txt';
+% writetable(RavenTable(:,[1:9, end]), fname, 'Delimiter', '\t', 'WriteVariableNames', false)    
+% header=strcat('Selection\tView\tChannel\tBegin Time (s)\tEnd Time (s)',...
+%     '\tLow Freq (Hz)\tHigh Freq (Hz)\',...
+%     'tClusterID\tMT1\tSpp\n');
+% 
+% 
+% % export the file
+% % - Read input file data content (without header).
+%  fid_in = fopen(fname, 'r') ;             % Open input file for reading.
+%  fgetl(fid_in) ;                                 % Skip header line in input file.
+%  content = fread(fid_in) ;                       % Read rest of input file.
+%  fclose(fid_in) ;                                % Close input file.
+%  
+%  
+%  % - Write output file: new header + previous data content.
+%  fid_out = fopen(fname, 'w') ;  % Open input file for writing.
+%  fprintf(fid_out, header') ;       % Output new header.
+%  fwrite(fid_out, content) ;                      % Output previous data content.
+%  fclose(fid_out) ;  
+% 
+% 
+% 
+% disp('done')
 
 %% Compare GPL raven table to truth raven table
 % Find the indicies that coinced with the truth table
 % Load the calls
 %truth = readtable('C:\Users\Kaitlin\Desktop\NOPP6_EST_20090328.selections.txt');
-truth = readtable('/home/kpalmer/Desktop/NOPP6_EST_20090328.selections.txt')
-truth.mstart = datenum('20090328', 'yyyymmdd')+truth.BeginTime_s_/60/60/24;
-truth.mend = datenum('20090328', 'yyyymmdd')+truth.EndTime_s_/60/60/24;
+truth = readtable('/home/kpalmer/Desktop/NOPP6_EST_20090328.selections.txt');
+truth.mstart = datenum('20090328', 'yyyymmdd')+truth.BeginTime_s_/86400;
+truth.mend = datenum('20090328', 'yyyymmdd')+truth.EndTime_s_/86400;
+truth.mid = (truth.mend+truth.mstart)/2;
 
 gpldat =  RavenTable;
-gpldat.mstart = gpldat.MtlbDtStr;
-gpldat.mend =gpldat.mstart+(gpldat.EndS-gpldat.BeginS)/2/60/60/24;
+gpldat.mstart = datenum('20090328', 'yyyymmdd')+gpldat.BeginS/86400;
+gpldat.mend =datenum('20090328', 'yyyymmdd')+gpldat.EndS/86400;
 gpldat.spp = repmat({'unknown'}, [height(gpldat),1]);
 
 
@@ -160,21 +179,21 @@ gpldat.spp = repmat({'unknown'}, [height(gpldat),1]);
 for ii=1:height(gpldat)
     
     gpl_time = (gpldat.mstart(ii)+gpldat.mend(ii))/2;
-    gpl_f = (gpldat.LowF(ii)+gpldat.HighF(ii))/2;
+
 
     % Canidate calls
-    linkedID = find(truth.Channel==gpldat.Channel(ii) &...
-        truth.mstart<= gpl_time &...
-        truth.mend>= gpl_time &...
-        truth.LowFreq_Hz_<= gpl_f &...
-        truth.HighFreq_Hz_>= gpl_f);
-    if length(linkedID)==1
+    linkedID = (...
+        intersect(...
+        find(truth.Channel==gpldat.Channel(ii)),...
+        find((abs(truth.mid - gpl_time)*24*60*60)<.25)));
+    
+    
+    if length(linkedID)>=1
     spp =truth.Species(linkedID)
     gpldat.spp(ii) = spp;
-    
-    elseif length(linkedID)>1
-       print('blarg')
+    disp(num2str(ii))
     end
+    
 
     
 
@@ -193,8 +212,8 @@ header=strcat('Selection\tView\tChannel\tBegin Time (s)\tEnd Time (s)',...
     'tClusterID\tMT1\tSpp\n');
 
 
-gpldatout = gpldat(gpldat.Channel==5,:);
-
+%gpldatout = gpldat(gpldat.Channel==5,:);
+gpldatout = gpldat(k2,:);
 writetable(gpldatout(:,[1:9, end]), fname, 'Delimiter', '\t', 'WriteVariableNames', false)    
 
 % export the file
