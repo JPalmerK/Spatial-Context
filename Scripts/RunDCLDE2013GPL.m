@@ -112,7 +112,20 @@ load('localizestruct.mat')
 load('arraystruct.mat')
 load('hydrophonestruct.mat')
 parm.plot =0;
+parm.loop =1;
+localize_struct.parm.ssp_choice = 1; %use constant sound speed
 
+localize_struct.parm.grid_depth = 5; %approx expected depth of whale
+
+localize_struct.parm.num_calls = 1; %cross correlate one call at a time (standard)
+
+localize_struct.parm.number_maxima = 1; %take only the maximum cross_corr peak
+
+localize_struct.parm.lsq_cutoff = .1 %unused, later can filter on LSQ
+
+localize_struct.parm.pow = 1.5 %FFT power of the call to cross corelate
+localize_struct.parm.phase=600;
+% 
 
 %% Run GPL
 
@@ -175,7 +188,7 @@ start_date = datenum(str2num(extract_date(1:4)),...
 %for file_index=gstart:2
 
 
-for file_index=gstart:5%finish
+for file_index=gstart:3
     
     
     
