@@ -106,7 +106,8 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
             ks=ks(kp);
             if length(ks)>nm-1
                 
-                [k1,k2]=sort(A(ks,k));ks=ks(k2(end-(nm-1):end));
+                [k1,k2]=sort(A(ks,k));
+                ks=ks(k2(end-(nm-1):end));
                 
                 delay(:,k,jj)=ks;
                 peak(:,k,jj)=k1(end-(nm-1):end);
@@ -134,8 +135,9 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
     
     %%%%%%%  from here on, assume nm=1
     
-    test0=squeeze(delay);
-    k=find(test0);test0(k)=1;
+    test0=squeeze(delay); % Projected delay for each call on all hydrophones
+    k=find(test0);
+    test0(k)=1;
     red_test=sum(test0,2);
     k=find(red_test>=min_pairs);  % don't consider time slices with few
     trim=k;
@@ -143,7 +145,8 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
     % localization
     
     k=find(trim+num_calls-1<=sz2);
-    trim=trim(k);test0=test0(k,:); % avoid endpoint problem for rtime computation
+    trim=trim(k);
+    test0=test0(k,:); % avoid endpoint problem for rtime computation
     
     % start looping over ensembles with nontrivial entries
     
@@ -221,7 +224,8 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
             
             lsq=zeros(length(latgrid),length(longrid),length(local_array)-1);
             for(kk=1:length(local_array)-1)
-                lsq(:,:,kk)=(array_struct(array_number).toa_diff{kk+1}-rdelay(1,jj,kk)).^2;end
+                lsq(:,:,kk)=(array_struct(array_number).toa_diff{kk+1}-rdelay(1,jj,kk)).^2;
+            end
             test=sum(lsq,3);
             [k1,k2]=min(test);[mtest,kk2]=min(k1);
             kk1=k2(kk2);
@@ -248,7 +252,8 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
         
         delays(index,:)=rdelay(1,jj,:);
         for k=1:length(local_array)-1;
-            cross_score(index,k)=peak(1,jj,k);end
+            cross_score(index,k)=peak(1,jj,k);
+        end
         times(index,:)=hydro.sf2(jj+1,:);
         rtimes(index)=mean(mean(hydro.sf2(jj+1:jj+1+num_calls-1,:)));
         dex(index)=jj; % remember when event happened

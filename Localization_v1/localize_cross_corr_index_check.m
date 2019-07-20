@@ -9,7 +9,8 @@ pow = localize_struct.parm.pow;
 skip= hyd(array_struct(array_number).master).detection.parm.skip;
 nfreq= hyd(array_struct(array_number).master).detection.parm.nfreq;
 
-local_array=[array_struct(array_number).master,array_struct(array_number).slave];
+local_array=[array_struct(array_number).master,...
+    array_struct(array_number).slave];
 
 for n=local_array
     if (length(hyd(n).detection.calls)<=num_calls)
@@ -44,18 +45,27 @@ for i1=2:length(local_array)
     sf1 = zeros(length(hyd(local_array(i1)).detection.calls),2);
     
     for k=1:length(hyd(local_array(i1)).detection.calls)
+        % duration of call in bins
         sz1(k) = (hyd(local_array(i1)).detection.calls(k).end_time ...
             - hyd(local_array(i1)).detection.calls(k).start_time +1)/skip;
+        % start and end call times in samples
         sf1(k,:)=[hyd(local_array(i1)).detection.calls(k).start_time,...
             hyd(local_array(i1)).detection.calls(k).end_time];
     end
     
+    % array length bins (samples/fft skip) for last call
     diss=zeros(1,ceil(sf1(end,2)/skip));
+    
+    % Bin index of start times
     dex=round((sf1(:,1)-1)/skip);
     
+    % For each call, 
     for k=1:length(hyd(local_array(i1)).detection.calls)
+        % energy sum in each time bin
         den=sum(GPL_full('cm_max',k, ...
             hyd(local_array(i1)).detection.calls).^(2*pow));
+        
+        % Fill in the energy sums?
         diss(dex(k)+1:dex(k)+sz1(k))=den;
     end
     
