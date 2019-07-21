@@ -155,8 +155,8 @@ classdef clusterClassGPL <simulationClass
             end
             
             
-            x=squeeze(obj.localize_struct.hyd(parent).coordinates(2,1,:));
-            x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(2,2,:));
+            x=squeeze(obj.localize_struct.hyd(parent).coordinates(end,1,:));
+            x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(end,2,:));
             
             % Index of the detection
             idx = obj.localize_struct.hyd(parent).dex'+1;

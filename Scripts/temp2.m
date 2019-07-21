@@ -44,7 +44,7 @@ close all;
     examp.s =8;
     examp.child_idx = [1:8];
     examp.localize_struct =localize_struct;
-    examp.limitTime =3*60*60;
+    examp.limitTime =4*60*60;
     examp.maxEltTime =60*10;
     examp.calls =calls_arrivals;
     examp.callParm =  hyd(5).detection.parm;       
@@ -191,7 +191,7 @@ for ii=1:height(gpldat)
     if length(linkedID)>=1
     spp =truth.Species(linkedID)
     gpldat.spp(ii) = spp;
-    disp(num2str(ii))
+    disp(num2str(ii));
     end
     
 

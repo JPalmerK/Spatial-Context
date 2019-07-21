@@ -124,7 +124,7 @@ localize_struct.parm.number_maxima = 1; %take only the maximum cross_corr peak
 localize_struct.parm.lsq_cutoff = .1 %unused, later can filter on LSQ
 
 localize_struct.parm.pow = 1.5 %FFT power of the call to cross corelate
-localize_struct.parm.phase=600;
+%localize_struct.parm.phase=600;
 % 
 
 %% Run GPL
@@ -135,7 +135,7 @@ num_slates_file=15;
 %[filename, pathname]= uigetfile('*.aif');
 
 cwd='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/All';
-
+cwd ='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/NOPP6_EST_20090328'
 cd(cwd)
 
 file_list=dir('*.aif');
@@ -188,7 +188,7 @@ start_date = datenum(str2num(extract_date(1:4)),...
 %for file_index=gstart:2
 
 
-for file_index=gstart:3
+for file_index=1:finish
     
     
     
@@ -321,6 +321,7 @@ end
 %%
 % Save everything
 
+prefix = 'DCLDE_2013_10_Chan';
 
 sizeOfSave=whos('calls');
 
