@@ -498,6 +498,146 @@ classdef simulationClass <handle
             
             
         end
+               
+        %% Create all habitat/area projections within the time cut (step 4)
+        function simMatIdealXcorrDist(obj)
+            % This function creates the simulation matrix using the low
+            % memory approach. This should be used in most cases where not
+            % exploring the algorithims in depth.
+            
+            % Check if the arrival table is present if not update it
+            if isempty(obj.TDOA_vals)
+                disp(['Updating TDOA values'])
+                UpdateTDOA(obj);
+                
+            end
+            
+            obj.titleStr ='Call Space Similarity Ideal';
+            
+            % Grid X/Y space
+            % Get distance in meters between the lower and upper right
+            grid_v = vdist(min(obj.array_struct.latgrid),...
+                min(obj.array_struct.longrid),...
+                max(obj.array_struct.latgrid),...
+                min(obj.array_struct.longrid));
+            
+            
+            % Get distance in meters between the lower left and lower right
+            grid_h = vdist(min(obj.array_struct.latgrid),...
+                min(obj.array_struct.longrid),...
+                min(obj.array_struct.latgrid),...
+                max(obj.array_struct.longrid));
+            
+            
+            % Create the empty similarity matrix
+            Sim_mat = gpuArray(zeros(length(obj.TDOA_vals))/0);
+            
+            
+            % Grid X/Y space
+            deltalat_space = grid_v/ (length(obj.array_struct.latgrid)-1);
+            deltalon_space = grid_h/ (length(obj.array_struct.longrid)-1);
+            
+            % How many grid squares per second can the whale move
+            lat_persec = obj.s / deltalat_space;
+            lon_persec = obj.s / deltalon_space;
+            
+            % profile on
+            % Step through each arrival and get it's grid probability as
+            % well as the projected grid probabilities for times at all
+            % subsiquent calls but within the maximum time cuttoff
+            for ii =1:size(obj.arrivalArray,1)
+                disp([num2str(ii), ' of ', num2str(length(obj.arrivalArray))])
+                % Get the average prob loc space of the i-th call with
+                % delta sigma t
+                
+                sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
+                averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
+                
+                % Figure out the number of time gaps within the maximum
+                % allowed correlation time (time_cut)
+                time_gaps = obj.arrivalArray(ii:end, 1)-...
+                    obj.arrivalArray(ii, 1);
+                time_gaps = time_gaps(time_gaps<obj.time_cut);
+                
+                % If there are more than one time gap over which we need to
+                % look then do the projections
+
+                if length(time_gaps)>1
+                        
+                    
+                    % Step through the time gaps/sigma values getting each
+                    % probability loc space and projection
+                    simValue = [];
+                    
+                    
+                        % Grow the likelihood space based using image
+                        % processing max filter. Set the filter size based
+                        % on the maximum swim speed
+                        filt_size_lat = ceil(lat_persec * time_gaps);
+                        filt_size_lon = ceil(lon_persec * time_gaps);
+                        filt_size = [filt_size_lat'; filt_size_lon'];
+                        
+                        Lklhd_space_proj_out = averageLklhd_space;
+                        mm= gpuArray(averageLklhd_space);
+                        
+                        for kk=2:length(filt_size);
+                            Lklhd_space_proj_out = ...
+                                cat(3,Lklhd_space_proj_out,...
+                                imdilate(averageLklhd_space, true(filt_size(:,kk)')));
+                            
+                        end
+
+                        
+                        
+                        Lklhd_space_proj_out = double(Lklhd_space_proj_out);
+                        
+                    for jj= 1:length(time_gaps)
+                        
+                        % If there a filter then project the space,
+                        % otherwise don't. use 3d max filter based on the
+                        % time gaps
+
+                        Lklhd_space_proj=(...
+                            squeeze(Lklhd_space_proj_out(:,:,jj)));
+                        
+                        % Get the prob. loc space space of the next call in
+                        % the series
+                        nextLklhdSpace = gpuArray(getTruHdSpace(obj,...
+                            (ii+jj-1), sig_tot));
+                        [dist, sim] = crossCorrSimScores(nextLklhdSpace,...
+                            Lklhd_space_proj, deltalat_space,...
+                            deltalon_space);
+                        speed =dist/time_gaps(jj);
+                        if speed>obj.s
+                            sim = 0;
+                        end
+                        simValue =[simValue, sim];
+                        %                         figure
+                        %                         subplot(2,1,1)
+                        %                         imagesc(Lklhd_space_proj); colorbar
+                        %
+                        %                         subplot(2,1,2)
+                        %                         imagesc(nextLklhdSpace); colorbar
+                        %
+                      
+                        
+                    end
+
+%                     profile report
+%                     profile off
+                        % Populate the simulation matrix
+                        Sim_mat(ii, ii:ii+length(simValue)-1) = simValue;
+                        Sim_mat(ii:ii+length(simValue)-1,ii) = simValue;
+                        
+                end
+                %disp([num2str(ii), ' of ',...
+                %    num2str(length(obj.arrivalArray))])
+            end
+            obj.Sim_mat= Sim_mat;
+            
+            
+            
+        end
         
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatTDOAonly(obj)
@@ -952,12 +1092,15 @@ classdef simulationClass <handle
             delays = (obj.TDOA_vals(callIdx, :));
             
             
-            child_idx = obj.child_idx;
+            child_idx = obj.child_idx(~isnan(delays));
+            
+            averageLklhd_space = zeros([length(obj.array_struct.latgrid),...
+                length(obj.array_struct.longrid),...
+                length(child_idx)]);
             
             child_hyds = obj.array_struct.slave(obj.child_idx);
-            
-            
-            averageLklhd_space = [];
+            child_hyds = child_hyds(~isnan(delays));
+              
             
             for ii=1:length(child_idx)
                 
@@ -975,7 +1118,7 @@ classdef simulationClass <handle
 %                 hold on
 %                 scatter(obj.arrivalArray(callIdx,end-1), obj.arrivalArray(callIdx,end-2))
             end
-            
+
         end
         
         %% Retruns Normalized Likelihood
@@ -1121,7 +1264,7 @@ classdef simulationClass <handle
             end
             
             % Simply create an array with the predicted clusterid
-            Cluster_id = zeros(length(obj.arrivalArray),1)+length(obj.chains)+1;
+            Cluster_id = zeros(size(obj.arrivalArray,1),1)+length(obj.chains)+1;
             
             % Step through each chain and grab the cluster
             for ii=1:length(obj.chains);
@@ -1153,7 +1296,7 @@ classdef simulationClass <handle
             time0=time; % keep original copy for later indexing
             
             % Replicate Corr_coef_map for shrinking matrix
-            Corr_coef_map = obj.Sim_mat;
+            Corr_coef_map = gather(obj.Sim_mat);
             [s1,s2]=size(Corr_coef_map);
             nc=1; % cluster counter
             clear chain dex ss
