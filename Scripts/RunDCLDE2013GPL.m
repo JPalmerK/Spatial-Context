@@ -3,8 +3,8 @@
 
 close all; clear all; clc;
 
-cd('/home/kpalmer/AnacondaProjects/Localisation/Scripts');
-
+%cd('/home/kpalmer/AnacondaProjects/Localisation/Scripts');
+cd('D:\Anaconda Projects\Spatial-Context\Scripts')
 %load('DCLDE2013_RW_localizations_NOPP6_EST__all14_timed1_95.mat')
 
 %load('Cornell_Cape_Cod_Setup.mat')

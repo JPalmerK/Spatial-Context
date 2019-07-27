@@ -28,6 +28,8 @@ imageB = AmbigNext(sxrb, szcb);
 
 crr = xcorr2(imageB, nSec);
 
+normfac=sum(sum(nSec.^2));
+crr = crr/normfac;
 
 [ssr,snd] = max(crr(:));
 [ij,ji] = ind2sub(size(crr),snd);

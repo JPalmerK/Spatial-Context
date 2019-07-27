@@ -60,9 +60,9 @@ classdef clusterClassGPL <simulationClass
             parent = obj.array_struct.master;
             arivalArr = obj.arrivalArray;
             
-            RavenTable = array2table(zeros(0,8),...
+            RavenTable = array2table(zeros(0,9),...
                 'VariableNames',{'Selection', 'View', 'Channel',...
-                'BeginS', 'EndS', 'LowF', 'HighF','ClusterId'});
+                'BeginS', 'EndS', 'LowF', 'HighF','ClusterId', 'MtlbDtStr'});
             
             % Loop through the child indexes and create the arrival tables
             hyds = [obj.array_struct.master, obj.array_struct.slave(obj.child_idx)];
@@ -81,15 +81,17 @@ classdef clusterClassGPL <simulationClass
             for ii =1:length(hyds)
                 n_calls =sum(~isnan(arivalArr(:,ii)));
                 call_ids =obj.localize_struct.hyd(parent).dex(logical(~isnan(arivalArr(:,ii))));
-                
-                % Error in code
-                call_ids = call_ids;
+                call_ids =call_ids-1;
                 
                 % Start Time
-                start_times = calls.start_time(call_ids)/obj.fs;
+                start_times = calls.julian_start_time(call_ids-1);
+                start_times = start_times-floor(start_times) % now decimal days to seconds
+                start_times = start_times*24*60*60;
                 
                 % End Times (DOOoooOOOoOOOoOOM!)
-                end_times = calls.end_time(call_ids)/obj.fs;
+                end_times = calls.julian_end_time(call_ids);
+                end_times = end_times-floor(end_times)
+                end_times = end_times*24*60*60;
                 
                 % Get the high and low frewuency based on the spectrogram
                 % parameters
@@ -104,9 +106,10 @@ classdef clusterClassGPL <simulationClass
                 
                 
                 Selection =  [height(RavenTable)+1:height(RavenTable)+n_calls]';
-                View =repmat({'Spectrogram'},[n_calls,1]);
+                View =repmat({'Spectrogram 1'},[n_calls,1]);
                 Channel =  repmat(hyds(ii), [n_calls,1]);
                 ClusterId = obj.Cluster_id(logical(~isnan(arivalArr(:,ii))));
+                matlabDate = calls.julian_start_time(logical(~isnan(arivalArr(:,ii))));
                 
                 aa = table(Selection,...
                     View, ...
@@ -116,8 +119,9 @@ classdef clusterClassGPL <simulationClass
                     low_f,...
                     high_f,...
                     ClusterId,...
+                    matlabDate,...
                     'VariableNames',{'Selection', 'View', 'Channel',...
-                    'BeginS', 'EndS', 'LowF', 'HighF', 'ClusterId'});
+                    'BeginS', 'EndS', 'LowF', 'HighF', 'ClusterId','MtlbDtStr'});
                 
                 RavenTable =[RavenTable; aa];
                 
@@ -131,6 +135,7 @@ classdef clusterClassGPL <simulationClass
             end
             
         end
+        
         
         %% Create the array table from GPL data
         function updateArrTableGPL(obj)
@@ -155,11 +160,11 @@ classdef clusterClassGPL <simulationClass
             end
             
             
-            x=squeeze(obj.localize_struct.hyd(parent).coordinates(2,1,:));
-            x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(2,2,:));
+            x=squeeze(obj.localize_struct.hyd(parent).coordinates(5,1,:));
+            x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(5,2,:));
             
             % Index of the detection
-            idx = obj.localize_struct.hyd(parent).dex';
+            idx = obj.localize_struct.hyd(parent).dex'+1;
             
             %
             % Create the arrivals table (at) from the localize structure
