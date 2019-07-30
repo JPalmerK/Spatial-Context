@@ -10,7 +10,7 @@
 % At present the system has a built in function to re-run the
 %%
 
-classdef simulationClass <handle
+classdef simulationClass <matlab.mixin.Copyable
     
     % The data section
     properties
@@ -530,29 +530,32 @@ classdef simulationClass <handle
             
             
             % Create the empty similarity matrix
-            Sim_mat = gpuArray(zeros(length(obj.TDOA_vals))/0);
+            Sim_mat = zeros(length(obj.TDOA_vals))/0;
             
             
             % Grid X/Y space
-            deltalat_space = grid_v/ (length(obj.array_struct.latgrid)-1);
-            deltalon_space = grid_h/ (length(obj.array_struct.longrid)-1);
+            deltalat_space = (grid_v/ (length(obj.array_struct.latgrid)-1));
+            deltalon_space = (grid_h/ (length(obj.array_struct.longrid)-1));
             
             % How many grid squares per second can the whale move
             lat_persec = obj.s / deltalat_space;
             lon_persec = obj.s / deltalon_space;
             
-            % profile on
+            
+            sig_tot = (2*sqrt(obj.PosUncertsigma + obj.drift^2));
+            %profile on
             % Step through each arrival and get it's grid probability as
             % well as the projected grid probabilities for times at all
             % subsiquent calls but within the maximum time cuttoff
+            obj.arrivalArray= gather(obj.arrivalArray);
+            
             for ii =1:size(obj.arrivalArray,1)
-                disp([num2str(ii), ' of ', num2str(length(obj.arrivalArray))])
+                
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
-                averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
-                
+                averageLklhd_space = gather(getTruHdSpace(obj, ii, sig_tot));
+                rowvals = zeros([1, size(obj.arrivalArray,1)]);
                 % Figure out the number of time gaps within the maximum
                 % allowed correlation time (time_cut)
                 time_gaps = obj.arrivalArray(ii:end, 1)-...
@@ -573,24 +576,29 @@ classdef simulationClass <handle
                         % Grow the likelihood space based using image
                         % processing max filter. Set the filter size based
                         % on the maximum swim speed
-                        filt_size_lat = ceil(lat_persec * time_gaps);
-                        filt_size_lon = ceil(lon_persec * time_gaps);
+                        filt_size_lat = round(lat_persec * time_gaps);
+                        filt_size_lon = round(lon_persec * time_gaps);
                         filt_size = [filt_size_lat'; filt_size_lon'];
                         
-                        Lklhd_space_proj_out = averageLklhd_space;
-                        mm= gpuArray(averageLklhd_space);
+                        Lklhd_space_proj_out = ones([...
+                            length(obj.array_struct.latgrid),...
+                            length(obj.array_struct.longrid),...
+                            length(filt_size)]);
+                        Lklhd_space_proj_out(:,:,1) = averageLklhd_space;
                         
-                        for kk=2:length(filt_size);
-                            Lklhd_space_proj_out = ...
-                                cat(3,Lklhd_space_proj_out,...
-                                imdilate(averageLklhd_space, true(filt_size(:,kk)')));
+                        avUnit8 = uint8(averageLklhd_space*100);
+                        
+                        
+                        for kk=2:length(filt_size)
+                            
+                            avUnit8 = imdilate(avUnit8,...
+                                true(filt_size(:,kk)'));
+                            Lklhd_space_proj_out(:,:,kk) = double(avUnit8)/100;
                             
                         end
+                        
 
-                        
-                        
-                        Lklhd_space_proj_out = double(Lklhd_space_proj_out);
-                        
+                     
                     for jj= 1:length(time_gaps)
                         
                         % If there a filter then project the space,
@@ -602,37 +610,39 @@ classdef simulationClass <handle
                         
                         % Get the prob. loc space space of the next call in
                         % the series
-                        nextLklhdSpace = gpuArray(getTruHdSpace(obj,...
-                            (ii+jj-1), sig_tot));
-                        [dist, sim] = crossCorrSimScores(nextLklhdSpace,...
-                            Lklhd_space_proj, deltalat_space,...
-                            deltalon_space);
+                        nextLklhdSpace = ...
+                            (getTruHdSpace(obj,(ii+jj-1), sig_tot));
+                        
+                            [dist, sim] = crossCorrSimScores(...
+                                nextLklhdSpace,...
+                                squeeze(Lklhd_space_proj_out(:,:,jj)),...
+                                deltalat_space, deltalon_space);
                         speed =dist/time_gaps(jj);
+                        
                         if speed>obj.s
                             sim = 0;
                         end
                         simValue =[simValue, sim];
-                        %                         figure
-                        %                         subplot(2,1,1)
-                        %                         imagesc(Lklhd_space_proj); colorbar
-                        %
-                        %                         subplot(2,1,2)
-                        %                         imagesc(nextLklhdSpace); colorbar
-                        %
-                      
                         
                     end
-
-%                     profile report
-%                     profile off
-                        % Populate the simulation matrix
-                        Sim_mat(ii, ii:ii+length(simValue)-1) = simValue;
-                        Sim_mat(ii:ii+length(simValue)-1,ii) = simValue;
-                        
+                    toc
+                    
+                    
+                    Sim_mat(ii, ii:ii+length(simValue)-1)=simValue;
+                    Sim_mat(ii:ii+length(simValue)-1,ii)=simValue;
+                    
+                disp([num2str(ii), ' of ', num2str(length(obj.arrivalArray))])
                 end
+                %
+%                 % Populate the simulation matrix
+%                 Sim_mat(ii, ii:ii+length(simValue)-1) = simValue;
+%                 Sim_mat(ii:ii+length(simValue)-1,ii) = simValue;
+                %profile report
+                %profile off
                 %disp([num2str(ii), ' of ',...
                 %    num2str(length(obj.arrivalArray))])
             end
+            
             obj.Sim_mat= Sim_mat;
             
             
@@ -874,11 +884,13 @@ classdef simulationClass <handle
             TDOA_vals =[];
             
             % Time difference of arrivals (can only handle two atm)
+            
             for jj =1:length(obj.child_idx)
                 TDOA_vals = [TDOA_vals,...
                     obj.arrivalArray(:, jj+1)-obj.arrivalArray(:, 1)];
             end
-            obj.TDOA_vals = TDOA_vals;
+            
+            obj.TDOA_vals = (TDOA_vals);
         end
         
         %% Create array of arrivals with or w/o random association (step 2)
@@ -926,7 +938,7 @@ classdef simulationClass <handle
             
             % Sort by start time on the parent hydrophone
             [~,sortidx] = sort(array(:,1));
-            array = array(sortidx,:);
+            array = (array(sortidx,:));
             
             
             
@@ -1105,7 +1117,8 @@ classdef simulationClass <handle
             for ii=1:length(child_idx)
                 
                 % Get the expected delay spaces for the hydrophone pairs
-                toa_space = cell2mat(obj.array_struct.toa_diff(child_idx(ii)+1));
+                toa_space = (...
+                    cell2mat(obj.array_struct.toa_diff(child_idx(ii)+1)));
                 
                 % Delta TOA space
                 averageLklhd_space(:,:,ii) = (toa_space - delays(ii));
