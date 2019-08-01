@@ -249,8 +249,8 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
         delays(index,:)=rdelay(1,jj,:);
         for k=1:length(local_array)-1;
             cross_score(index,k)=peak(1,jj,k);end
-        times(index,:)=hydro.sf2(jj+1,:);
-        rtimes(index)=mean(mean(hydro.sf2(jj+1:jj+1+num_calls-1,:)));
+        times(index,:)=hydro.sf2(jj,:);
+        rtimes(index)=mean(mean(hydro.sf2(jj:jj+num_calls-1,:)));
         dex(index)=jj; % remember when event happened
         
         if isfield(localize_struct.parm,'min_pairs')
