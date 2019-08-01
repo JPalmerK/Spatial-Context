@@ -13,7 +13,7 @@
 classdef simulationClass <matlab.mixin.Copyable
     
     % The data section
-    properties
+    properties 
         time_cut = 10*60 % seconds - time beyond which not to corrlelations
         spaceWhale % Structure containing call times and locations of all agents
         truncateKm = 10 % Distance beyond which calls are excluded (not detected)
@@ -77,6 +77,10 @@ classdef simulationClass <matlab.mixin.Copyable
         % Title string for simulation plots
         titleStr
     end
+      properties(Access=private)
+        Sim_mat_
+      end
+
     
     
     methods
@@ -500,7 +504,7 @@ classdef simulationClass <matlab.mixin.Copyable
         end
                
         %% Create all habitat/area projections within the time cut (step 4)
-        function simMatIdealXcorrDist(obj)
+        function time_gaps= simMatIdealXcorrDist(obj)
             % This function creates the simulation matrix using the low
             % memory approach. This should be used in most cases where not
             % exploring the algorithims in depth.
@@ -530,32 +534,35 @@ classdef simulationClass <matlab.mixin.Copyable
             
             
             % Create the empty similarity matrix
-            Sim_mat = zeros(length(obj.TDOA_vals))/0;
+            Sim_mat = zeros(length(obj.TDOA_vals),'gpuArray')/0;
             
             
             % Grid X/Y space
-            deltalat_space = (grid_v/ (length(obj.array_struct.latgrid)-1));
-            deltalon_space = (grid_h/ (length(obj.array_struct.longrid)-1));
+            deltalat_space = gpuArray(grid_v/ (length(obj.array_struct.latgrid)-1));
+            deltalon_space = gpuArray(grid_h/ (length(obj.array_struct.longrid)-1));
             
             % How many grid squares per second can the whale move
             lat_persec = obj.s / deltalat_space;
             lon_persec = obj.s / deltalon_space;
             
             
-            sig_tot = (2*sqrt(obj.PosUncertsigma + obj.drift^2));
+            sig_tot = gpuArray(2*sqrt(obj.PosUncertsigma + obj.drift^2));
             %profile on
             % Step through each arrival and get it's grid probability as
             % well as the projected grid probabilities for times at all
             % subsiquent calls but within the maximum time cuttoff
-            obj.arrivalArray= gather(obj.arrivalArray);
+            obj.arrivalArray= (obj.arrivalArray);
             
+            
+                
+           
             for ii =1:size(obj.arrivalArray,1)
                 
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                averageLklhd_space = gather(getTruHdSpace(obj, ii, sig_tot));
-                rowvals = zeros([1, size(obj.arrivalArray,1)]);
+                averageLklhd_space = (getTruHdSpace(obj, ii, sig_tot));
+               
                 % Figure out the number of time gaps within the maximum
                 % allowed correlation time (time_cut)
                 time_gaps = obj.arrivalArray(ii:end, 1)-...
@@ -583,7 +590,7 @@ classdef simulationClass <matlab.mixin.Copyable
                         Lklhd_space_proj_out = ones([...
                             length(obj.array_struct.latgrid),...
                             length(obj.array_struct.longrid),...
-                            length(filt_size)]);
+                            length(filt_size)],'gpuArray');
                         Lklhd_space_proj_out(:,:,1) = averageLklhd_space;
                         
                         avUnit8 = uint8(averageLklhd_space*100);
@@ -593,7 +600,7 @@ classdef simulationClass <matlab.mixin.Copyable
                             
                             avUnit8 = imdilate(avUnit8,...
                                 true(filt_size(:,kk)'));
-                            Lklhd_space_proj_out(:,:,kk) = double(avUnit8)/100;
+                            Lklhd_space_proj_out(:,:,kk) = (double(avUnit8)/100);
                             
                         end
                         
@@ -613,19 +620,27 @@ classdef simulationClass <matlab.mixin.Copyable
                         nextLklhdSpace = ...
                             (getTruHdSpace(obj,(ii+jj-1), sig_tot));
                         
-                            [dist, sim] = crossCorrSimScores(...
-                                nextLklhdSpace,...
-                                squeeze(Lklhd_space_proj_out(:,:,jj)),...
-                                deltalat_space, deltalon_space);
+                        aa = (gather(nextLklhdSpace));
+                        bb = (gather(squeeze(Lklhd_space_proj_out(:,:,jj))));
+                        latp = (gather(deltalat_space));
+                        lonp = (gather(deltalon_space));
+                        
+                        %Stic
+                        [dist, sim] = obj.crossCorrSimScores(aa,bb,...
+                            latp, lonp);
                         speed =dist/time_gaps(jj);
+                        %toc
                         
                         if speed>obj.s
-                            sim = 0;
+                            sim=0;
                         end
-                        simValue =[simValue, sim];
+                        
+                        
+                        simValue= [simValue sim];
+                       
                         
                     end
-                    toc
+                    
                     
                     
                     Sim_mat(ii, ii:ii+length(simValue)-1)=simValue;
@@ -648,7 +663,64 @@ classdef simulationClass <matlab.mixin.Copyable
             
             
         end
-        
+ %% 2D cross correlation similarity function
+ function [dist, corrScore]= crossCorrSimScores(obj, nextLklhdSpace, Lklhd_space_proj,...
+         deltalat_space, deltalon_space)
+     % X and Y values of ambiguity surface 1 where values >0
+     
+     [I,J] = ind2sub(size(Lklhd_space_proj),find(Lklhd_space_proj>.5));
+     if ~isempty(I)
+         sxr =min(I):max(I);
+         szc =min(J):max(J);
+         
+         
+         % Use correlation to create the correlation map and find the translation
+         %nimg = gridCall2-mean(mean(gridCall2));
+         nimg = Lklhd_space_proj;
+         nSec = nimg(sxr,szc);
+         
+         if ~issparse(Lklhd_space_proj)
+             crr = xcorr2(nextLklhdSpace, nSec);
+         else
+             crr = xcorr2(full(nextLklhdSpace), full(nSec));
+         end
+         
+         [ssr,snd] = max(crr(:));
+         [ij,ji] = ind2sub(size(crr),snd);
+         
+         
+         %figure; imagesc(crr);
+         
+         normfac=sum(sum(nSec.^2));
+         
+         % Normalize the correlation
+         crr = crr/normfac;
+         
+         % The maximum of the cross-correlation corresponds to the estimated
+         % location of the lower-right corner of the section. Use ind2sub to convert
+         % the one-dimensional location of the maximum to two-dimensional coordinates.
+         [ssr,snd] = max(crr(:));
+         [ij,ji] = ind2sub(size(crr),snd);
+         
+         % Determin the spatial shift (x,y) between the maximum correlation lcoation
+         % and the origional
+         
+         % lower right corner
+         shiftr = (max(I)-(ij+1))*deltalat_space;
+         shiftc = (max(J)-(ji+1))*deltalon_space;
+         
+         dist = sqrt(shiftr^2+shiftc^2);
+         
+         corrScore = ssr;
+     else
+         dist =Inf;
+         corrScore =0;
+         
+         
+     end
+ end
+ 
+ 
         %% Create all habitat/area projections within the time cut (step 4)
         function simMatTDOAonly(obj)
             if isempty(obj.TDOA_vals)
@@ -938,7 +1010,7 @@ classdef simulationClass <matlab.mixin.Copyable
             
             % Sort by start time on the parent hydrophone
             [~,sortidx] = sort(array(:,1));
-            array = (array(sortidx,:));
+            array = gpuArray(array(sortidx,:));
             
             
             
@@ -954,7 +1026,7 @@ classdef simulationClass <matlab.mixin.Copyable
             if obj.randomMiss == 1
                 
                 % Create a matrix that incorporates miss association
-                ArrivalsMiss = zeros(size(array));
+                ArrivalsMiss = zeros(size(array), 'gpuArray');
                 ArrivalsMiss(:,1)  = array(:,1);
                 ArrivalsMiss(:,end)  = array(:,end);
                 
@@ -1108,7 +1180,7 @@ classdef simulationClass <matlab.mixin.Copyable
             
             averageLklhd_space = zeros([length(obj.array_struct.latgrid),...
                 length(obj.array_struct.longrid),...
-                length(child_idx)]);
+                length(child_idx)],'gpuArray');
             
             child_hyds = obj.array_struct.slave(obj.child_idx);
             child_hyds = child_hyds(~isnan(delays));
@@ -1133,6 +1205,39 @@ classdef simulationClass <matlab.mixin.Copyable
             end
 
         end
+        %% Retruns Normalized Likelihood
+        function averageLklhd_space_out = getTruHdSpaceMULT(obj, idx_s, sig_tot)
+            
+            averageLklhd_space_out = ...
+                zeros( [size(obj.array_struct.toa_diff{2}), length(idx_s)],...
+                'gpuArray');
+            
+            
+            for ii=1:length(idx_s)
+                % Get the observed TDOA space and normalize
+                averageLklhd_space = getAvLkHdSpace(obj, idx_s(ii));
+                
+                % set up the vectorization for the PDF
+                sigma = ones(size(averageLklhd_space)).*sig_tot;
+                
+                % Create ambiguity surface and normalize
+                averageLklhd_space = normpdf(averageLklhd_space, 0, sigma)./...
+                    normpdf(0, 0, sigma);
+                
+                
+                if ndims(averageLklhd_space)>1
+                    
+                    % sum along third axis, will be normalized later
+                    averageLklhd_space = squeeze(nanmean(averageLklhd_space,3));
+                    
+                end
+                
+                averageLklhd_space_out(:,:,ii) =averageLklhd_space;
+                
+            end
+            
+        end
+        
         
         %% Retruns Normalized Likelihood
         function averageLklhd_space = getTruHdSpace(obj, idx, sig_tot)
