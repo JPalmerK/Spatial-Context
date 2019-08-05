@@ -1114,11 +1114,9 @@ classdef simulationClass <handle
         %% Function for creating predicted cluster ID's for the agents
         function updateClusterID(obj)
             
-            % If chains have not been updated, do so
-            if isempty(obj.chains)
-                disp('Updating Simulation Matrix')
+
                 updateChains(obj)
-            end
+
             
             % Simply create an array with the predicted clusterid
             Cluster_id = zeros(length(obj.arrivalArray),1)+length(obj.chains)+1;
