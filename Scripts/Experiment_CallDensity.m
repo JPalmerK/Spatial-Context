@@ -38,8 +38,9 @@ grid_depth = localize_struct.parm.grid_depth;
 % Method 4/Baseline - TOA only
 
 
-nRuns = 100;
+nRuns = 200;
 nAgents = round(linspace(3,9,4));
+
 % Thresholds fo rthe snesitivty analysis
 % Run a default example first
 TimeThresh =linspace(0,120,50);
@@ -50,6 +51,8 @@ perf_methbaseline = struct('RandMat', cell(1, length(nAgents)), 'predAgents', ce
 perf_meth1 = perf_methbaseline;
 perf_meth2 = perf_methbaseline;
 perf_meth3 = perf_methbaseline;
+perf_meth4 = struct('RandMat', cell(1, length(nAgents)), 'predAgents', cell(1, length(nAgents)));
+
 
 
 
@@ -68,9 +71,9 @@ for ii =1:length(nAgents)
         
         %close all
         clear spaceWhale examp
-        %disp([num2str(iter) ' of ' num2str(nRuns) ' runs'])
+        disp([num2str(iter) ' of ' num2str(nRuns) ' runs'])
         % Create new agents- id values of the hydrophone array
-        [spaceWhale] =   createRandomSpaceWhale(0.75,8, hyd_arr,...
+        [spaceWhale] =   createRandomSpaceWhale(0.75,nAgents(ii), hyd_arr,...
         array_struct,hydrophone_struct, ssp, grid_depth,...
         [array_struct.master, array_struct.slave(child_idx)]);
     
@@ -84,47 +87,61 @@ for ii =1:length(nAgents)
         examp.UpdateArrArray();
         examp.child_idx = child_idx;
         examp.time_cut = 5*60;
+        examp.maxEltTime=(TimeThresh(1))
         UpdateArrArray(examp)
         
         
         %% First method, baseline
-        examp.clearCalcValues();
-        toaOnlyCluster(examp);
-        [senMat nAgePreds] = runSensitivtyLp(examp,TimeThresh);
-        perf_methbaseline(ii).RandMat = cat(3, perf_methbaseline(ii).RandMat, senMat);
-        perf_methbaseline(ii).predAgents = cat(3, perf_methbaseline(ii).predAgents, nAgePreds);
-        %figure; scatter(nAgents, senMat);
-        %title('baseline')
-        
+%         examp.clearCalcValues();
+%         toaOnlyCluster(examp);
+%         [senMat nAgePreds] = runSensitivtyLp(examp,TimeThresh);
+%         perf_methbaseline(ii).RandMat = cat(3, perf_methbaseline(ii).RandMat, senMat);
+%         perf_methbaseline(ii).predAgents = cat(3, perf_methbaseline(ii).predAgents, nAgePreds);
+%         %figure; scatter(nAgents, senMat);
+%         %title('baseline')
+%         
         
         %% Second method, TDOA only        
-        
-        % First method, TDOA only
-        examp.clearCalcValues();
-        simMatTDOAonly(examp);
-        [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
-        perf_meth1(ii).RandMat = cat(3, perf_meth1(ii).RandMat, senMat);
-        perf_meth1(ii).predAgents = cat(3, perf_meth1(ii).predAgents, nAgePreds);
+%         
+%         % First method, TDOA only
+%         examp.clearCalcValues();
+%         simMatTDOAonly(examp);
+%         [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
+%         perf_meth1(ii).RandMat = cat(3, perf_meth1(ii).RandMat, senMat);
+%         perf_meth1(ii).predAgents = cat(3, perf_meth1(ii).predAgents, nAgePreds);
 
         %% Thrid method, ideal localization
+%         examp.clearCalcValues();
+%         simMatIdeal(examp);
+%         [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
+%         %figure; imagesc(senMat); colorbar
+%         perf_meth2(ii).RandMat = cat(3, perf_meth2(ii).RandMat, senMat);
+%         perf_meth2(ii).predAgents = cat(3, perf_meth2(ii).predAgents, nAgePreds);
+%        % figure; scatter(reshape(nAgents,[],1), reshape(senMat,[],1))
+%         %title('Method 2')
+        %% Fourth method, similarity matrix new metric
+%         examp.clearCalcValues();
+%         simMatIdealNewSim(examp);
+%         [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
+%         %figure; imagesc(senMat); colorbar
+%         perf_meth3(ii).RandMat = cat(3, perf_meth3(ii).RandMat, senMat);
+%         perf_meth3(ii).predAgents = cat(3, perf_meth3(ii).predAgents, nAgePreds);
+%         %figure; scatter(reshape(nAgents,[],1), reshape(senMat,[],1))
+%         %title('Method 3')
+
+
+%% Fifth method 
+
+tic
         examp.clearCalcValues();
-        simMatIdeal(examp);
+        simMatIdealXcorrDist(examp);
         [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
         %figure; imagesc(senMat); colorbar
-        perf_meth2(ii).RandMat = cat(3, perf_meth2(ii).RandMat, senMat);
-        perf_meth2(ii).predAgents = cat(3, perf_meth2(ii).predAgents, nAgePreds);
+        perf_meth4(ii).RandMat = cat(3, perf_meth4(ii).RandMat, senMat);
+        perf_meth4(ii).predAgents = cat(3, perf_meth4(ii).predAgents, nAgePreds);
        % figure; scatter(reshape(nAgents,[],1), reshape(senMat,[],1))
         %title('Method 2')
-        %% Fourth method, ad hoc
-        examp.clearCalcValues();
-        simMatadHoc(examp);
-        [senMat, nAgePreds] = runSensitivtyLp(examp,TimeThresh,SimThresh);
-        %figure; imagesc(senMat); colorbar
-        perf_meth3(ii).RandMat = cat(3, perf_meth3(ii).RandMat, senMat);
-        perf_meth3(ii).predAgents = cat(3, perf_meth3(ii).predAgents, nAgePreds);
-        %figure; scatter(reshape(nAgents,[],1), reshape(senMat,[],1))
-        %title('Method 3')
-
+        toc
     end
     
     
@@ -208,42 +225,52 @@ yval = max([ max(max(squeeze(nanmedian(perf_meth1(ii).RandMat,3)))),...
      max(max(squeeze(nanmedian(perf_meth2(ii).RandMat,3)))),...
       max(max(squeeze(nanmedian(perf_meth3(ii).RandMat,3))))]);
 
-subplot(2,2,1)
-plot(TimeThresh/60,(squeeze(nanmedian(perf_methbaseline(ii).RandMat,3))))
+subplot(2,3,1)
+plot(TimeThresh,(squeeze(nanmedian(perf_methbaseline(ii).RandMat,3))))
 xlabel('Time Threshold (s)')
 ylabel('Adjusted Ran Index')
 title('Baseline')
 
 
 
-subplot(2,2,2)
-imagesc(SimThresh, tics, flipud(squeeze(nanmedian(perf_meth1(ii).RandMat,3)))')
+subplot(2,3,2)
+imagesc((SimThresh), tics, flipud(squeeze(nanmedian(perf_meth1(ii).RandMat,3)))')
 set(gca,'YDir','normal')
 colorbar; caxis([0 yval])
-xlabel('Time Threshold (s)')
-ylabel('Similarity Threshold')
+ylabel('Time Threshold (s)')
+xlabel('Similarity Threshold')
 title('Method 1- TDOA')
 
 
 
-subplot(2,2,3)
+subplot(2,3,3)
 imagesc(SimThresh, tics, flipud(squeeze(nanmedian(perf_meth2(ii).RandMat,3)))')
 set(gca,'YDir','normal')
 colorbar; caxis([0 yval])
-xlabel('Time Threshold (s)')
-ylabel('Adjusted Ran Index')
-title('Method 2- Spatial Ideal')
+ylabel('Time Threshold (s)')
+xlabel('Similarity Threshold')
+title('Spatial Ideal (Old Comparison Method)')
 
 
-subplot(2,2,4)
+subplot(2,3,4)
 imagesc(SimThresh, tics, flipud(squeeze(nanmedian(perf_meth3(ii).RandMat,3)))')
 set(gca,'YDir','normal')
 colorbar; caxis([0 yval])
-xlabel('Time Threshold (s)')
-ylabel('Adjusted Ran Index')
-title('Method 3- Spatial ad hoc')
+ylabel('Time Threshold (s)')
+xlabel('Similarity Threshold')
+title('Spatial Corr Method (XY Cross Correlation Comparison)')
 
-mtit([num2str(nAgents(ii)), ' agents in Simulation'])
+
+
+subplot(2,3,6)
+imagesc(SimThresh, tics, flipud(squeeze(nanmedian(perf_meth4(ii).RandMat,3)))')
+set(gca,'YDir','normal')
+colorbar; caxis([0 yval])
+ylabel('Time Threshold (s)')
+xlabel('Similarity Threshold')
+title('Spatial Corr Method (2D Cross Correlation Comparison)')
+
+%mtit([num2str(nAgents(ii)), ' agents in Simulation'])
 
 end
 

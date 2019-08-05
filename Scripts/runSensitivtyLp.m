@@ -35,7 +35,8 @@ if nargin ==2
 else % Else there were three variables, so leave well enough alone
     ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
     nAgents =ExpScoresMeth;
-    
+    idx =0;
+    totit = length(SimThresh)*length(TimeThresh);
     for jj = 1:length(SimThresh)
         examp.Cluster_id =[];
         examp.cutoff = SimThresh(jj);
@@ -48,6 +49,9 @@ else % Else there were three variables, so leave well enough alone
             examp.getRand();
             ExpScoresMeth(ii,jj) = examp.AdjRand;
             nAgents(ii,jj) = length(unique(examp.Cluster_id));
+            
+            %disp([num2str(idx) ' of ' num2str(totit) 'time/simthresh'])
+            idx=idx+1;
         end
         
     end
