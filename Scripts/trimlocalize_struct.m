@@ -1,6 +1,6 @@
 function localize_struct = trimlocalize_struct(localize_struct, lsqScore, parentId)
 
-array_id=5; % center hydrophone
+array_id=parentId; % center hydrophone
 
 % trim the scores
 score=localize_struct.hyd(array_id).score(5,:);
