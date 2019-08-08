@@ -4,7 +4,7 @@ array_id=parentId; % center hydrophone
 
 % trim the scores
 score=localize_struct.hyd(array_id).score(5,:);
-[~, k2]= find(score <.2);
+[~, k2]= find(score < lsqScore);
 
 % Trim calls
 localize_struct.hyd(array_id).score = localize_struct.hyd(array_id).score(:,k2);

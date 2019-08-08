@@ -302,7 +302,7 @@ classdef simulationClass <matlab.mixin.Copyable
             lat_persec = obj.s / deltalat_space;
             lon_persec = obj.s / deltalon_space;
             
-            sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
+            sig_tot = sqrt(obj.PosUncertsigma + obj.drift^2);
             
             % Step through each arrival and get it's grid probability as
             % well as the projected grid probabilities for times at all
@@ -428,7 +428,7 @@ classdef simulationClass <matlab.mixin.Copyable
                 % Get the average prob loc space of the i-th call with
                 % delta sigma t
                 
-                sig_tot = 2*sqrt(obj.PosUncertsigma + obj.drift^2);
+                sig_tot = sqrt(obj.PosUncertsigma + obj.drift^2);
                 averageLklhd_space = getTruHdSpace(obj, ii, sig_tot);
                 
                 % Figure out the number of time gaps within the maximum
@@ -534,19 +534,19 @@ classdef simulationClass <matlab.mixin.Copyable
             
             
             % Create the empty similarity matrix
-            Sim_mat = zeros(length(obj.TDOA_vals),'gpuArray')/0;
+            Sim_mat = zeros(length(obj.TDOA_vals))/0;
             
             
             % Grid X/Y space
-            deltalat_space = gpuArray(grid_v/ (length(obj.array_struct.latgrid)-1));
-            deltalon_space = gpuArray(grid_h/ (length(obj.array_struct.longrid)-1));
+            deltalat_space = (grid_v/ (length(obj.array_struct.latgrid)-1));
+            deltalon_space = (grid_h/ (length(obj.array_struct.longrid)-1));
             
             % How many grid squares per second can the whale move
             lat_persec = obj.s / deltalat_space;
             lon_persec = obj.s / deltalon_space;
             
             
-            sig_tot = gpuArray(2*sqrt(obj.PosUncertsigma + obj.drift^2));
+            sig_tot = sqrt(obj.PosUncertsigma + obj.drift^2);
             %profile on
             % Step through each arrival and get it's grid probability as
             % well as the projected grid probabilities for times at all
@@ -590,7 +590,7 @@ classdef simulationClass <matlab.mixin.Copyable
                         Lklhd_space_proj_out = ones([...
                             length(obj.array_struct.latgrid),...
                             length(obj.array_struct.longrid),...
-                            length(filt_size)],'gpuArray');
+                            length(filt_size)]);
                         Lklhd_space_proj_out(:,:,1) = averageLklhd_space;
                         
                         avUnit8 = uint8(averageLklhd_space*100);
@@ -843,20 +843,35 @@ classdef simulationClass <matlab.mixin.Copyable
                     % Total sigma error (standard deviation) five input
                     % variables (four from position uncertainty plus sigma
                     % swim)
-                    sigSD = 2*sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2));
+                    %sigSD = 2*sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2));
                     
+                    
+                    % EVA updates
+                    sigSD = sqrt((obj.PosUncertsigma + swimSigma.^2+ obj.drift^2));
+
                     % Step through the time gaps/sigma values getting each
                     % probability loc space and projection
                     for jj= 1:length(sigSD)
                         
                         % Grow the prob loc space of the current call and
                         % normalize
+%                         Lklhd_space_proj =  ...
+%                             normpdf(averageLklhd_space,0, sigSD(jj))./...
+%                             normpdf(0, 0, sigSD(jj));
+
+
+                        %EVA update
                         Lklhd_space_proj =  ...
-                            normpdf(averageLklhd_space,0, sigSD(jj))./...
-                            normpdf(0, 0, sigSD(jj));
-                        
+                            normpdf(averageLklhd_space,0, sigSD(jj)).*sigSD(jj)*sqrt(2*pi);
+
                         if ndims(Lklhd_space_proj)>2
-                            Lklhd_space_proj= nanmean(Lklhd_space_proj,3);
+                            
+                            
+                            %Lklhd_space_proj= nanmean(Lklhd_space_proj,3);
+                            
+                            % Eva Edit
+                            Lklhd_space_proj = prod(Lklhd_space_proj,3);
+                            
                         end
                         
                         
@@ -1010,7 +1025,7 @@ classdef simulationClass <matlab.mixin.Copyable
             
             % Sort by start time on the parent hydrophone
             [~,sortidx] = sort(array(:,1));
-            array = gpuArray(array(sortidx,:));
+            array = (array(sortidx,:));
             
             
             
@@ -1026,7 +1041,7 @@ classdef simulationClass <matlab.mixin.Copyable
             if obj.randomMiss == 1
                 
                 % Create a matrix that incorporates miss association
-                ArrivalsMiss = zeros(size(array), 'gpuArray');
+                ArrivalsMiss = zeros(size(array));
                 ArrivalsMiss(:,1)  = array(:,1);
                 ArrivalsMiss(:,end)  = array(:,end);
                 
@@ -1180,7 +1195,7 @@ classdef simulationClass <matlab.mixin.Copyable
             
             averageLklhd_space = zeros([length(obj.array_struct.latgrid),...
                 length(obj.array_struct.longrid),...
-                length(child_idx)],'gpuArray');
+                length(child_idx)]);
             
             child_hyds = obj.array_struct.slave(obj.child_idx);
             child_hyds = child_hyds(~isnan(delays));
@@ -1205,38 +1220,7 @@ classdef simulationClass <matlab.mixin.Copyable
             end
 
         end
-        %% Retruns Normalized Likelihood
-        function averageLklhd_space_out = getTruHdSpaceMULT(obj, idx_s, sig_tot)
-            
-            averageLklhd_space_out = ...
-                zeros( [size(obj.array_struct.toa_diff{2}), length(idx_s)],...
-                'gpuArray');
-            
-            
-            for ii=1:length(idx_s)
-                % Get the observed TDOA space and normalize
-                averageLklhd_space = getAvLkHdSpace(obj, idx_s(ii));
-                
-                % set up the vectorization for the PDF
-                sigma = ones(size(averageLklhd_space)).*sig_tot;
-                
-                % Create ambiguity surface and normalize
-                averageLklhd_space = normpdf(averageLklhd_space, 0, sigma)./...
-                    normpdf(0, 0, sigma);
-                
-                
-                if ndims(averageLklhd_space)>1
-                    
-                    % sum along third axis, will be normalized later
-                    averageLklhd_space = squeeze(nanmean(averageLklhd_space,3));
-                    
-                end
-                
-                averageLklhd_space_out(:,:,ii) =averageLklhd_space;
-                
-            end
-            
-        end
+
         
         
         %% Retruns Normalized Likelihood
@@ -1246,17 +1230,25 @@ classdef simulationClass <matlab.mixin.Copyable
             averageLklhd_space = getAvLkHdSpace(obj, idx);
             
             % set up the vectorization for the PDF
-            sigma = ones(size(averageLklhd_space)).*sig_tot;
+            sigma = ones(size(averageLklhd_space)).*sig_tot*sqrt(2*pi);
+             
+%             % Create ambiguity surface and normalize
+%             averageLklhd_space = normpdf(averageLklhd_space, 0, sigma)./...
+%                 normpdf(0, 0, sigma);
             
-            % Create ambiguity surface and normalize
-            averageLklhd_space = normpdf(averageLklhd_space, 0, sigma)./...
-                normpdf(0, 0, sigma);
+            % Eva comment
+            averageLklhd_space = normpdf(averageLklhd_space, 0, sigma).*sigma;
             
             
             if ndims(averageLklhd_space)>1
                 
                 % sum along third axis, will be normalized later
-                averageLklhd_space = nanmean(averageLklhd_space,3);
+                %averageLklhd_space = nanmean(averageLklhd_space,3);
+                
+                temp_ave = averageLklhd_space;
+                temp_ave(isnan(temp_ave))=1;
+                % Eva Edit
+                averageLklhd_space = prod(temp_ave,3);
                 
             end
             
@@ -1372,11 +1364,13 @@ classdef simulationClass <matlab.mixin.Copyable
             
         end
         
+        
         %% Function for creating predicted cluster ID's for the agents
         function updateClusterID(obj)
             
-
-                updateChains(obj)
+            % kjp edit xxx
+           % updateChains(obj)
+           updateChainsEncounterFirst(obj)
 
             
             % Simply create an array with the predicted clusterid
@@ -1389,6 +1383,99 @@ classdef simulationClass <matlab.mixin.Copyable
             end
             
             obj.Cluster_id =Cluster_id;
+        end
+      
+                %% Function for creating the cluster chains (aka ladder linkages)
+        function updateChainsEncounterFirst(obj)
+            
+            % Original design via Glen Lerley
+            if isempty(obj.Sim_mat)
+                disp('Updating Simulation Matrix')
+                UpdateSimMat(obj)
+            end
+            
+            
+
+            
+            % Ladder Linkages rebuild
+            simmat= obj.Sim_mat;
+            arraivalArray = obj.arrivalArray;
+            max_gap = obj.maxEltTime;
+            simthresh = obj.cutoff
+            
+            clusterN=1;
+            
+            cluster = struct();
+            
+            % Index of where we are in the array
+            idx = 1:size(arraivalArray,1);
+            
+            % For each row, find the first gap
+            while size(simmat,1)>1
+                
+                col_idx = idx(1);
+                
+                simscores = simmat(1,col_idx:end);
+                times = arraivalArray(col_idx: col_idx+ sum(~isnan(simscores)));
+                
+                
+                call_spacing = diff(times);
+                
+                % Clusters end at the first gap larger than maximum elapsed time
+                can_clusterend = min([length(call_spacing), find(call_spacing>max_gap,1)]);
+                
+                % If the the first gap larger than the maximum elapsed time it gets
+                % it's own cluster
+                if can_clusterend<1
+                    cluster(clusterN).index = col_idx;
+                    cluster(clusterN).n =1;
+                    
+                    % Remove the rows from thematrix 
+                    simmat(1,:)=[];
+                    idx(1)=[];
+                    
+                    
+                    
+                else
+                    % otherwise get the scores and remove the ones that are above the threshold
+                    
+                    matching_idx = unique([1, find(simscores(1:can_clusterend)>=simthresh)]);
+                    
+                    % If it only matches with it self, make a new cluster
+                    if isempty(matching_idx)
+                        
+                        cluster(clusterN).index = col_idx;
+                        
+                        cluster(clusterN).n =1;
+                        
+                        % Remove the rows from thematrix
+                        simmat(1,:)=[];
+                        idx(1)=[];
+                        
+                    else
+                        cluster(clusterN).index = col_idx+matching_idx-1;
+                        cluster(clusterN).n = length(matching_idx);
+                        disp(col_idx)
+                        
+
+                        % Remove the rows from thematrix
+                        simmat(matching_idx,:)=[];
+                        simmat(:,matching_idx)=[];
+                        idx(matching_idx)=[];
+                    end
+                    
+                    
+                end
+                
+                clusterN=clusterN+1;
+                
+            end
+            
+            
+ 
+            % aggregate clusters
+            %chain = cluster;
+            obj.chains =cluster;
         end
         
         %% Function for creating the cluster chains (aka ladder linkages)
