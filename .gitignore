@@ -10,3 +10,5 @@ Scripts/Bin/
 Scripts/temp2\.m
 
 Localization_v1/localize_LSQ_2D1\.m
+
+*.txt
