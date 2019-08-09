@@ -7,9 +7,17 @@
             
             child_idx = obj.child_idx(~isnan(delays));
             
+            try
+            averageLklhd_space = zeros([length(obj.array_struct.latgrid),...
+                length(obj.array_struct.longrid),...
+                length(child_idx)], 'gpuArray');
+            catch
+                
             averageLklhd_space = zeros([length(obj.array_struct.latgrid),...
                 length(obj.array_struct.longrid),...
                 length(child_idx)]);
+            end
+
             
             child_hyds = obj.array_struct.slave(obj.child_idx);
             child_hyds = child_hyds(~isnan(delays));

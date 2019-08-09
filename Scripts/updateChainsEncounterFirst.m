@@ -3,7 +3,7 @@
             % Original design via Glen Lerley
             if isempty(obj.Sim_mat)
                 disp('Updating Simulation Matrix')
-                UpdateSimMat(obj)
+                UpdateSimMat(obj);
             end
             
             
@@ -13,7 +13,7 @@
             simmat= obj.Sim_mat;
             arraivalArray = obj.arrivalArray;
             max_gap = obj.maxEltTime;
-            simthresh = obj.cutoff
+            simthresh = obj.cutoff;
             
             clusterN=1;
             
@@ -67,7 +67,7 @@
                     else
                         cluster(clusterN).index = col_idx+matching_idx-1;
                         cluster(clusterN).n = length(matching_idx);
-                        disp(col_idx)
+
                         
 
                         % Remove the rows from thematrix
@@ -87,6 +87,6 @@
  
             % aggregate clusters
             %chain = cluster;
-            cluster
+            cluster;
         end
         
