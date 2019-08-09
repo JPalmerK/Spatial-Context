@@ -25,7 +25,8 @@
             
             
             array = [simStruct.arrivalTable.ArrivalSec(:,...
-                [simStruct.array_struct.master, simStruct.array_struct.slave(simStruct.child_idx)])...
+                [simStruct.array_struct.master,...
+                simStruct.array_struct.slave(simStruct.child_idx)])...
                 simStruct.arrivalTable.Location ...
                 IDval];
             
@@ -52,10 +53,28 @@
             % Create the Associations and TDOA values %
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
+            % If clock drift is present, add/subtract it from the channels
+            if isfield(simStruct, 'drift')
+                disp(['Add/Sub ', num2str(simStruct.drift), ' s of clock drift'])
+                for channum =1:length(simStruct.child_idx)
+                    
+                    % Shift the arrivals to simulate clock drift by either
+                    % positive or negative values
+                    clock_shift = (mod(channum, 2)*2-1) * simStruct.drift;
+                    
+                    array(:,channum+1) = array(:,channum+1) + clock_shift;
+                end
+            end
+        
+        
+        
             
             % If we are adding in random missassociation then modify the
             % arrival array
-            if simStruct.randomMiss == 1
+            if isfield(simStruct, 'assSec') 
+                
+                disp(['Allowing for ', num2str(simStruct.assSec),...
+                    ' s of misassociation' ])
                 
                 % Create a matrix that incorporates miss association
                 ArrivalsMiss = zeros(size(array));
@@ -67,11 +86,6 @@
                 % array
                 for channum =1:length(simStruct.child_idx)
                     
-                    % Shift the arrivals to simulate clock drift by either
-                    % positive or negative values
-                    clock_shift = (mod(channum, 2)*2-1) * simStruct.drift;
-                    
-                    array(:,channum+1) = array(:,channum+1) + clock_shift;
                     
                     % Allow for Mis Association %%%%%%%%%%%%%%%%%
                     
@@ -130,6 +144,10 @@
             end
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
+            try
+            array = gpuArray(array);
+            catch
+                array= array;
+            end
         end
         
