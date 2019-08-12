@@ -11,7 +11,7 @@
 %                 normpdf(0, 0, sigma);
             
             % Eva comment
-            averageLklhd_space = normpdf(averageLklhd_space, 0, sigma).*sigma;
+            averageLklhd_space = normpdf(averageLklhd_space, 0, sigma).*sigma*sqrt(2*pi);
             
             
             if ndims(averageLklhd_space)>1
@@ -21,8 +21,8 @@
                 
                 temp_ave = averageLklhd_space;
                 temp_ave(isnan(temp_ave))=.001;
-                % Eva Edit
-                averageLklhd_space = prod(temp_ave,3);
+                
+                averageLklhd_space = nanmean(temp_ave,3);
                 
             end
             
