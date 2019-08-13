@@ -40,7 +40,8 @@ for ii=1:length(msd)
     % Note: This doesn't account for the probability of an animal swimming the
     % various distances. We might want to include this (i.e. make this weighted
     % toward the middle?)
-    F = 0*SD; F(find(SD <= msd(ii))) = 1;
+    F = 0*SD; 
+    F(find(SD <= msd(ii))) = 1;
     
     AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F);
 end

@@ -1,4 +1,5 @@
-        %% Cluster based only on time of arrivals Baseline (step 4) equivallent to acoustic encounters
+        %% Acoustic Encounter - 
+        %Cluster based only on time of arrivals Baseline (step 4) equivallent to acoustic encounters
         function cluster_vals = acEnc(obj)
             
             % Check if the arrival table is present if not update it
@@ -19,22 +20,21 @@
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             time_idx = obj.maxEltTime;
             
-            idx = [1; find(diff_vals>time_idx)];
+            idx = find(diff_vals>time_idx);
             
             
-            cluster_vals= zeros(size(obj.arrivalArray(:,1)))+length(idx);
-            cluster_id =1;
+            cluster_vals= ones(size(obj.arrivalArray(:,1)));
+            cluster_id =2;
             
             
-            for ii = 2:length(idx)-1
+            for ii = 1:length(idx)
                 
-                cluster_vals(idx(ii-1):idx(ii)) = cluster_id;
+                cluster_vals(idx(ii)+1:end) = cluster_id;
                 cluster_id = cluster_id +1;
                 
             end
             
             
             cluster_vals;
-            obj.titleStr = 'Baseline - toa Only';
-            
+  
         end

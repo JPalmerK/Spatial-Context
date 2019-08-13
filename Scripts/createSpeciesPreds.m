@@ -16,7 +16,7 @@ end
 
 
 % Stick the real id's next to the predicted clusters
-truthAndpreds =[obj.arrivalArray(:,end) obj.Cluster_id];
+truthAndpreds =[gather(obj.arrivalArray(:,end)) gather(obj.Cluster_id)];
 truthAndpreds(:,3)=0; % True class
 truthAndpreds(:,4)=0; % Score
 truthAndpreds(:,5)=0; % Prediction after applying likelihood ratio
@@ -25,14 +25,14 @@ truthAndpreds= array2table(truthAndpreds, 'VariableNames',...
     {'TrueClust','PredClust', 'TrueSpp', 'Score',...
     'ClusterScore'});
 
-
+truthAndpreds.ArrivalTime = gather(obj.arrivalArray(:,1));
 % Detector Parameters
 rw_mean = obj.betaParm1;
 rw_sd = obj.betaParm2;
 
 % For each detected agent, assign a species and classification
 % probability
-agent_idxs =unique(truthAndpreds.TrueClust);
+agent_idxs =gather(unique(truthAndpreds.TrueClust));
 
 for ii =1:length(agent_idxs)
     

@@ -4,14 +4,12 @@
             % clustering to the system where all calls in a cluster are
             % classified together
             
-            obj.truthAndpreds =createSpeciesPreds(obj);
+            truthAndpreds =createSpeciesPreds(obj);
             
             
-            % Pull out for easy reading
-            truthAndpreds = obj.truthAndpreds;
             
             
-            cluster_ids = unique(truthAndpreds.PredClust);
+            cluster_ids = gather(unique(truthAndpreds.PredClust));
             % For each cluster create the classificcation balues
             for ii=1:length(cluster_ids)
                 

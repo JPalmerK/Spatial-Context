@@ -39,6 +39,9 @@
             
             at.RangeKm = at.RangeKm.*distance_bool;
             at.ArrivalSec = at.ArrivalSec.*distance_bool;
+            
+            % Order by start time
+            
 
         end
         

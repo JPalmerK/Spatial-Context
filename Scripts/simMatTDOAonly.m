@@ -19,7 +19,7 @@ for ii =1:(length(simStruct.arrivalArray)-1)
     
     tdoa_orig = simStruct.TDOA_vals(ii,:);
     
-   
+    
     
     % index of all calls within the elapsed time
     nextTimes = simStruct.arrivalArray(ii:end,1);

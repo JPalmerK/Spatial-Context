@@ -150,15 +150,20 @@ ylabel('Similarity Trhreshold')
 %% Classifier Performance Experiment
 aa =14
 betaParm1= aa;
-betaParm2=[aa-1 aa-2 aa-3 aa-4 aa-5 aa-6];
+betaParm2=[aa-2 aa-5 aa-7];
 
 perf_out = [];
+nruns =100;
+
+timethresh = 10:10:60;
 
 parfor ii=1:length(betaParm2)
     perf_row =struct();
-    for jj =1:100
+    beta2 = betaParm2(ii);
+    
+    for jj =1:nruns
     % Replace the space whale component
-    [spaceWhale] =   createRandomSpaceWhale(1, 4, hyd_arr,...
+    [spaceWhale] =   createRandomSpaceWhale(1, 6, hyd_arr,...
         array_struct,hydrophone_struct, ssp, grid_depth,...
         [array_struct.master, array_struct.slave(child_idx)]);
     
@@ -170,9 +175,9 @@ parfor ii=1:length(betaParm2)
     simStructNew.arrivalArray= UpdateArrArray(simStructNew);
     simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
     simStructNew.betaParm1 = betaParm1;
-    simStructNew.betaParm2 = betaParm2(ii);
-    simStructNew.cutoff =.95;
-    simStructNew.maxEltTime = 15;
+    simStructNew.betaParm2 = beta2;
+    simStructNew.cutoff =.85;
+    simStructNew.maxEltTime = 20;
     
     
     %     % Update the arrival array and simulation matrix
@@ -197,11 +202,11 @@ parfor ii=1:length(betaParm2)
 end
 figure
 
-
+bins = linspace(-.1, .1, 20);
 
 for jj=1:length(betaParm2)
     perf =[];
-    for ii =1:50
+    for ii =1:nruns
         
         [prct_improvement,~, ~]= extractClassiferMetrics(perf_out(jj,ii));
         perf(ii)=prct_improvement;
@@ -209,12 +214,17 @@ for jj=1:length(betaParm2)
     end
     
     subplot(length(betaParm2),1,jj)
-    hist(perf);
+    perf = perf(perf~=0);
+    hist(perf, bins);
     title(['Prop Runs Improvement ', num2str(num2str(sum(perf>0)/length(perf))),...
         ' Prop Worse ',  num2str(num2str(sum(perf<0)/length(perf)))])
     ylabel('Simulation Runs')
     xlabel(['Change in Error Rate: Initial Error ', num2str(round(...
         betacdf(.5, betaParm1, betaParm2(jj)),2))])
+    xlim([-.1 .1])
+     
+    (sum(perf>0)/length(perf))-(sum(perf<0)/length(perf))
+    
 end
 
 
