@@ -91,15 +91,15 @@ parfor ii=1:20
     simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
     
     
-%     % Create copy for TDOA method
-%     simStructTDOA = simStructNew;
-%     
-%     % TDOA only method
-%     simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
-%     
-%     %Run the sensitivity loop
-%     [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
-%     ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
+    % Create copy for TDOA method
+    simStructTDOA = simStructNew;
+    
+    % TDOA only method
+    simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
+    
+    %Run the sensitivity loop
+    [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
+    ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
 %     
 %     
 %     % 2D XCORR METHOD
@@ -135,10 +135,10 @@ figure(1)
 % title('Median ARI Max of Mean')
 % 
 % 
-% subplot(3,1,2)
-% imagesc(TimeThresh,SimThresh, nanmedian(ExpScoresMeth_outTDOA,3)) ,  axis xy, colorbar
-% title('TDOA only')
-% 
+subplot(3,1,2)
+imagesc(TimeThresh,SimThresh, nanmedian(ExpScoresMeth_outTDOA,3)) ,  axis xy, colorbar
+title('TDOA only')
+
 
 
 subplot(3,1,3)
@@ -170,7 +170,6 @@ parfor ii=1:length(betaParm2)
     % Copy for each of the methods
     simStructNew = simStruct;
     simStructNew.spaceWhale = spaceWhale;
-    
     simStructNew.arrivalTable = UpdateArrTable(simStructNew);
     simStructNew.arrivalArray= UpdateArrArray(simStructNew);
     simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
@@ -179,16 +178,8 @@ parfor ii=1:length(betaParm2)
     simStructNew.cutoff =.85;
     simStructNew.maxEltTime = 20;
     
-    
-    %     % Update the arrival array and simulation matrix
-    %     simStructNew.spaceWhale=spaceWhale;
-    %     simStructNew.arrivalTable = UpdateArrTable(simStructNew);
-    %     simStructNew.arrivalArray= UpdateArrArray(simStructNew);
-    %     simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
-    %
     % Max of mean
     simStructNew.Sim_mat = simMatMaxofProd(simStructNew);
-    
     simStructNew.chains =updateChainsEncounterFirst(simStructNew);
     simStructNew.Cluster_id= updateClusterID(simStructNew);
     perf = estClassifierPerf(simStructNew);
@@ -202,7 +193,7 @@ parfor ii=1:length(betaParm2)
 end
 figure
 
-bins = linspace(-.1, .1, 20);
+bins = linspace(-.8, .6, 20);
 
 for jj=1:length(betaParm2)
     perf =[];
@@ -221,7 +212,7 @@ for jj=1:length(betaParm2)
     ylabel('Simulation Runs')
     xlabel(['Change in Error Rate: Initial Error ', num2str(round(...
         betacdf(.5, betaParm1, betaParm2(jj)),2))])
-    xlim([-.1 .1])
+    xlim([-.8 .8])
      
     (sum(perf>0)/length(perf))-(sum(perf<0)/length(perf))
     
@@ -230,12 +221,72 @@ end
 
 
 %% Clock Drift Experiment
+
 simStruct.c = 1500;
-simStruct.drift=1.5;
-simStruct.assSec=2;
-simStruct.hydrophone_struct = hydrophone_struct;
-simStruct.arrivalArray= UpdateArrArray(simStruct);
 simStruct.betaParm1 = betaParm1(1);
 simStruct.betaParm2=betaParm2(1);
-perf = estClassifierPerf(simStruct);
+simStruct.cutoff =.85;
+simStruct.maxEltTime = 20;
+simStruct.hydrophone_struct = hydrophone_struct;
+clock_drift = [1 2 3 4];
+association_sec = [0 4 6];
+
+
+perf_assocExp =struct();
+nRuns = 10;
+for ii=1:length(association_sec)
+  
+    assoc = association_sec(ii);
+    perf_driftExp =[];
+    for jj = 1:length(clock_drift)
+        cdrift = clock_drift(jj);
+        perf_row =struct();
+        for kk = 1:nRuns
+            % Replace the space whale component
+            [spaceWhale] =   createRandomSpaceWhale(1, 6, hyd_arr,...
+                array_struct,hydrophone_struct, ssp, grid_depth,...
+                [array_struct.master, array_struct.slave(child_idx)]);
+            
+            % Copy for each of the methods
+            simStructNew = simStruct;
+            simStructNew.spaceWhale = spaceWhale;
+            simStructNew.drift=cdrift;
+            simStructNew.assSec=assoc;
+            
+            simStructNew.arrivalTable = UpdateArrTable(simStructNew);
+            simStructNew.arrivalArray= UpdateArrArray(simStructNew);
+            simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
+            
+            
+            % Max of mean
+            simStructNew.Sim_mat = simMatMaxofProd(simStructNew);
+            simStructNew.chains =updateChainsEncounterFirst(simStructNew);
+            simStructNew.Cluster_id= updateClusterID(simStructNew);
+            perf = estClassifierPerf(simStructNew);
+            
+            perf_row(kk).perf = perf;
+            
+        end
+        perf_driftExp=[perf_driftExp; perf_row];
+        
+    end
+    
+      perf_assocExp(ii).AssocExp = perf_driftExp;
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
