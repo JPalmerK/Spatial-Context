@@ -61,20 +61,28 @@ simStruct.TDOA_vals = UpdateTDOA(simStruct);
 
 
 %% Sensitivity Experiment
-TimeThresh=linspace(1, 30,20);
+
+% Time threshold needs to be ordered maximum to minimum in order for the
+% agent sensnsitivity to work. This is because the simulation matrix where
+% each row represents an acoustic encounter is only calculated once. In the
+% sensisitivy loop, acoustic encounters are extending beyond the maximum
+% elapsed time are trimmed such that it's ok to calculate the sensitivy
+% threshold when the encounter is too large, but will break when it's too
+% small
+TimeThresh=fliplr(linspace(1, 30,20)); 
 SimThresh = linspace(0,1,30);
 SimThresh1 =linspace(0,1,30);
 
 ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), 20)/0;
 ExpScoresMeth_outTDOA = ExpScoresMeth_out2D;
-ExpScoresMeth_outMaxMean = ExpScoresMeth_out2D;
+ExpScoresMeth_outMaxProd = ExpScoresMeth_out2D;
 
 allSimStructs =[];
 
 
 tic
 
-parfor ii=1:20
+parfor ii=1:5
     % Replace the space whale component
     [spaceWhale] =   createRandomSpaceWhale(1, 6, hyd_arr,...
         array_struct,hydrophone_struct, ssp, grid_depth,...
@@ -100,15 +108,7 @@ parfor ii=1:20
     %Run the sensitivity loop
     [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
     ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
-%     
-%     
-%     % 2D XCORR METHOD
-%     simStructNew.Sim_mat =simMatIdealXcorrDist(simStructNew);
-%     
-%     % Run the sensitivity loop
-%     [ExpScoresMeth2D nAgents] = runSensitivtyLp(simStructNew,TimeThresh,SimThresh1);
-%     ExpScoresMeth_out2D(:,:,ii) = ExpScoresMeth2D;
-%     
+    
       % Max of mean 
     simStructMaxMean = simStructNew;
     
@@ -121,7 +121,7 @@ parfor ii=1:20
     
     %Run the sensitivity loop
     [ExpScoresMethMaxMean, ~] = runSensitivtyLp(simStructMaxMean,TimeThresh,SimThresh);
-    ExpScoresMeth_outMaxMean(:,:,ii) = ExpScoresMethMaxMean;
+    ExpScoresMeth_outMaxProd(:,:,ii) = ExpScoresMethMaxMean;
     
     ii
    
@@ -135,15 +135,15 @@ figure(1)
 % title('Median ARI Max of Mean')
 % 
 % 
-subplot(3,1,2)
+subplot(2,1,1)
 imagesc(TimeThresh,SimThresh, nanmedian(ExpScoresMeth_outTDOA,3)) ,  axis xy, colorbar
 title('TDOA only')
 
 
 
-subplot(3,1,3)
-imagesc(TimeThresh,SimThresh1, nanmean(ExpScoresMeth_outMaxMean,3)) ,  axis xy, colorbar
-title('TDOA only')
+subplot(2,1,2)
+imagesc(TimeThresh,SimThresh1, nanmean(ExpScoresMeth_outMaxProd,3)) ,  axis xy, colorbar
+title('Spatial Method')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
 
