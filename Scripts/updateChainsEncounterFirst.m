@@ -32,8 +32,8 @@ while size(simmat,1)>1
     % it's own cluster
     
     % otherwise get the scores and remove the ones that are above the threshold
-    
-    matching_idx = unique([1, find(simscores>=simthresh)]);
+    temp=1:length(simscores);
+    matching_idx = unique([1, temp(simscores>=simthresh)]);
     
     
     cluster(clusterN).index = col_idx+matching_idx-1;
