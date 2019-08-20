@@ -60,7 +60,7 @@ for ii =1:size(arrivalArray,1)
     % delta sigma t
     
     % Need to send to CPU for image dialate function
-    averageLklhd_space = gather(getTruHdSpaceProd(simStruct, ii, sig_tot));
+    averageLklhd_space = (getTruHdSpaceProd(simStruct, ii, sig_tot));
     
     % Figure out the number of time gaps within the maximum
     % allowed correlation time (time_cut)
@@ -78,7 +78,11 @@ for ii =1:size(arrivalArray,1)
         grid_v,grid_h);
     % If there are more than one time gap over which we need to
     % look then do the projections
+    try
     simValue = zeros(size(time_gaps), 'gpuArray');
+    catch
+        simValue = zeros(size(time_gaps));
+    end
     for jj= 1:length(time_gaps)
         
         
