@@ -22,9 +22,9 @@ if nargin ==2
             
             simStruct.Cluster_id =[];
             simStruct.maxEltTime=(TimeThresh(ii));
-            simStruct.toaOnlyCluster();
-            simStruct.getRand();
-            ExpScoresMeth(ii,1) = simStruct.AdjRand;
+            
+            simStruct.Cluster_id = acEnc(simStruct);
+            ExpScoresMeth(ii,1)  = getRand(simStruct);
             nAgents(ii,1) = length(unique(simStruct.Cluster_id));
             
         end
