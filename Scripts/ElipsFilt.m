@@ -17,25 +17,16 @@ msd = gather(s*time_gaps);
 th = 0:0.01:2*pi;
 
 % Prealocate propagated filter size
-try
-    AS_propagated = ones([...
-    length(simStruct.array_struct.latgrid),...
-    length(simStruct.array_struct.longrid),...
-    length(time_gaps)], 'gpuArray');
-    
-    % image dialate only works with uint8 on GPU
-    averageLklhd_space = uint8(averageLklhd_space*100);
-catch
+
     AS_propagated = ones([...
     length(simStruct.array_struct.latgrid),...
     length(simStruct.array_struct.longrid),...
     length(time_gaps)]);
-end
 
 
-
-
-for ii=1:length(msd)
+averageLklhd_space = gather(averageLklhd_space);
+AS_propagated(:,:,1) = (averageLklhd_space);
+for ii=2:length(msd)
     % Create the eliptical swim filter
     swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
     swim_filter_x = [-fliplr(swim_filter_x(2:end)) swim_filter_x];
@@ -59,9 +50,6 @@ for ii=1:length(msd)
     
 end
 
-if existsOnGPU(AS_propagated);
-    AS_propagated = double(AS_propagated./100);
-end
 
 end
 
