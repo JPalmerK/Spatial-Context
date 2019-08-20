@@ -74,10 +74,10 @@ TimeThresh=fliplr(linspace(1, 120, 50));
 SimThresh = linspace(0,1,30);
 SimThresh1 =linspace(0,1,30);
 
-ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters)/0;
+ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters, 'gpuArray')/0;
 ExpScoresMeth_outTDOA = ExpScoresMeth_out2D;
 ExpScoresMeth_outMaxProd = ExpScoresMeth_out2D;
-
+ExpScoresMeth_outBaseline = zeros(length(TimeThresh), 1, nIters, 'gpuArray')/0;
 allSimStructs =[];
 
 % Number of agents (experiemnts)
@@ -85,8 +85,6 @@ nAgents = [3,6,9];
 
 % Structure for output
 AgentExp = struct();
-
-
 tic
 
 for jj =1:length(nAgents)
@@ -107,6 +105,11 @@ for jj =1:length(nAgents)
         simStructNew.arrivalArray= UpdateArrArray(simStructNew);
         simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
         
+        % Baseline model
+        simStructBaseline = simStructNew;
+        [ExpScoresMethBaseline, ~] = runSensitivtyLp(simStructBaseline,TimeThresh);
+         ExpScoresMeth_outBaseline(:,ii) = ExpScoresMethBaseline;
+        
         
         % Create copy for TDOA method
         simStructTDOA = simStructNew;
@@ -117,14 +120,14 @@ for jj =1:length(nAgents)
         %Run the sensitivity loop
         [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
         ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
-        %
+        
+        
+        
         % Max of mean
         simStructMaxMean = simStructNew;
         
-        
         % Product Method
         simStructMaxMean.Sim_mat = simMatMaxofProd(simStructMaxMean);
-        
         
         %Run the sensitivity loop
         [ExpScoresMethMaxMean, ~] = runSensitivtyLp(simStructMaxMean,TimeThresh,SimThresh);
@@ -135,6 +138,7 @@ for jj =1:length(nAgents)
     end
     AgentExp(jj).TDOA =ExpScoresMeth_outTDOA;
     AgentExp(jj).MaxProd = ExpScoresMeth_outMaxProd;
+    AgentExp(jj).Baseline = ExpScoresMethBaseline;
     
     
     
