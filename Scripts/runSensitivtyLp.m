@@ -33,31 +33,37 @@ if nargin ==2
     
     
 else % Else there were three variables, so leave well enough alone
-    ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
+    try
+        ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh), 'gpuArray')/0;
+    catch
+        
+        ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
+    end
     nAgents =ExpScoresMeth;
     idx =0;
-    totit = length(SimThresh)*length(TimeThresh);
+    totit = prod(size(ExpScoresMeth));
     for jj = 1:length(SimThresh)
+        
         simStruct.Cluster_id =[];
         simStruct.cutoff = SimThresh(jj);
         
-        for ii = 1:length(TimeThresh)
+        parfor ii = 1:length(TimeThresh)
+            simStructTmp = simStruct;
+            simStructTmp.Cluster_id =[];
+            simStructTmp.maxEltTime=(TimeThresh(ii));
             
-            simStruct.Cluster_id =[];
-            simStruct.maxEltTime=(TimeThresh(ii));
-            
-            simStruct.chains =updateChainsEncounterFirst(simStruct);
+            simStructTmp.chains =updateChainsEncounterFirst(simStructTmp);
 
             
-            simStruct.Cluster_id= updateClusterID(simStruct);
+            simStructTmp.Cluster_id= updateClusterID(simStructTmp);
             
-            ExpScoresMeth(ii,jj) =  getRand(simStruct);
-            nAgents(ii,jj) = length(unique(simStruct.Cluster_id));
+            ExpScoresMeth(ii,jj) =  getRand(simStructTmp);
+            nAgents(ii,jj) = length(unique(simStructTmp.Cluster_id));
             
-            %disp([num2str(idx) ' of ' num2str(totit) 'time/simthresh'])
+            
             idx=idx+1;
         end
-        
+        disp([num2str(idx) ' of ' num2str(totit) 'time/simthresh'])
     end
 end
 
