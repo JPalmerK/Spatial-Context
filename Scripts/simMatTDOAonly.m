@@ -16,7 +16,7 @@ end
 
 for ii =1:(length(simStruct.arrivalArray)-1)
     
-    
+    % First TDOA
     tdoa_orig = simStruct.TDOA_vals(ii,:);
     
     
@@ -62,9 +62,10 @@ for ii =1:(length(simStruct.arrivalArray)-1)
     simValues = nanmin(deltaTDOALklhd,[],2);
     
     % Take the minimum value and fill in the similarity matrix
-    Sim_mat(ii,ii) = 1;
+    
     Sim_mat(ii, ii:ii+length(simValues)-1) = simValues;
     Sim_mat(ii:ii+length(simValues)-1,ii) = simValues;
+    Sim_mat(ii,ii) = 1;
 end
 
 

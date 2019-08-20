@@ -35,6 +35,5 @@ for ii = 1:length(idx)
 end
 
 
-cluster_vals;
 
 end

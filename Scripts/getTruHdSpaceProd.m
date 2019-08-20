@@ -21,10 +21,7 @@
                 % sum along third axis, will be normalized later
                 %averageLklhd_space = nanmean(averageLklhd_space,3);
                 
-                temp_ave = averageLklhd_space;
-                temp_ave(isnan(temp_ave))=.001;
-                
-                averageLklhd_space = prod(temp_ave,3, 'omitnan');
+                averageLklhd_space = prod(averageLklhd_space,3, 'omitnan');
                 
             end
             
