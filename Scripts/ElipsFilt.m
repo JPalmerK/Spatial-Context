@@ -17,10 +17,22 @@ msd = gather(s*time_gaps);
 th = 0:0.01:2*pi;
 
 % Prealocate propagated filter size
-AS_propagated = ones([...
+try
+    AS_propagated = ones([...
+    length(simStruct.array_struct.latgrid),...
+    length(simStruct.array_struct.longrid),...
+    length(time_gaps)], 'gpuArray');
+    
+    % image dialate only works with uint8 on GPU
+    averageLklhd_space = uint8(averageLklhd_space*100);
+catch
+    AS_propagated = ones([...
     length(simStruct.array_struct.latgrid),...
     length(simStruct.array_struct.longrid),...
     length(time_gaps)]);
+end
+
+
 
 
 for ii=1:length(msd)
@@ -44,8 +56,12 @@ for ii=1:length(msd)
     F(find(SD <= msd(ii))) = 1;
     
     AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F);
+    
 end
 
+if existsOnGPU(AS_propagated);
+    AS_propagated = double(AS_propagated./100);
+end
 
 end
 
