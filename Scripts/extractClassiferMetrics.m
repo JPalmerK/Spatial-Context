@@ -10,6 +10,6 @@ function [prct_improvement, methCorrect, methUnaided]= extractClassiferMetrics(p
     
     error_unaided = 1-methUnaided;
     error_cluster = 1-methCorrect;
-    prct_improvement = (error_unaided- error_cluster)/error_unaided;
+    prct_improvement = (error_unaided- error_cluster)/error_cluster;
    
 end

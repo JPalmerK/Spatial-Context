@@ -33,7 +33,7 @@ child_idx = [1 2 3];
 
 
 
-[spaceWhale] =   createRandomSpaceWhale(0.75, 6, hyd_arr,...
+[spaceWhale] =   createRandomSpaceWhale(0.5, 6, hyd_arr,...
     array_struct,hydrophone_struct, ssp, grid_depth,...
     [array_struct.master, array_struct.slave(child_idx)]);
 
@@ -71,10 +71,10 @@ load('ExperimentCallDensityElipseFit.mat')
 % elapsed time are trimmed such that it's ok to calculate the sensitivy
 % threshold when the encounter is too large, but will break when it's too
 % small
-nIters =200;
-TimeThresh=fliplr(linspace(1, 120, 50));
-SimThresh = linspace(0,1,30);
-SimThresh1 =linspace(0,1,30);
+nIters = 200;
+TimeThresh=fliplr(linspace(5, 120, 30));
+SimThresh = linspace(.01,.99,20);
+
 
 ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters, 'gpuArray')/0;
 ExpScoresMeth_outTDOA = ExpScoresMeth_out2D;
@@ -91,15 +91,15 @@ tic
 
 for jj =1:length(nAgents)
     nAgent = nAgents(jj);
-    parfor ii=1:nIters
+    for ii=1:nIters
         % Replace the space whale component
-        [spaceWhale] =   createRandomSpaceWhale(1, nAgent, hyd_arr,...
+        [spaceWhale] =   createRandomSpaceWhale(0.5, nAgent, hyd_arr,...
             array_struct,hydrophone_struct, ssp, grid_depth,...
             [array_struct.master, array_struct.slave(child_idx)]);
         
         % Copy for each of the methods
         simStructNew = simStruct;
-        
+        simStructNew.maxEltTime = max(TimeThresh);
         
         % Update the arrival array and simulation matrix
         simStructNew.spaceWhale=spaceWhale;
@@ -124,15 +124,14 @@ for jj =1:length(nAgents)
         ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
         
         
-        
-        % Max of mean
-        simStructMaxMean = simStructNew;
+        % Max of prod
+        simStructMaxProd = simStructNew;
         
         % Product Method
-        simStructMaxMean.Sim_mat = simMatMaxofProd(simStructMaxMean);
+        simStructMaxProd.Sim_mat = simMatMaxofProd(simStructMaxProd);
         
         %Run the sensitivity loop
-        [ExpScoresMethMaxMean, ~] = runSensitivtyLp(simStructMaxMean,TimeThresh,SimThresh);
+        [ExpScoresMethMaxMean, ~] = runSensitivtyLp(simStructMaxProd,TimeThresh,SimThresh);
         ExpScoresMeth_outMaxProd(:,:,ii) = ExpScoresMethMaxMean;
         
         ii
@@ -148,6 +147,9 @@ end
 toc
 
 
+load('ExperimentCallDensityElipseFit.mat', AgentExp)
+
+%% Plot experiment 1
 % 3 Agents
 figure(1)
 subplot(2,2,1)
@@ -156,19 +158,25 @@ title('Baseline')
 xlabel('Time Threshold (s)')
 ylabel('Adjusted Rand Index')
 
+
 subplot(2,2,2)
 imagesc(TimeThresh,SimThresh, nanmedian(AgentExp(1).TDOA,3)),  axis xy , colorbar
 caxis([-.1 .9])
 title('TDOA only')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
+c = colorbar;
+c.Label.String = 'Adjusted Rand Index';
 
 subplot(2,2,3)
-imagesc(TimeThresh,SimThresh,  nanmedian(AgentExp(1).MaxProd,3)),  axis xy,  colorbar
+imagesc(TimeThresh, SimThresh, nanmedian(AgentExp(1).MaxProd,3)),  axis xy,  colorbar
 caxis([-.1 .9])
 title('Spatial Method')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
+c = colorbar;
+c.Label.String = 'Adjusted Rand Index';
+
 
 
 % 6 Agents
@@ -185,6 +193,9 @@ caxis([-.1 .6])
 title('TDOA only')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
+c = colorbar;
+c.Label.String = 'Adjusted Rand Index';
+
 
 subplot(2,2,3)
 imagesc(TimeThresh,SimThresh,  nanmedian(AgentExp(2).MaxProd,3)),  axis xy,  colorbar
@@ -192,6 +203,8 @@ caxis([-.1 .6])
 title('Spatial Method')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
+c = colorbar;
+c.Label.String = 'Adjusted Rand Index';
 
 
 % 9 Agents
@@ -200,7 +213,8 @@ subplot(2,2,1)
 plot(TimeThresh, nanmedian(squeeze(AgentExp(3).Baseline),2))
 title('Baseline')
 xlabel('Time Threshold (s)')
-ylabel('Adjusted Rand Index')
+c.Label.String = 'Adjusted Rand Index';
+
 
 subplot(2,2,2)
 imagesc(TimeThresh,SimThresh, nanmedian(AgentExp(3).TDOA,3)),  axis xy , colorbar
@@ -208,6 +222,9 @@ caxis([-.1 .33])
 title('TDOA only')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
+c = colorbar;
+c.Label.String = 'Adjusted Rand Index';
+
 
 subplot(2,2,3)
 imagesc(TimeThresh,SimThresh,  nanmedian(AgentExp(3).MaxProd,3)),  axis xy,  colorbar
@@ -215,6 +232,9 @@ caxis([-.1 .33])
 title('Spatial Method')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
+c = colorbar;
+c.Label.String = 'Adjusted Rand Index';
+
 
 %% Classifier Performance Experiment
 
@@ -235,9 +255,9 @@ nIters =200;
 
 for ii=1:length(betaParm2)
     beta2 = betaParm2(ii);
-    parfor jj =1:nIters
+    for jj =1:nIters
         % Replace the space whale component
-        [spaceWhale] =   createRandomSpaceWhale(1, 6, hyd_arr,...
+        [spaceWhale] =   createRandomSpaceWhale(0.5, 6, hyd_arr,...
             array_struct,hydrophone_struct, ssp, grid_depth,...
             [array_struct.master, array_struct.slave(child_idx)]);
         
@@ -278,9 +298,13 @@ for ii=1:length(betaParm2)
    ClassifierPerfExp(ii).Baseline =perf_out_baseline;
     
 end
-figure
 
-bins = linspace(-.8, .9, 40);
+
+
+save('ExperimentClassifyPerfElipseFit.mat', ClassifierPerfExp)
+
+%%
+bins = linspace(-1, 1, 40);
 for jj=1:length(betaParm2)
     perfMaxProd =[];
     perfTDOA =[];
@@ -299,6 +323,8 @@ for jj=1:length(betaParm2)
         
         
     end
+    
+    violinData = [perfBaseline' perfTDOA' perfMaxProd'];
     
     figure(4)
     subplot(length(betaParm2),1,jj)
@@ -344,6 +370,7 @@ end
 
 
 %% Clock Drift Experiment
+load('ExperimentClassifyPerfAssocElipseFit.mat')
 
 simStruct.c = 1500;
 simStruct.betaParm1 = betaParm1(1);
@@ -370,7 +397,7 @@ for ii=1:length(association_sec)
     
     parfor kk = 1:nIters
         % Replace the space whale component
-        [spaceWhale] =   createRandomSpaceWhale(1, 6, hyd_arr,...
+        [spaceWhale] =   createRandomSpaceWhale(0.5, 6, hyd_arr,...
             array_struct,hydrophone_struct, ssp, grid_depth,...
             [array_struct.master, array_struct.slave(child_idx)]);
         
@@ -411,6 +438,9 @@ for ii=1:length(association_sec)
     perf_assocExp(ii).TDOA = perf_out_TDOA;
     perf_assocExp(ii).MaxProd = perf_out_MaxProd;
 end
+
+
+save('ExperimentClassifyPerfAssocElipseFit.mat', perf_assocExp)
 
 %%
 

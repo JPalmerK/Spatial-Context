@@ -41,20 +41,19 @@ else % Else there were three variables, so leave well enough alone
     end
     nAgents =ExpScoresMeth;
     idx =0;
-    totit = prod(size(ExpScoresMeth));
+    totit = length(SimThresh)*length(TimeThresh);
+    
     for jj = 1:length(SimThresh)
-        
-        simStruct.Cluster_id =[];
-        simStruct.cutoff = SimThresh(jj);
+        simStruct_copy = simStruct;
+        simStruct_copy.Cluster_id =[];
+        simStruct_copy.cutoff = SimThresh(jj);
         
         parfor ii = 1:length(TimeThresh)
-            simStructTmp = simStruct;
+            simStructTmp = simStruct_copy;
             simStructTmp.Cluster_id =[];
             simStructTmp.maxEltTime=(TimeThresh(ii));
             
             simStructTmp.chains =updateChainsEncounterFirst(simStructTmp);
-
-            
             simStructTmp.Cluster_id= updateClusterID(simStructTmp);
             
             ExpScoresMeth(ii,jj) =  getRand(simStructTmp);
