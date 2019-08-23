@@ -47,8 +47,39 @@ for ii=2:length(msd)
     F(find(SD <= msd(ii))) = 1;
     
     AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F);
+%     disp(['Morph Op ', num2str(ii), ' of ', num2str(length(msd))])
     
 end
+
+% hyd_loc = cat(1,simStruct.hydrophone_struct.location);
+% hyd_loc(4,:) =[];
+% % Figure for paper
+% figure
+% subplot(1,2,1)
+% imagesc(array_struct.longrid, array_struct.latgrid, squeeze(AS_propagated(:,:,1))), axis xy
+% c = colorbar;
+% c.Label.String = 'Likelihood';
+% hold on
+% scatter(hyd_loc(:,2), hyd_loc(:,1), 'filled', 'k', 'd')
+% scatter(hyd_loc([1:3],2), hyd_loc([1:3],1), 'filled', 'w', 'd')
+% scatter(hyd_loc(4,2), hyd_loc(4,1), 'filled', 'r', 'd')
+% xlabel('Longitude')
+% ylabel('Latitude')
+% title('Projected Ambiguity Surface')
+% 
+% 
+% subplot(1,2,2)
+% imagesc(array_struct.longrid, array_struct.latgrid, squeeze(AS_propagated(:,:,end))), axis xy
+% c = colorbar;
+% c.Label.String = 'Likelihood';
+% hold on
+% scatter(hyd_loc(:,2), hyd_loc(:,1), 'filled', 'k', 'd')
+% scatter(hyd_loc([1:3],2), hyd_loc([1:3],1), 'filled', 'w', 'd')
+% scatter(hyd_loc(4,2), hyd_loc(4,1), 'filled', 'r', 'd')
+% xlabel('Longitude')
+% ylabel('Latitude')
+% title('Projected Ambiguity Surface')
+
 
 
 end
