@@ -1,11 +1,5 @@
 function cluster = updateChainsEncounterFirst(obj)
-
-% Original design via Glen Lerley
-if isempty(obj.Sim_mat)
-    disp('Updating Simulation Matrix')
-    UpdateSimMat(obj);
-end
-
+% Use the similarity matrix to update the cluster chains
 
 
 
@@ -15,8 +9,23 @@ arraivalArray = gather(obj.arrivalArray);
 max_gap = obj.maxEltTime;
 simthresh = obj.cutoff;
 
-clusterN=1;
+% Prune the simulation matrix such that each row contains only members of
+% the acoustic encounter
 
+for ii= 1:size(simmat,1)
+
+    % Get the diff times
+    diff_times = diff(arraivalArray(ii:end,1));
+    
+    break_idx = find(diff_times>max_gap,1);
+    
+    simmat(ii, (ii+break_idx-1):end) = NaN;
+     simmat((ii+break_idx-1):end, ii) = NaN;
+
+end
+
+
+clusterN=1;
 cluster = struct();
 
 % Index of where we are in the array
