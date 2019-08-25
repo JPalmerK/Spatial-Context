@@ -69,21 +69,6 @@ close all;
 
 calls_arrivals =struct2table(hyd(parent).detection.calls);
 
-% 
-% % Populate data and parameters
-% examp = clusterClassGPL();
-% examp.array_struct = localize_struct.hyd(parent).array;
-% examp.hydrophone_struct = hydrophone_struct;
-% examp.time_cut = 20*60;
-% examp.randomMiss =0;
-% examp.s = 12;
-% examp.child_idx = [1:8];
-% examp.localize_struct =localize_struct;
-% examp.limitTime =4*60*60;
-% examp.maxEltTime =10*60;
-% examp.calls =calls_arrivals;
-% examp.callParm =  hyd(parent).detection.parm;
-% 
 
 
 examp = struct();
@@ -93,13 +78,13 @@ examp.randomMiss =0;
 examp.s = 12;
 examp.child_idx = [1:8];
 examp.localize_struct =localize_struct;
-examp.limitTime =4*60*60;
-examp.maxEltTime = 120;
+examp.limitTime =24*60*60;
+examp.maxEltTime = 90;
 examp.calls =calls_arrivals;
 examp.callParm =  hyd(parent).detection.parm;
 examp.fs =2000;
 examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
-examp.drift = 1;
+examp.drift = 0;
 examp.c =1500;
 
 
@@ -154,10 +139,10 @@ examp.Cluster_id = acEnc(examp);
 figure(3)
 subplot(2,1,1)
 hold on
-plot(corr_thresh, PropoutTDOA, '-+')
-plot(corr_thresh, Propout, '-*')
-plot(corr_thresh, repmat(propCorrectBase, size(corr_thresh)), '-.k')
-xlabel('Similarity Threshold')
+plot(NClustoutTDOA, PropoutTDOA, '-+')
+plot(NClustoutTDOA, Propout, '-*')
+plot(NClustoutTDOA, repmat(propCorrectBase, size(corr_thresh)), '-.k')
+xlabel('Number of Acoustic Encounters')
 ylabel('Proportion of Calls Correctly Classified')
 title('Hydrophone 8')
 legend('TDOA Method', 'Spatial Method', 'Baseline')
@@ -181,12 +166,12 @@ examp.s = 12;
 examp.child_idx = [1:8];
 examp.localize_struct =localize_struct;
 examp.limitTime =4*60*60;
-examp.maxEltTime = 120;
+examp.maxEltTime = 90;
 examp.calls =calls_arrivals;
 examp.callParm =  hyd(parent).detection.parm;
 examp.fs =2000;
 examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
-examp.drift = 1;
+examp.drift = 0;
 examp.c =1500;
 
 
@@ -239,10 +224,10 @@ examp.Cluster_id = acEnc(examp);
 figure(3)
 subplot(2,1,2)
 hold on
-plot(corr_thresh, PropoutTDOA, '-+')
-plot(corr_thresh, Propout, '-*')
-plot(corr_thresh, repmat(propCorrectBase, size(corr_thresh)), '-.k')
-xlabel('Similarity Threshold')
+plot(NClustoutTDOA, PropoutTDOA, '-+')
+plot(NClustoutTDOA, Propout, '-*')
+plot(NClustoutTDOA, repmat(propCorrectBase, size(corr_thresh)), '-.k')
+xlabel('Number of Acoustic Encounters')
 ylabel('Proportion of Calls Correctly Classified')
 title('Hydrophone 5')
 legend('TDOA Method', 'Spatial Method', 'Baseline')
