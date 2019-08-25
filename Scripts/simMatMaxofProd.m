@@ -83,7 +83,10 @@ for ii =1:size(arrivalArray,1)
     catch
         simValue = zeros(size(time_gaps));
     end
-    for jj= 1:length(time_gaps)
+    
+    % Step through the time gaps, project the current likelihood surface
+    % and compare it to the next likelihood surfaces
+    parfor jj= 1:length(time_gaps)
         
         
         % Step through the time gaps/sigma values getting each
@@ -106,8 +109,8 @@ for ii =1:size(arrivalArray,1)
         simValue(jj)=  sim;
     end
     
-    Sim_mat(ii, ii:ii+length(simValue)-1)=simValue;
-    Sim_mat(ii:ii+length(simValue)-1,ii)=simValue;
+    Sim_mat(ii, ii:ii+length(simValue)-1)= simValue;
+    Sim_mat(ii:ii+length(simValue)-1,ii)= simValue;
     
     disp([num2str(ii), ' of ', num2str(length(arrivalArray))])
     

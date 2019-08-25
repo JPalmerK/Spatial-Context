@@ -1,4 +1,3 @@
-
 %__________________________________________________________________________
 % violin.m - Simple violin plot using matlab default kernel density estimation
 % Last update: 10/2015
@@ -124,19 +123,6 @@ if isempty(find(strcmp(varargin,'medc')))==0
         plotmedian = 0;
     end
 end
-
-if isempty(find(strcmp(varargin,'quan')))==0
-    if isempty(varargin{find(strcmp(varargin,'quan'))+1})==0
-        quan = varargin{find(strcmp(varargin,'quan'))+1};
-        plotqantiles = 1;
-    else
-        plotqantiles = 0;
-    end
-end
-
-
-
-
 if isempty(find(strcmp(varargin,'bw')))==0
     b = varargin{find(strcmp(varargin,'bw'))+1}
     if length(b)==1
@@ -173,8 +159,6 @@ for i=1:size(Y,2)
     MED(:,i)=nanmedian(Y{i});
     MX(:,i)=nanmean(Y{i});
     bw(:,i)=bb;
-    QAN25(:,i) = quantile(Y{i},.25);
-    QAN75(:,i) = quantile(Y{i},.75);
     
 end
 %%
@@ -220,12 +204,6 @@ for i=i:size(Y,2)
         if plotmedian == 1
             p(2)=plot([interp1(U(:,i),F(:,i)+i,MED(:,i)), interp1(flipud(U(:,i)),flipud(i-F(:,i)),MED(:,i)) ],[MED(:,i) MED(:,i)],medc,'LineWidth',2);
         end
-        
-        if plotqantiles == 1
-             p(2)=plot([interp1(U(:,i),F(:,i)+i,QAN75(:,i)), interp1(flipud(U(:,i)),flipud(i-F(:,i)),QAN75(:,i)) ],[QAN75(:,i) QAN75(:,i)],quan,'LineWidth',2);
-             p(2)=plot([interp1(U(:,i),F(:,i)+i,QAN25(:,i)), interp1(flipud(U(:,i)),flipud(i-F(:,i)),QAN25(:,i)) ],[QAN25(:,i) QAN25(:,i)],quan,'LineWidth',2);
-        end
-        
     elseif setX == 1
         if plotmean == 1
             p(1)=plot([interp1(U(:,i),F(:,i)+i,MX(:,i))+x(i)-i, interp1(flipud(U(:,i)),flipud(i-F(:,i)),MX(:,i))+x(i)-i],[MX(:,i) MX(:,i)],mc,'LineWidth',2);
@@ -265,7 +243,7 @@ end
 set(gca,'TickLength',[0 0],'FontSize',12)
 box on
 if isempty(xL)==0
-    set(gca,'XtickLabel',xL)
+    set(gca,'XtickLabel',xL2)
 end
 %-------------------------------------------------------------------------
 end %of function
