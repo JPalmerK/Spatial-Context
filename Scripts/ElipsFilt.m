@@ -13,20 +13,34 @@ grid_dx = grid_h/ (length(array_struct.longrid)-1);
 s = simStruct.s;
 
 % Maximum swim distance
-msd = gather(s*time_gaps);
+msd = (s*time_gaps);
 th = 0:0.01:2*pi;
 
 % Prealocate propagated filter size
 
-    AS_propagated = ones([...
+
+
+if ~isa(averageLklhd_space,'gpuArray')
+    averageLklhd_space = gather(existsOnGPU);
+    msd = gather(s*time_gaps);
+    
+    AS_propagated = uint8(ones([...
     length(simStruct.array_struct.latgrid),...
     length(simStruct.array_struct.longrid),...
-    length(time_gaps)]);
+    length(time_gaps)]));
+else
+   
+    AS_propagated = uint8(ones([...
+    length(simStruct.array_struct.latgrid),...
+    length(simStruct.array_struct.longrid),...
+    length(time_gaps)], 'gpuArray'));
+    
+end
 
-
-averageLklhd_space = gather(averageLklhd_space);
-AS_propagated(:,:,1) = (averageLklhd_space);
-
+averageLklhd_space = uint8(averageLklhd_space.*255);
+AS_propagated(:,:,1) = averageLklhd_space;
+msd = parallel.pool.Constant(msd)
+tic
 parfor ii=2:length(msd)
     % Create the eliptical swim filter
     swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
@@ -45,23 +59,14 @@ parfor ii=2:length(msd)
     % various distances. We might want to include this (i.e. make this weighted
     % toward the middle?)
     F = 0*SD;
-    F(find(SD <= msd(ii))) = 1;
+    F((SD <= msd(ii))) = 1;
+    AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F);
     
-    
-    if all(size(F)<size(averageLklhd_space)*2)
-       
-        AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F); 
-        ii
-    else
-        
-        %AS_propagated(:,:,ii) = ones(size(averageLklhd_space)) * max(averageLklhd_space(:));
-        disp(['Filter larger than surface, setting values to ', num2str(max(averageLklhd_space(:)))])
-    end
-    
-   
- 
     
 end
+toc
+
+AS_propagated = double(AS_propagated)./255;
 
 % hyd_loc = cat(1,simStruct.hydrophone_struct.location);
 % hyd_loc(4,:) =[];
@@ -78,8 +83,8 @@ end
 % xlabel('Longitude')
 % ylabel('Latitude')
 % title('Projected Ambiguity Surface')
-% 
-% 
+%
+%
 % subplot(1,2,2)
 % imagesc(array_struct.longrid, array_struct.latgrid, squeeze(AS_propagated(:,:,end))), axis xy
 % c = colorbar;
