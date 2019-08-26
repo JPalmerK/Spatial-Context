@@ -62,6 +62,12 @@ for ii =1:size(arrivalArray,1)
     % Need to send to CPU for image dialate function
     averageLklhd_space = (getTruHdSpaceProd(simStruct, ii, sig_tot));
     
+    try 
+        averageLklhd_space = gpuArray(averageLklhd_space);
+    catch
+    end
+    
+    
     % Figure out the number of time gaps within the maximum
     % allowed correlation time (time_cut)
     time_gaps = arrivalArray(ii:end, 1)-...
@@ -73,20 +79,17 @@ for ii =1:size(arrivalArray,1)
     idx_end = find(diff_times>= simStruct.maxEltTime,1);
     
     if isempty(idx_end)
-        idx_end = length(time_gaps)
+        idx_end = length(time_gaps);
     end
     
     time_gaps = time_gaps(1:idx_end);
-    
-    
-    
     
     Lklhd_space_proj_out =  ElipsFilt(simStruct,averageLklhd_space, time_gaps,...
         grid_v,grid_h);
     % If there are more than one time gap over which we need to
     % look then do the projections
     try
-    simValue = zeros(size(time_gaps), 'gpuArray');
+        simValue = zeros(size(time_gaps), 'gpuArray');
     catch
         simValue = zeros(size(time_gaps));
     end
@@ -106,8 +109,6 @@ for ii =1:size(arrivalArray,1)
         % the series
         nextLklhdSpace = ...
             (getTruHdSpaceProd(simStruct,(ii+jj-1), sig_tot));
-        
-        
         
         AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3);
         %Stic
