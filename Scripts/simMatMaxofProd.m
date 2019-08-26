@@ -72,7 +72,14 @@ for ii =1:size(arrivalArray,1)
     % Find first big gap
     idx_end = find(diff_times>= simStruct.maxEltTime,1);
     
+    if isempty(idx_end)
+        idx_end = length(time_gaps)
+    end
+    
     time_gaps = time_gaps(1:idx_end);
+    
+    
+    
     
     Lklhd_space_proj_out =  ElipsFilt(simStruct,averageLklhd_space, time_gaps,...
         grid_v,grid_h);
@@ -86,7 +93,7 @@ for ii =1:size(arrivalArray,1)
     
     % Step through the time gaps, project the current likelihood surface
     % and compare it to the next likelihood surfaces
-    parfor jj= 1:length(time_gaps)
+    for jj= 1:length(time_gaps)
         
         
         % Step through the time gaps/sigma values getting each

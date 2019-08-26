@@ -198,11 +198,33 @@ NClusters = length(unique(gpldatout.ClusterId));
 
 
 
+
+% 
+% % Report number of gpl detections (only run once
+% 
+% % number of detections by channel
+% nGPLdet = zeros([1,9]);
+% nGPLMN = nGPLdet;
+% nGPLEG = nGPLdet;
+% channel_id = unique(gpldatout.Channel);
+% 
+% for ii =1:9;
+%     nGPLdet(ii) = length(gpldat.spp(gpldat.Channel == channel_id(ii)));
+%     mnsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'hb'},height(gpldatout),1)));
+%     gplMN = gpldatout(mnsubIDX,:)
+%     nGPLMN(ii) = length(gplMN.spp(gplMN.Channel == channel_id(ii)));
+%     egsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'rw'},height(gpldatout),1)));
+%     gplEG = gpldatout(egsubIDX,:)
+%     nGPLEG(ii) = length(gplEG.spp(gplEG.Channel == channel_id(ii)));
+% end
+% 
+% 
+% GPLSummary = table(nGPLdet', nGPLMN', nGPLEG', 'Variable',{'GPLDet', 'GPLDetMn','GPLDetEg'});
+% GPLSummary.Channel = channel_id;
+
+
+
 end
-
-
-
-
 
 
 

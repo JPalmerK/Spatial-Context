@@ -26,7 +26,8 @@ th = 0:0.01:2*pi;
 
 averageLklhd_space = gather(averageLklhd_space);
 AS_propagated(:,:,1) = (averageLklhd_space);
-for ii=2:length(msd)
+
+parfor ii=2:length(msd)
     % Create the eliptical swim filter
     swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
     swim_filter_x = [-fliplr(swim_filter_x(2:end)) swim_filter_x];
@@ -43,11 +44,22 @@ for ii=2:length(msd)
     % Note: This doesn't account for the probability of an animal swimming the
     % various distances. We might want to include this (i.e. make this weighted
     % toward the middle?)
-    F = 0*SD; 
+    F = 0*SD;
     F(find(SD <= msd(ii))) = 1;
     
-    AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F);
-%     disp(['Morph Op ', num2str(ii), ' of ', num2str(length(msd))])
+    
+    if all(size(F)<size(averageLklhd_space)*2)
+       
+        AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F); 
+        ii
+    else
+        
+        %AS_propagated(:,:,ii) = ones(size(averageLklhd_space)) * max(averageLklhd_space(:));
+        disp(['Filter larger than surface, setting values to ', num2str(max(averageLklhd_space(:)))])
+    end
+    
+   
+ 
     
 end
 

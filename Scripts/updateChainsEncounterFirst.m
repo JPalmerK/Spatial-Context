@@ -20,7 +20,7 @@ for ii= 1:size(simmat,1)
     break_idx = find(diff_times>max_gap,1);
     
     simmat(ii, (ii+break_idx-1):end) = NaN;
-     simmat((ii+break_idx-1):end, ii) = NaN;
+    simmat((ii+break_idx-1):end, ii) = NaN;
 
 end
 
