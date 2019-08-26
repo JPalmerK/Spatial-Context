@@ -29,9 +29,9 @@ hyd_arr =vertcat(hyd_arr{2,:,:});
 
 
 % Trim the LSQ space
-localize_struct = trimlocalize_struct(localize_struct, 1, 5)
+localize_struct = trimlocalize_struct(localize_struct, .5, 5)
 
-localize_struct = trimlocalize_struct(localize_struct, 1, 8)
+localize_struct = trimlocalize_struct(localize_struct, .5, 8)
 
 
 %% Pick a parent and go
@@ -54,209 +54,270 @@ truth.mstart = datenum('20090328', 'yyyymmdd')+truth.BeginTime_s_/86400;
 truth.mend = datenum('20090328', 'yyyymmdd')+truth.EndTime_s_/86400;
 truth.mid = (truth.mend+truth.mstart)/2;
 
-%% Error Rates - channel 8 as parent
 
 
-corr_thresh = linspace(0,1, 10);
-Propout =[];
-NClustout =[];
-
-
-% Channel 5
-parent =8
-close all;
-
-
-calls_arrivals =struct2table(hyd(parent).detection.calls);
-
-% 
-% % Populate data and parameters
-% examp = clusterClassGPL();
-% examp.array_struct = localize_struct.hyd(parent).array;
-% examp.hydrophone_struct = hydrophone_struct;
-% examp.time_cut = 20*60;
-% examp.randomMiss =0;
-% examp.s = 12;
-% examp.child_idx = [1:8];
-% examp.localize_struct =localize_struct;
-% examp.limitTime =4*60*60;
-% examp.maxEltTime =10*60;
-% examp.calls =calls_arrivals;
-% examp.callParm =  hyd(parent).detection.parm;
-% 
-
-
-examp = struct();
-examp.array_struct = localize_struct.hyd(parent).array;
-examp.hydrophone_struct = hydrophone_struct;
-examp.randomMiss =0;
-examp.s = 12;
-examp.child_idx = [1:8];
-examp.localize_struct =localize_struct;
-examp.limitTime =4*60*60;
-examp.maxEltTime = 120;
-examp.calls =calls_arrivals;
-examp.callParm =  hyd(parent).detection.parm;
-examp.fs =2000;
-examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
-examp.drift = 1;
-examp.c =1500;
-
-
-examp.arrivalTable = updateArrTableGPL(examp); % Run this first!
-examp.arrivalArray = UpdateArrArray(examp);
-examp.TDOA_vals = UpdateTDOA(examp);
-examp.Sim_mat= simMatMaxofProd(examp);
-
-
-
-%UpdateTDOA(examp)
-%simMatIdealNewSim(examp); % Simulation matrix spatial method
-
-for ii=1:length(corr_thresh)
-    sim_thresh=corr_thresh(ii);
-    examp.cutoff = sim_thresh;
-    examp.chains =updateChainsEncounterFirst(examp);
-    examp.Cluster_id= updateClusterID(examp);
-    [propCorrect, NClusters] = RunComp(examp, parent, hyd, truth,sim_thresh);
-    Propout(ii)=propCorrect;
-    NClustout(ii)=NClusters;
-    
-end
-
-
-
-% Do the same for the TDOA only method
-%examp.clearCalcValues
-%UpdateArrTable(examp) % Run this first!
-examp.Sim_mat= simMatTDOAonly(examp);
-%examp.simMatTDOAonly()
-
-PropoutTDOA =[];
-NClustoutTDOA =[];
-for ii=1:length(corr_thresh)
-    sim_thresh=corr_thresh(ii);
-    examp.cutoff = sim_thresh;
-    examp.chains =updateChainsEncounterFirst(examp);
-    examp.Cluster_id= updateClusterID(examp);
-    [propCorrect, NClusters] = RunComp(examp, parent, hyd, truth,sim_thresh);
-    PropoutTDOA(ii)=propCorrect;
-    NClustoutTDOA(ii)=NClusters;
-
-end
-
-
-% Look at TOA only 
-
-examp.Cluster_id = acEnc(examp);
-[propCorrectBase, NClusters] = RunComp(examp, parent, hyd, truth,sim_thresh);
-
-figure(3)
-subplot(2,1,1)
-hold on
-plot(corr_thresh, PropoutTDOA, '-+')
-plot(corr_thresh, Propout, '-*')
-plot(corr_thresh, repmat(propCorrectBase, size(corr_thresh)), '-.k')
-xlabel('Similarity Threshold')
-ylabel('Proportion of Calls Correctly Classified')
-title('Hydrophone 8')
-legend('TDOA Method', 'Spatial Method', 'Baseline')
-ylim([.75 1])
-
-
-
-
+simThreshs = linspace(0.01,.99, 30);
+TimeThresh = fliplr(linspace(2,60*2.5,20));
 
 %% Error Rates - channel 5 as parent
 % Populate data and parameters
-parent =5
+parent =8
 
 calls_arrivals =struct2table(hyd(parent).detection.calls);
 examp = struct();
 examp.array_struct = localize_struct.hyd(parent).array;
 examp.hydrophone_struct = hydrophone_struct;
-examp.time_cut = 20*60;
 examp.randomMiss =0;
-examp.s = 12;
+examp.s = 8;
 examp.child_idx = [1:8];
 examp.localize_struct =localize_struct;
-examp.limitTime =4*60*60;
-examp.maxEltTime = 120;
+examp.limitTime =3*60*60;
+examp.maxEltTime = max(TimeThresh);
 examp.calls =calls_arrivals;
 examp.callParm =  hyd(parent).detection.parm;
 examp.fs =2000;
 examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
-examp.drift = 1;
+examp.drift = 2;
 examp.c =1500;
-
 
 examp.arrivalTable = updateArrTableGPL(examp); % Run this first!
 examp.arrivalArray = UpdateArrArray(examp);
 examp.TDOA_vals = UpdateTDOA(examp);
 
 % Spatial Method
-examp.Sim_mat= simMatMaxofProd(examp);
-
-for ii=1:length(corr_thresh)
-    sim_thresh=corr_thresh(ii);
-    examp.cutoff = sim_thresh;
-    examp.chains =updateChainsEncounterFirst(examp);
-    examp.Cluster_id= updateClusterID(examp);
-    [propCorrect, NClusters] = RunComp(examp, parent, hyd, truth,sim_thresh);
-    Propout(ii)=propCorrect;
-    NClustout(ii)=NClusters;
-    
-end
-
+exampSpatial = examp;
+exampSpatial.Sim_mat= simMatMaxofProd(exampSpatial);
 
 
 % Do the same for the TDOA only method
-examp.Sim_mat= simMatTDOAonly(examp);
+exampTDOA = examp;
+exampTDOA.Sim_mat= simMatTDOAonly(exampTDOA);
+
+% TOA/acoustic encounters only
+exampBaseline = examp;
+
+%% Plot Results
 
 
-PropoutTDOA =[];
-NClustoutTDOA =[];
-for ii=1:length(corr_thresh)
-    sim_thresh=corr_thresh(ii);
-    examp.cutoff = sim_thresh;
-    examp.chains =updateChainsEncounterFirst(examp);
-    examp.Cluster_id= updateClusterID(examp);
-    [propCorrect, NClusters] = RunComp(examp, parent, hyd, truth,sim_thresh);
-    PropoutTDOA(ii)=propCorrect;
-    NClustoutTDOA(ii)=NClusters;
+Propout8 =[];
+NClustout8 =[];
 
+
+PropoutTDOA8 =[];
+NClustoutTDOA8 =[];
+
+
+PropoutBaseline8 =[];
+NClustoutBaseline8 =[];
+
+
+
+for jj = 1:length(simThreshs)
+    for ii=1:length(TimeThresh)
+        simThresh = simThreshs(jj)
+        
+        exampSpatial.cutoff = simThresh;
+        exampSpatial.maxEltTime = TimeThresh(ii);
+        chains =updateChainsEncounterFirst(exampSpatial);
+        exampSpatial.chains = chains;
+        exampSpatial.Cluster_id= updateClusterID(exampSpatial);
+        [propCorrect, NClusters] = RunComp(exampSpatial, parent, hyd, truth,simThresh);
+        Propout8(ii,jj)=propCorrect;
+        NClustout8(ii,jj)=length(exampSpatial.Cluster_id)/length(exampSpatial.chains);
+        
+        
+        exampTDOA.maxEltTime = TimeThresh(ii);
+        exampTDOA.cutoff = simThresh;
+        chains =updateChainsEncounterFirst(exampTDOA);
+        exampTDOA.chains = chains;
+        exampTDOA.Cluster_id= updateClusterID(exampTDOA);
+        [propCorrect, NClusters] = RunComp(exampTDOA, parent, hyd, truth,simThresh);
+        PropoutTDOA8(ii,jj)=propCorrect;
+        NClustoutTDOA8(ii,jj)= length(exampTDOA.Cluster_id)/length(exampTDOA.chains);
+        
+        
+        exampBaseline.maxEltTime= TimeThresh(ii);
+        exampBaseline.cutoff = simThresh;
+        exampBaseline.Cluster_id = acEnc(exampBaseline);
+        [propCorrectBase, NClusters] = RunComp(exampBaseline, parent, hyd, truth, simThresh);
+        PropoutBaseline8(ii,jj) = propCorrectBase;
+        meanClusterSize = length(exampBaseline.Cluster_id)/length(unique(exampBaseline.Cluster_id));
+        NClustoutBaseline8(ii,jj)= meanClusterSize;
+        
+    end
+end
+
+figure (3)
+subplot(3,2,1)
+title('Spatial Method Hyd 8')
+imagesc(simThreshs, TimeThresh, Propout8), axis xy, colorbar
+xlabel('Similarity Threshold')
+ylabel('Time Threshold')
+
+
+subplot(3,2,3)
+title('TDOA Method Hyd 8')
+imagesc(simThreshs, TimeThresh, PropoutTDOA8), axis xy, colorbar
+xlabel('Similarity Threshold')
+ylabel('Time Threshold')
+
+
+subplot(3,2,5)
+title('TDOA Method Hyd 8')
+imagesc(simThreshs, TimeThresh, PropoutBaseline8), axis xy, colorbar
+xlabel('Similarity Threshold')
+ylabel('Time Threshold')
+
+
+% 
+% figure(3)
+% subplot(2,1,2)
+% hold on
+% plot((TimeThresh), (PropoutTDOA8), '-+')
+% plot((TimeThresh), (Propout8), '-*')
+% plot((TimeThresh), (PropoutBaseline8), '-k')
+% xlabel('Elapsed Time Between Acoustic Encounters')
+% ylabel('Proportion of Calls Correctly Classified')
+% title('Hydrophone 8')
+% legend('TDOA Method', 'Spatial Method', 'Baseline')
+% ylim([.75 1])
+% 
+% 
+% 
+
+
+%% Error Rates - channel 5 as parent
+% Populate data and parameters
+parent = 5
+
+calls_arrivals =struct2table(hyd(parent).detection.calls);
+examp = struct();
+examp.array_struct = localize_struct.hyd(parent).array;
+examp.hydrophone_struct = hydrophone_struct;
+examp.randomMiss =0;
+examp.s = 8;
+examp.child_idx = [1:8];
+examp.localize_struct =localize_struct;
+examp.limitTime =3*60*60;
+examp.maxEltTime = max(TimeThresh);
+examp.calls =calls_arrivals;
+examp.callParm =  hyd(parent).detection.parm;
+examp.fs =2000;
+examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
+examp.drift = 2;
+examp.c =1500;
+examp.arrivalTable = updateArrTableGPL(examp); % Run this first!
+examp.arrivalArray = UpdateArrArray(examp);
+examp.TDOA_vals = UpdateTDOA(examp);
+
+% Spatial Method
+exampSpatial = examp;
+exampSpatial.Sim_mat= simMatMaxofProd(exampSpatial);
+
+
+% Do the same for the TDOA only method
+exampTDOA = examp;
+exampTDOA.Sim_mat= simMatTDOAonly(exampTDOA);
+
+% TOA/acoustic encounters only
+exampBaseline = examp;
+
+%% Plot Results
+
+
+Propout5 =[];
+NClustout5 =[];
+
+PropoutTDOA5 =[];
+NClustoutTDOA5 =[];
+
+PropoutBaseline5 =[];
+NClustoutBaseline5 =[];
+
+
+for jj = 1:length(simThreshs)
+    for ii=1:length(TimeThresh)
+        simThresh =simThreshs(jj)
+        exampSpatial.cutoff = simThresh;
+        exampSpatial.maxEltTime = TimeThresh(ii);
+        chains =updateChainsEncounterFirst(exampSpatial);
+        exampSpatial.chains = chains;
+        exampSpatial.Cluster_id= updateClusterID(exampSpatial);
+        [propCorrect, NClusters] = RunComp(exampSpatial, parent, hyd, truth,simThresh);
+        Propout5(ii,jj)=propCorrect;
+        NClustout5(ii,jj)=length(exampSpatial.Cluster_id)/length(exampSpatial.chains);
+        
+        
+        exampTDOA.maxEltTime = TimeThresh(ii);
+        exampTDOA.cutoff = simThresh;
+        chains =updateChainsEncounterFirst(exampTDOA);
+        exampTDOA.chains = chains;
+        exampTDOA.Cluster_id= updateClusterID(exampTDOA);
+        [propCorrect, NClusters] = RunComp(exampTDOA, parent, hyd, truth,simThresh);
+        PropoutTDOA5(ii,jj)=propCorrect;
+        NClustoutTDOA5(ii,jj)= length(exampTDOA.Cluster_id)/length(exampTDOA.chains);
+        
+        
+        exampBaseline.maxEltTime= TimeThresh(ii);
+        exampBaseline.cutoff = simThresh;
+        exampBaseline.Cluster_id = acEnc(exampBaseline);
+        [propCorrectBase, NClusters] = RunComp(exampBaseline, parent, hyd, truth, simThresh);
+        PropoutBaseline5(ii,jj) = propCorrectBase;
+        meanClusterSize = length(exampBaseline.Cluster_id)/length(unique(exampBaseline.Cluster_id));
+        NClustoutBaseline5(ii,jj)= meanClusterSize;
+        
+    end
 end
 
 
 
 
-% TOA/acoustic encounters only
-examp.Cluster_id = acEnc(examp);
-[propCorrectBase, NClusters] = RunComp(examp, parent, hyd, truth,sim_thresh);
 
 
-
-figure(3)
-subplot(2,1,2)
-hold on
-plot(corr_thresh, PropoutTDOA, '-+')
-plot(corr_thresh, Propout, '-*')
-plot(corr_thresh, repmat(propCorrectBase, size(corr_thresh)), '-.k')
+figure (3)
+subplot(3,2,2)
+title('Spatial Method Hyd 8')
+imagesc(simThreshs, TimeThresh, Propout5), axis xy, colorbar
 xlabel('Similarity Threshold')
-ylabel('Proportion of Calls Correctly Classified')
-title('Hydrophone 5')
-legend('TDOA Method', 'Spatial Method', 'Baseline')
-ylim([.75 1])
+ylabel('Time Threshold')
 
 
+subplot(3,2,4)
+title('TDOA Method Hyd 8')
+imagesc(simThreshs, TimeThresh, PropoutTDOA5), axis xy, colorbar
+xlabel('Similarity Threshold')
+ylabel('Time Threshold')
 
 
+subplot(3,2,6)
+title('TDOA Method Hyd 8')
+imagesc(simThreshs, TimeThresh, PropoutBaseline5), axis xy, colorbar
+xlabel('Similarity Threshold')
+ylabel('Time Threshold')
 
-figure(3)
-subplot(2,1,2)
-hold on
-legend('TDOA Method', 'Spatial Method', 'Baseline')
-ylim([.75 1])
+
+% 
+% figure(3)
+% subplot(2,1,1)
+% hold on
+% plot((TimeThresh), (PropoutTDOA8), '-+')
+% plot((TimeThresh), (Propout8), '-*')
+% plot((TimeThresh), (PropoutBaseline8), '-k')
+% xlabel('Elapsed Time Between Acoustic Encounters')
+% ylabel('Proportion of Calls Correctly Classified')
+% title('Hydrophone 5')
+% legend('TDOA Method', 'Spatial Method', 'Baseline')
+% ylim([.75 1])
+% 
+% 
+% 
+% 
+% 
+% figure(3)
+% subplot(2,1,2)
+% hold on
+% legend('TDOA Method', 'Spatial Method', 'Baseline')
+% ylim([.75 1])
 
 
 

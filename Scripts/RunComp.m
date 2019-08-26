@@ -4,12 +4,7 @@ function [propCorrect, NClusters, nCorrect] = RunComp(examp, parent, hyd, truth,
 % Examp: simulation class object pre-processed for similarity matrix
 % Truth: Validated Raven selection table
 % Threshold: correlation threshold
-%% Run the ladder linkages with the given correlation threshold
 
-if ~strcmp(examp.titleStr,   'Baseline - toa Only')
-examp.cutoff = corr_thresh;
-updateClusterID(examp)
-end
 
 
 
@@ -105,7 +100,7 @@ gpldat =  RavenTable;
 gpldat.mstart = datenum('20090328', 'yyyymmdd')+gpldat.BeginS/86400;
 gpldat.mend =datenum('20090328', 'yyyymmdd')+gpldat.EndS/86400;
 gpldat.spp = repmat({'unknown'}, [height(gpldat),1]);
-gpldata.Lat =RavenTable.Lat;
+gpldat.Lat =RavenTable.Lat;
 gpldat.Lon = RavenTable.Lon;
 
 % step through and add the species where available
@@ -172,8 +167,6 @@ N = (unique(h3.ClusterId));
 
 k2 = ~strcmp(gpldat.spp, 'unknown');
 
-wrongclust = h3((h3.ClusterId==1),:);
-
 
 %gpldatout = gpldat(gpldat.Channel==5,:);
 gpldatout = gpldat(k2,:);
@@ -201,15 +194,37 @@ correct = cellfun(@strcmp, gpldatout.spp, gpldatout.voting);
 nCorrect = sum(correct);
 propCorrect = nCorrect/height(gpldatout);
 
-NClusters = length(unique(examp.Cluster_id));
+NClusters = length(unique(gpldatout.ClusterId));
+
+
+
+
+% 
+% % Report number of gpl detections (only run once
+% 
+% % number of detections by channel
+% nGPLdet = zeros([1,9]);
+% nGPLMN = nGPLdet;
+% nGPLEG = nGPLdet;
+% channel_id = unique(gpldatout.Channel);
+% 
+% for ii =1:9;
+%     nGPLdet(ii) = length(gpldat.spp(gpldat.Channel == channel_id(ii)));
+%     mnsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'hb'},height(gpldatout),1)));
+%     gplMN = gpldatout(mnsubIDX,:)
+%     nGPLMN(ii) = length(gplMN.spp(gplMN.Channel == channel_id(ii)));
+%     egsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'rw'},height(gpldatout),1)));
+%     gplEG = gpldatout(egsubIDX,:)
+%     nGPLEG(ii) = length(gplEG.spp(gplEG.Channel == channel_id(ii)));
+% end
+% 
+% 
+% GPLSummary = table(nGPLdet', nGPLMN', nGPLEG', 'Variable',{'GPLDet', 'GPLDetMn','GPLDetEg'});
+% GPLSummary.Channel = channel_id;
 
 
 
 end
-
-
-
-
 
 
 
