@@ -26,7 +26,7 @@ th = 0:0.01:2*pi;
 
 averageLklhd_space = gather(averageLklhd_space);
 AS_propagated(:,:,1) = (averageLklhd_space);
-for ii=2:length(msd)
+parfor ii=2:length(msd)
     % Create the eliptical swim filter
     swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
     swim_filter_x = [-fliplr(swim_filter_x(2:end)) swim_filter_x];

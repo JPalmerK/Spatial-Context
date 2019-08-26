@@ -280,13 +280,14 @@ for zz= 1:length(empty_locs)
             
             % Call spacing in seconds and expected number of calls in the
             % simulation
-            clusterSpace = ave_z(id)/60;
+            
+            clusterSpace = ave_z(find(ave_z==median(ave_z(:)))); %ave_z(id)/60;
             expect_n = clusterSpace*spaceWhale.agent(zz).parm_movement.duration;
             nClusters = poissrnd(expect_n);
             
             
             % 2) Pick the number of calls in each cluster
-            cluster_size = poissrnd(ave_size(id), [1 nClusters]);
+            cluster_size = poissrnd(ave_size, [1 nClusters]);
             
             % Need at least one call in the cluster
             cluster_size = max([ones(size(cluster_size)); cluster_size]);

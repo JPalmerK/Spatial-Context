@@ -71,7 +71,7 @@ load('ExperimentCallDensityElipseFit.mat')
 % elapsed time are trimmed such that it's ok to calculate the sensitivy
 % threshold when the encounter is too large, but will break when it's too
 % small
-nIters = 200;
+nIters = 7;
 TimeThresh=fliplr(linspace(5, 120, 30));
 SimThresh = linspace(.01,.99,20);
 
@@ -89,7 +89,11 @@ nAgents = [3,6,9];
 AgentExp = struct();
 tic
 
-for jj =1:length(nAgents)
+for jj =3:length(nAgents)
+
+    ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters, 'gpuArray')/0;
+    ExpScoresMeth_outTDOA = ExpScoresMeth_out2D;
+    ExpScoresMeth_outMaxProd = ExpScoresMeth_out2D;
     nAgent = nAgents(jj);
     for ii=1:nIters
         % Replace the space whale component
@@ -106,22 +110,22 @@ for jj =1:length(nAgents)
         simStructNew.arrivalTable = UpdateArrTable(simStructNew);
         simStructNew.arrivalArray= UpdateArrArray(simStructNew);
         simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
-        
-        % Baseline model
-        simStructBaseline = simStructNew;
-        [ExpScoresMethBaseline, ~] = runSensitivtyLp(simStructBaseline,TimeThresh);
-         ExpScoresMeth_outBaseline(:,:,ii) = ExpScoresMethBaseline;
-        
-        
-        % Create copy for TDOA method
-        simStructTDOA = simStructNew;
-        
-        % TDOA only method
-        simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
-        
-        %Run the sensitivity loop
-        [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
-        ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
+%         
+%         % Baseline model
+%         simStructBaseline = simStructNew;
+%         [ExpScoresMethBaseline, ~] = runSensitivtyLp(simStructBaseline,TimeThresh);
+%          ExpScoresMeth_outBaseline(:,:,ii) = ExpScoresMethBaseline;
+%         
+%         
+%         % Create copy for TDOA method
+%         simStructTDOA = simStructNew;
+%         
+%         % TDOA only method
+%         simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
+%         
+%         %Run the sensitivity loop
+%         [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
+%         ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
         
         
         % Max of prod
@@ -147,7 +151,7 @@ end
 toc
 
 
-load('ExperimentCallDensityElipseFit.mat', AgentExp)
+save('ExperimentCallDensityElipseFit.mat', AgentExp)
 
 %% Plot experiment 1
 % 3 Agents
@@ -161,7 +165,7 @@ ylabel('Adjusted Rand Index')
 
 subplot(2,2,2)
 imagesc(TimeThresh,SimThresh, nanmedian(AgentExp(1).TDOA,3)),  axis xy , colorbar
-caxis([-.1 .9])
+%caxis([-.1 .9])
 title('TDOA only')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
@@ -170,7 +174,7 @@ c.Label.String = 'Adjusted Rand Index';
 
 subplot(2,2,3)
 imagesc(TimeThresh, SimThresh, nanmedian(AgentExp(1).MaxProd,3)),  axis xy,  colorbar
-caxis([-.1 .9])
+%caxis([-.1 .9])
 title('Spatial Method')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
@@ -189,7 +193,7 @@ ylabel('Adjusted Rand Index')
 
 subplot(2,2,2)
 imagesc(TimeThresh,SimThresh, nanmedian(AgentExp(2).TDOA,3)),  axis xy , colorbar
-caxis([-.1 .6])
+%caxis([-.1 .6])
 title('TDOA only')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
@@ -199,7 +203,7 @@ c.Label.String = 'Adjusted Rand Index';
 
 subplot(2,2,3)
 imagesc(TimeThresh,SimThresh,  nanmedian(AgentExp(2).MaxProd,3)),  axis xy,  colorbar
-caxis([-.1 .6])
+%caxis([-.1 .6])
 title('Spatial Method')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
@@ -213,12 +217,11 @@ subplot(2,2,1)
 plot(TimeThresh, nanmedian(squeeze(AgentExp(3).Baseline),2))
 title('Baseline')
 xlabel('Time Threshold (s)')
-c.Label.String = 'Adjusted Rand Index';
 
 
 subplot(2,2,2)
 imagesc(TimeThresh,SimThresh, nanmedian(AgentExp(3).TDOA,3)),  axis xy , colorbar
-caxis([-.1 .33])
+%caxis([-.1 .33])
 title('TDOA only')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
@@ -228,7 +231,7 @@ c.Label.String = 'Adjusted Rand Index';
 
 subplot(2,2,3)
 imagesc(TimeThresh,SimThresh,  nanmedian(AgentExp(3).MaxProd,3)),  axis xy,  colorbar
-caxis([-.1 .33])
+%caxis([-.1 .33])
 title('Spatial Method')
 xlabel('Time Threshold (s)')
 ylabel('Similarity Trhreshold')
