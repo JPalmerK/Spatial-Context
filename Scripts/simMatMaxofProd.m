@@ -51,11 +51,12 @@ sig_tot = sqrt(simStruct.PosUncertsigma + simStruct.drift^2);
 % subsiquent calls but within the maximum time cuttoff
 arrivalArray= (simStruct.arrivalArray);
 
-
+idxvals =1:length(arrivalArray);
 
 
 for ii =1:size(arrivalArray,1)
     
+    rowVal = zeros([size(arrivalArray,1),1]);
     % Get the average prob loc space of the i-th call with
     % delta sigma t
     
@@ -117,8 +118,18 @@ for ii =1:size(arrivalArray,1)
         simValue(jj)=  sim;
     end
     
-    Sim_mat(ii, ii:ii+length(simValue)-1)= simValue;
-    Sim_mat(ii:ii+length(simValue)-1,ii)= simValue;
+    idx_start = idxvals(ii);
+    idx_end = idx_start+length(simValue)-1;
+   
+    
+    try
+     rowVal(idx_start:idx_end)= simValue;
+    catch
+     rowVal = gpuArray(rowVal);
+     rowVal(gpuArray(idx_start):gpuArray(idx_end))= simValue;
+    end
+    
+    Sim_mat(:,ii)= rowVal;
     
     disp([num2str(ii), ' of ', num2str(length(arrivalArray))])
     
@@ -135,5 +146,9 @@ end
 %    num2str(length(obj.arrivalArray))])
 
 simMat  =Sim_mat;
+simMat = Sim_mat +Sim_mat';
+
+v = ones(size(simMat,1));
+simMat = simMat + diag(v - diag(simMat));
 
 end
