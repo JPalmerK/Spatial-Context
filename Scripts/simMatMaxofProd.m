@@ -53,6 +53,7 @@ arrivalArray= (simStruct.arrivalArray);
 
 idxvals =1:length(arrivalArray);
 
+tic
 
 for ii =1:size(arrivalArray,1)
     
@@ -85,7 +86,7 @@ for ii =1:size(arrivalArray,1)
     
     time_gaps = time_gaps(1:idx_end);
     
-    Lklhd_space_proj_out =  ElipsFilt(simStruct,averageLklhd_space, time_gaps,...
+    Lklhd_space_proj_out =  ElipsFilt(simStruct, averageLklhd_space, time_gaps,...
         grid_v,grid_h);
     % If there are more than one time gap over which we need to
     % look then do the projections
@@ -112,10 +113,14 @@ for ii =1:size(arrivalArray,1)
             (getTruHdSpaceProd(simStruct,(ii+jj-1), sig_tot));
         
         AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3);
+        
+        
+        
         %Stic
         sim = max(AScompare(:));
         
         simValue(jj)=  sim;
+        
     end
     
     idx_start = idxvals(ii);
@@ -134,21 +139,14 @@ for ii =1:size(arrivalArray,1)
     disp([num2str(ii), ' of ', num2str(length(arrivalArray))])
     
 end
+pctRunDeployedCleanup
+disp(['Sim Mat created in in ', num2str(toc), ' sec']);
 
-
-%
-%                 % Populate the simulation matrix
-%                 Sim_mat(ii, ii:ii+length(simValue)-1) = simValue;
-%                 Sim_mat(ii:ii+length(simValue)-1,ii) = simValue;
-%profile report
-%profile off
-%disp([num2str(ii), ' of ',...
-%    num2str(length(obj.arrivalArray))])
-
-simMat  =Sim_mat;
+% Duplicate the simulation matrix forthe other half of (mostly for looks)
 simMat = Sim_mat +Sim_mat';
+vals = diag(Sim_mat);
+valsMat = diag(vals);
 
-v = ones(size(simMat,1));
-simMat = simMat + diag(v - diag(simMat));
+simMat = simMat - valsMat;
 
 end
