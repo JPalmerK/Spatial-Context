@@ -48,7 +48,7 @@ else % Else there were three variables, so leave well enough alone
         simStruct_copy.Cluster_id =[];
         simStruct_copy.cutoff = SimThresh(jj);
         
-        parfor ii = 1:length(TimeThresh)
+        for ii = 1:length(TimeThresh)
             simStructTmp = simStruct_copy;
             simStructTmp.Cluster_id =[];
             simStructTmp.maxEltTime=(TimeThresh(ii));
