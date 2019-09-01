@@ -39,9 +39,9 @@ end
 
 averageLklhd_space = uint8(averageLklhd_space.*255);
 AS_propagated(:,:,1) = averageLklhd_space;
-msd = parallel.pool.Constant(msd)
-tic
-parfor ii=2:length(msd)
+%msd = parallel.pool.Constant(msd);
+Filters = struct();
+for ii=2:length(time_gaps)
     % Create the eliptical swim filter
     swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
     swim_filter_x = [-fliplr(swim_filter_x(2:end)) swim_filter_x];
@@ -58,11 +58,17 @@ parfor ii=2:length(msd)
     % Note: This doesn't account for the probability of an animal swimming the
     % various distances. We might want to include this (i.e. make this weighted
     % toward the middle?)
-    F = 0*SD;
+    F = 0*SD; 
     F((SD <= msd(ii))) = 1;
-    AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F);
+    Filters(ii).F =F;
     
     
+end
+
+
+tic
+for ii =2:length(Filters)
+    AS_propagated(:,:,ii) = imdilate(averageLklhd_space, Filters(ii).F);
 end
 toc
 
