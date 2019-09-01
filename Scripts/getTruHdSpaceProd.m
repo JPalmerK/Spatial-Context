@@ -13,9 +13,7 @@
 %                 normpdf(0, 0, sigma);
             
             % Eva comment
-            tic
             averageLklhd_space = normpdf(gather(averageLklhd_space), 0, sigma).*sigma*sqrt(2*pi);
-            toc
             
             if ndims(averageLklhd_space)>1
                 

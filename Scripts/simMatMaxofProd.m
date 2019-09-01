@@ -53,7 +53,7 @@ arrivalArray= (simStruct.arrivalArray);
 
 idxvals =1:length(arrivalArray);
 
-tic
+
 
 for ii =1:size(arrivalArray,1)
     
@@ -140,7 +140,7 @@ for ii =1:size(arrivalArray,1)
     
 end
 pctRunDeployedCleanup
-disp(['Sim Mat created in in ', num2str(toc), ' sec']);
+%disp(['Sim Mat created in in ', num2str(toc), ' sec']);
 
 % Duplicate the simulation matrix forthe other half of (mostly for looks)
 simMat = Sim_mat +Sim_mat';
