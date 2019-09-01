@@ -26,6 +26,11 @@ for ii =1:(length(simStruct.arrivalArray)-1)
     
     % Identify the calls within the the acoustic encounter
     acousticEncIdx = find(diff(nextTimes)>= simStruct.maxEltTime,1)-1;
+    
+    if isempty(acousticEncIdx)
+        acousticEncIdx = length(elapsedTime);
+    end
+    
     elapsedTime = elapsedTime(1:acousticEncIdx);
     
     % Get the TDOA values
