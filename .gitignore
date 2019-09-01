@@ -18,3 +18,5 @@ Scripts/NewSpatialCompMethod/
 Scripts/call_correlation.m
 
 DialateQuick/
+
+Scripts/hpdi.m
