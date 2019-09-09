@@ -95,6 +95,8 @@ for ii =1:length(hyd_idx)
     
 end
 
+idxTruth = find(truth.LowFreq_Hz_ < hyd(5).detection.parm.freq_hi);
+truth_trimmed = truth(idxTruth,:);
 
 gpldat =  RavenTable;
 gpldat.mstart = datenum('20090328', 'yyyymmdd')+gpldat.BeginS/86400;
@@ -103,6 +105,7 @@ gpldat.spp = repmat({'unknown'}, [height(gpldat),1]);
 gpldat.Lat =RavenTable.Lat;
 gpldat.Lon = RavenTable.Lon;
 
+wiggleroom_days = .5/60/60/24;
 % step through and add the species where available
 for ii=1:height(gpldat)
     
@@ -110,19 +113,24 @@ for ii=1:height(gpldat)
     
     
     % Canidate calls
-    linkedID = (...
-        intersect(...
-        find(truth.Channel==gpldat.Channel(ii)),...
-        find((abs(truth.mid - gpl_time)*24*60*60)<.25)));
+%     linkedID = (...
+%         intersect(...
+%         find(truth.Channel==gpldat.Channel(ii)),...
+%         find((abs(truth.mid - gpl_time)*24*60*60)<.25)));
     
+         bb = truth_trimmed.Channel==gpldat.Channel(ii);
+         cc = truth_trimmed.mend> (gpl_time-wiggleroom_days);
+         dd = truth_trimmed.mstart< (gpl_time +wiggleroom_days);
+    
+         linkedID = find(prod([bb, cc, dd],2));
     
     if length(linkedID)>=1
-        spp =truth.Species(linkedID);
+        spp =truth_trimmed.Species(linkedID);
         gpldat.spp(ii) = spp(1);
         %disp(num2str(ii));
     end
     
-    
+    clear bb cc dd
     
     
 end
@@ -132,6 +140,54 @@ end
 h1 = gpldat(logical(strcmp(gpldat.spp, 'hb')),:);
 h2 = gpldat(logical(strcmp(gpldat.spp, 'rw')),:);
 h3 = gpldat(logical(~strcmp(gpldat.spp, 'unknown')),:);
+
+
+chan_ids = unique(gpldat.Channel);
+
+% number of detections by channel
+nGPLdet = zeros([1,9]);
+nGPLMN = nGPLdet;
+nGPLEG = nGPLdet;
+nGPLFP = nGPLdet;
+nMNTP = nGPLdet;
+nEGTP = nGPLdet;
+
+for ii =1:9
+    nGPLdet(ii) = sum(RavenTable.Channel == chan_ids(ii));
+    
+    
+    sppBInary = cellfun(@strcmp, gpldat.spp, repmat({'hb'},height(gpldat),1));
+    ChannBinary = gpldat.Channel == chan_ids(ii);
+    nGPLMN(ii) = sum(and(sppBInary, ChannBinary));
+    
+    sppBInary = cellfun(@strcmp, gpldat.spp, repmat({'rw'},height(gpldat),1));
+    ChannBinary = gpldat.Channel == chan_ids(ii);
+    nGPLEG(ii) = sum(and(sppBInary, ChannBinary));
+
+
+    sppBInary = cellfun(@strcmp, gpldat.spp, repmat({'unknown'},height(gpldat),1));
+    ChannBinary = gpldat.Channel == chan_ids(ii);
+    nGPLFP(ii) = sum(and(sppBInary, ChannBinary));
+    
+    
+    sppBInary = cellfun(@strcmp, truth_trimmed.Species, repmat({'hb'},height(truth_trimmed),1));
+    ChannBinary = truth_trimmed.Channel == chan_ids(ii);
+    nMNTP(ii) = sum(and(sppBInary, ChannBinary));
+    
+     sppBInary = cellfun(@strcmp, truth_trimmed.Species, repmat({'rw'},height(truth_trimmed),1));
+    ChannBinary = truth_trimmed.Channel == chan_ids(ii);
+    nEGTP(ii) = sum(and(sppBInary, ChannBinary));
+
+end
+
+
+
+GPLSummary = table(nGPLdet', nGPLMN', nMNTP', nGPLEG', nEGTP', nGPLFP',...
+    'Variable',{'GPLDet', 'GPLDetMn', 'TPMN','GPLDetEg','TPEG', 'nGPLFP'});
+GPLSummary.Channel = chan_ids;
+
+
+
 %
 % figure;
 % subplot(2,1,1)
@@ -194,33 +250,33 @@ correct = cellfun(@strcmp, gpldatout.spp, gpldatout.voting);
 nCorrect = sum(correct);
 propCorrect = nCorrect/height(gpldatout);
 
-NClusters = length(unique(gpldatout.ClusterId));
+NClusters = length((gpldatout.ClusterId))/length(unique(gpldatout.ClusterId));
 
 
 
 
-% 
-% % Report number of gpl detections (only run once
-% 
-% % number of detections by channel
-% nGPLdet = zeros([1,9]);
-% nGPLMN = nGPLdet;
-% nGPLEG = nGPLdet;
-% channel_id = unique(gpldatout.Channel);
-% 
-% for ii =1:9;
-%     nGPLdet(ii) = length(gpldat.spp(gpldat.Channel == channel_id(ii)));
-%     mnsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'hb'},height(gpldatout),1)));
-%     gplMN = gpldatout(mnsubIDX,:)
-%     nGPLMN(ii) = length(gplMN.spp(gplMN.Channel == channel_id(ii)));
-%     egsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'rw'},height(gpldatout),1)));
-%     gplEG = gpldatout(egsubIDX,:)
-%     nGPLEG(ii) = length(gplEG.spp(gplEG.Channel == channel_id(ii)));
-% end
-% 
-% 
-% GPLSummary = table(nGPLdet', nGPLMN', nGPLEG', 'Variable',{'GPLDet', 'GPLDetMn','GPLDetEg'});
-% GPLSummary.Channel = channel_id;
+
+% Report number of gpl detections (only run once
+
+% number of detections by channel
+nGPLdet = zeros([1,9]);
+nGPLMN = nGPLdet;
+nGPLEG = nGPLdet;
+channel_id = unique(gpldatout.Channel);
+
+for ii =1:9;
+    nGPLdet(ii) = length(gpldat.spp(gpldat.Channel == channel_id(ii)));
+    mnsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'hb'},height(gpldatout),1)));
+    gplMN = gpldatout(mnsubIDX,:)
+    nGPLMN(ii) = length(gplMN.spp(gplMN.Channel == channel_id(ii)));
+    egsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'rw'},height(gpldatout),1)));
+    gplEG = gpldatout(egsubIDX,:)
+    nGPLEG(ii) = length(gplEG.spp(gplEG.Channel == channel_id(ii)));
+end
+
+
+GPLSummary = table(nGPLdet', nGPLMN', nGPLEG', 'Variable',{'GPLDet', 'GPLDetMn','GPLDetEg'});
+GPLSummary.Channel = channel_id;
 
 
 
