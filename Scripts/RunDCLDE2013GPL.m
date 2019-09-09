@@ -107,12 +107,12 @@
 
 %%
 close all; clear all; clc
-load('parmDCLDE2013.mat')
+load('parm_RWtrial_kaitlin.mat')
 load('localizestruct.mat')
 load('arraystruct.mat')
 load('hydrophonestruct.mat')
-parm.plot =0;
-parm.loop =1;
+% parm.plot =0;
+% parm.loop =1;
 localize_struct.parm.ssp_choice = 1; %use constant sound speed
 
 localize_struct.parm.grid_depth = 5; %approx expected depth of whale
@@ -158,7 +158,7 @@ cd(workpath);
 gstart=1;
 
 
-finish=length(file_list)-1;
+finish=length(file_list);
 
 
 
@@ -261,7 +261,7 @@ for file_index=1:finish
     
     
 end
-fname ='/home/kpalmer/Desktop/cluster.txt';
+fname ='/home/kpalmer/Desktop/RawGPLDetections.txt';
 gplDet2RavenSelTable(hyd, fname)
 
 
@@ -307,9 +307,9 @@ for ii=1:2
      array_struct_data(array_struct.master).array =array_struct;
      
      
-%     [localize_struct] = localize_cross_corr_index_check(array_struct,hyd,localize_struct,1);
-%     
-%     [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd,localize_struct,1);
+     [localize_struct] = localize_cross_corr_index_check(array_struct,hyd,localize_struct,1);
+     
+     [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd,localize_struct,1);
 %     
 %     
     
@@ -332,7 +332,8 @@ sizeOfSave=whos('localize_struct');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'localize_struct')
+    save(strcat('DCLDE2013_',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish), '_LocalizeStruct'),'localize_struct')
     
 else save(strcat('DCLDE2013RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'localize_struct', '-v7.3')
     
@@ -344,7 +345,8 @@ sizeOfSave=whos('array_struct_data');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), 'arrayall'),'array_struct_data')
+    save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish), 'arrayall'),'array_struct_data')
     
 else save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'arrayall'),'array_struct_data', '-v7.3')
     
@@ -361,7 +363,8 @@ sizeOfSave=whos('hyd');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'hyd')
+    save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish), '_hyd'),'hyd')
     
 else save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'hyd', '-v7.3')
     
