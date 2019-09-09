@@ -1,7 +1,10 @@
 function [base_out,newpad]=GPL_cropping(base_in,noise_ceiling,thresh);   
 
-iflag=0;newpad=[];base_out=base_in;
- while iflag==0
+iflag=0;
+newpad=[];
+base_out=base_in;
+
+while iflag==0
      [k1,k2]=max(base_out);
      if k1<thresh;
          iflag=1;

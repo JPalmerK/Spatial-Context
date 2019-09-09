@@ -26,7 +26,9 @@ end
 
 
 %%%%%% Use GPL algorithm
- mcalls=[]; ic=0;lc=2;
+ mcalls=[];
+ ic=0;
+ lc=2;
 low_off=parm.sum_bin_lo-parm.bin_lo+1;
 high_off=parm.sum_bin_hi-parm.bin_lo+1;
 dt=parm.skip/parm.sample_freq;
@@ -83,7 +85,8 @@ dt=parm.skip/parm.sample_freq;
 
     calls=[st,fn];
     % kill zero length
-    dur=diff(calls');k=find(dur);
+    dur=diff(calls');
+    k=find(dur);
     calls=calls(k,:);
     
     mcalls=[mcalls',calls']';

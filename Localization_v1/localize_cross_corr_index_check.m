@@ -1,7 +1,7 @@
 function [localize_struct] = localize_cross_corr_new(array_struct,hyd,localize_struct,array_number);
 
 
-
+% Number of calls to cross correlate
 num_calls = localize_struct.parm.num_calls;
 pow = localize_struct.parm.pow;
 
@@ -45,9 +45,11 @@ for i1=2:length(local_array)
     sf1 = zeros(length(hyd(local_array(i1)).detection.calls),2);
     
     for k=1:length(hyd(local_array(i1)).detection.calls)
+        
         % duration of call in bins
         sz1(k) = (hyd(local_array(i1)).detection.calls(k).end_time ...
             - hyd(local_array(i1)).detection.calls(k).start_time +1)/skip;
+        
         % start and end call times in samples
         sf1(k,:)=[hyd(local_array(i1)).detection.calls(k).start_time,...
             hyd(local_array(i1)).detection.calls(k).end_time];
