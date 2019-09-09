@@ -67,8 +67,7 @@ end
 writetable(RavenTable, fname, 'Delimiter', '\t', 'WriteVariableNames', false)    
 
 header=strcat('Selection\tView\tChannel\tBegin Time (s)\tEnd Time (s)',...
-    '\tLow Freq (Hz)\tHigh Freq (Hz)\',...
-    'tClusterID\tMT1\n');
+    '\tLow Freq (Hz)\tHigh Freq (Hz)\tClusterId\tMtLbDatestr\n');
 
 
 % export the file

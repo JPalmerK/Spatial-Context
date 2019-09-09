@@ -62,7 +62,7 @@ simStruct.TDOA_vals = UpdateTDOA(simStruct);
 
 %% Sensitivity Experiment
 
-load('ExperimentCallDensityElipseFit.mat')
+%load('ExperimentCallDensityElipseFit.mat')
 
 % Time threshold needs to be ordered maximum to minimum in order for the
 % agent sensnsitivity to work. This is because the simulation matrix where

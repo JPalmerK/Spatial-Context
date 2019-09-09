@@ -20,8 +20,8 @@ for ii=1:length(child_hyd)
 end
 
 
-x=squeeze(obj.localize_struct.hyd(parent).coordinates(5,1,:));
-x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(5,2,:));
+x=squeeze(obj.localize_struct.hyd(parent).coordinates(end,1,:));
+x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(end,2,:));
 
 % Index of the detection
 idx = obj.localize_struct.hyd(parent).dex'+1;
