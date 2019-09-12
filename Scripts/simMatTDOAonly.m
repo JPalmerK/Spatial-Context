@@ -7,14 +7,9 @@ if isempty(simStruct.TDOA_vals)
     UpdateTDOA(simStruct);
 end
 
-try
-    
-    Sim_mat = zeros(length(simStruct.arrivalArray(:,end)), 'gpuArray')/0;
-catch
-    Sim_mat = zeros(length(simStruct.arrivalArray(:,end)))/0;
-end
+Sim_mat = zeros(size(simStruct.arrivalArray));
 
-for ii =1:(length(simStruct.arrivalArray)-1)
+for ii =1:(length(simStruct.arrivalArray))
     
     % First TDOA
     tdoa_orig = simStruct.TDOA_vals(ii,:);

@@ -25,6 +25,8 @@
                 
             end
             
+            %% Filter out ranges beyond the maximum detection range for the array
+            
             
             
         end

@@ -28,12 +28,9 @@ grid_h = vdist(min(simStruct.array_struct.latgrid),...
 
 
 % Create the empty similarity matrix
-try
-    Sim_mat = zeros(length(simStruct.TDOA_vals), 'gpuArray')/0;
-catch
-    Sim_mat = zeros(length(simStruct.TDOA_vals))/0;
-end
+arrivalArray= (simStruct.arrivalArray);
 
+Sim_mat = zeros(size(arrivalArray,1))/0;
 
 % Grid X/Y space
 deltalat_space = (grid_v/ (length(simStruct.array_struct.latgrid)-1));
@@ -49,18 +46,23 @@ sig_tot = sqrt(simStruct.PosUncertsigma + simStruct.drift^2);
 % Step through each arrival and get it's grid probability as
 % well as the projected grid probabilities for times at all
 % subsiquent calls but within the maximum time cuttoff
-arrivalArray= (simStruct.arrivalArray);
 
 
 
 
-for ii =1:size(arrivalArray,1)
+for ii =1:length(arrivalArray)
     
-    % Get the average prob loc space of the i-th call with
-    % delta sigma t
+    %% Pick the set of call delays (number of calls)
+    
+    % Get the range filter
+    delays = simStruct.TDOA_vals(ii, :);
+    hyd_det = [simStruct.array_struct.master ...
+        simStruct.array_struct.slave(simStruct.child_idx(~isnan(delays)))];
+    
+    
     
     % Need to send to CPU for image dialate function
-    averageLklhd_space = (getTruHdSpaceProd(simStruct, ii, sig_tot));
+    averageLklhd_space = getTruHdSpaceProd(simStruct, ii, sig_tot);
     
     % Figure out the number of time gaps within the maximum
     % allowed correlation time (time_cut)
@@ -78,18 +80,12 @@ for ii =1:size(arrivalArray,1)
     
     time_gaps = time_gaps(1:idx_end);
     
-    
-    
-    
     Lklhd_space_proj_out =  ElipsFilt(simStruct,averageLklhd_space, time_gaps,...
-        grid_v,grid_h);
+        grid_v,grid_h, ii);
+    
+    
     % If there are more than one time gap over which we need to
     % look then do the projections
-    try
-    simValue = zeros(size(time_gaps), 'gpuArray');
-    catch
-        simValue = zeros(size(time_gaps));
-    end
     
     % Step through the time gaps, project the current likelihood surface
     % and compare it to the next likelihood surfaces
@@ -101,14 +97,21 @@ for ii =1:size(arrivalArray,1)
         
         Lklhd_space_proj=(...
             squeeze(Lklhd_space_proj_out(:,:,jj)));
-        
         % Get the prob. loc space space of the next call in
         % the series
         nextLklhdSpace = ...
             (getTruHdSpaceProd(simStruct,(ii+jj-1), sig_tot));
         
         
+        delaysnew = simStruct.TDOA_vals(ii+jj-1, :);
+        delaysnew = simStruct.array_struct.slave(simStruct.child_idx(~isnan(delays)));
+        delaysnew = unique([delaysnew simStruct.array_struct.master]);
         
+        % Filter the next likelihood projected space by range
+        nextLklhdSpace = nextLklhdSpace .*...
+            prod(simStruct.filtGrid(:,:,delaysnew),3);
+        
+
         AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3);
         %Stic
         sim = max(AScompare(:));
@@ -119,6 +122,7 @@ for ii =1:size(arrivalArray,1)
     Sim_mat(ii, ii:ii+length(simValue)-1)= simValue;
     Sim_mat(ii:ii+length(simValue)-1,ii)= simValue;
     
+    simValue =[];
     disp([num2str(ii), ' of ', num2str(length(arrivalArray))])
     
 end

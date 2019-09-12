@@ -36,7 +36,7 @@
             
             % At least 1 tdoa value needed, therefore remove any calls
             % (master) where there aren't at least two arrivals
-            array = array(sum(~isnan(array(:,1:3)),2)>= 2,:);
+            array = array(sum(~isnan(array(:,1:end)),2)>= 2,:);
             
             
             
@@ -146,10 +146,6 @@
             end
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            try
-            array = gpuArray(array);
-            catch
-                array= array;
-            end
+  
         end
         

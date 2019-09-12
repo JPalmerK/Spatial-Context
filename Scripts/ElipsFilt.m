@@ -1,9 +1,15 @@
 function AS_propagated =  ElipsFilt(simStruct,averageLklhd_space, time_gaps,...
-    grid_v,grid_h)
+    grid_v,grid_h, idx)
 % Function for creating the time projected similarity matricies using
 % eliptical filter (EM Nosal)
 
 array_struct = simStruct.array_struct;
+
+% Create the filter for the master and the reference channel for the first
+delays = simStruct.TDOA_vals(idx, :);
+hyd_det = [simStruct.array_struct.master...
+    simStruct.array_struct.slave(simStruct.child_idx(~isnan(delays)))];
+filt = prod(simStruct.filtGrid(:,:,hyd_det),3);
 
 % Grid spacing in m
 grid_dy = grid_v/ (length(array_struct.latgrid)-1);
@@ -18,16 +24,19 @@ th = 0:0.01:2*pi;
 
 % Prealocate propagated filter size
 
-    AS_propagated = ones([...
+AS_propagated = ones([...
     length(simStruct.array_struct.latgrid),...
     length(simStruct.array_struct.longrid),...
     length(time_gaps)]);
 
 
 averageLklhd_space = gather(averageLklhd_space);
+
+% Trim the average likelhiood space
 AS_propagated(:,:,1) = (averageLklhd_space);
 
-parfor ii=2:length(msd)
+tic
+for ii=1:length(msd)
     % Create the eliptical swim filter
     swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
     swim_filter_x = [-fliplr(swim_filter_x(2:end)) swim_filter_x];
@@ -45,23 +54,14 @@ parfor ii=2:length(msd)
     % various distances. We might want to include this (i.e. make this weighted
     % toward the middle?)
     F = 0*SD;
-    F(find(SD <= msd(ii))) = 1;
+    F((SD <= msd(ii))) = 1;
+
     
-    
-    if all(size(F)<size(averageLklhd_space)*2)
-       
-        AS_propagated(:,:,ii) = imdilate(averageLklhd_space, F); 
-        ii
-    else
-        
-        %AS_propagated(:,:,ii) = ones(size(averageLklhd_space)) * max(averageLklhd_space(:));
-        disp(['Filter larger than surface, setting values to ', num2str(max(averageLklhd_space(:)))])
-    end
-    
-   
- 
+    AS_propagated(:,:,ii) = filt.*imdilate(averageLklhd_space, F);  
     
 end
+toc 
+%Elapsed time is 3.750770 seconds.
 
 % hyd_loc = cat(1,simStruct.hydrophone_struct.location);
 % hyd_loc(4,:) =[];
@@ -78,8 +78,8 @@ end
 % xlabel('Longitude')
 % ylabel('Latitude')
 % title('Projected Ambiguity Surface')
-% 
-% 
+%
+%
 % subplot(1,2,2)
 % imagesc(array_struct.longrid, array_struct.latgrid, squeeze(AS_propagated(:,:,end))), axis xy
 % c = colorbar;
