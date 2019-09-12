@@ -6,8 +6,8 @@ clear spaceWhale
 % Simulation parameters that apply to the whole system
 param_sim.dur= 60*60*n_hrs; % duration of the entire simulation
 param_sim.fs =2000; % not currently used but will  be
-param_sim.ssp = ssp(1,2); % Sound speed
-param_sim.depth = grid_depth; % Agent calling depth
+param_sim.depth = grid_depth;
+param_sim.ssp = ssp;
 
 % add the simulation parameters to the spaceWhale
 spaceWhale.param_sim = param_sim;
@@ -18,7 +18,7 @@ spaceWhale.param_sim = param_sim;
 parm_movement.max_speed = 8.4;
 
 % currently needs to be the same for all
-parm_movement.duration = 60*60*n_hrs; 
+parm_movement.duration = 60*60*n_hrs;
 
 % Make call parameters
 parm_calling.model = 'Bout';
@@ -28,7 +28,7 @@ parm_calling.model = 'Bout';
 % Create 10 agents with different movement behaviours
 for ii=1:nAgents
     % calling every 200 seconds on average
-    %parm_calling.frequency = 400*rand; 
+    %parm_calling.frequency = 400*rand;
     
     % Movement parameters for each  agent(s)
     parm_movement.lat_init =  min(hyd_arr(subArray,1)) + ...
@@ -37,20 +37,17 @@ for ii=1:nAgents
         (max(hyd_arr(subArray,2)) - min(hyd_arr(subArray,2)))*rand(1);
     parm_movement.bearing = 180 -360*rand(1); %degrees
     
-    % Duration - random number of hours (uniform) times some portion of
-    % that (rand)
     
-%     parm_movement.duration = floor(...
-%         60*60*(randi(n_hrs)*rand(1))); % how long is the agent around
-    
-% how long is the agent around
-    parm_movement.duration = param_sim.dur-2; 
+    % how long is the agent around
+    parm_movement.duration = param_sim.dur-2;
     
     
     parm_movement.start_time = randi([1,...
         param_sim.dur-parm_movement.duration],1);
     
-    if mod(ii,2) ==1
+    behaviourbinom = randi([1,2],1);
+    
+    if mod(behaviourbinom,2) ==1
         parm_movement.model = 'search';
         
     else
