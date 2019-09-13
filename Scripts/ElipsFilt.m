@@ -20,7 +20,6 @@ th = 0:0.01:2*pi;
 
 
 
-if ~isa(averageLklhd_space,'gpuArray')
     averageLklhd_space = gather(existsOnGPU);
     msd = gather(s*time_gaps);
     
@@ -28,14 +27,7 @@ if ~isa(averageLklhd_space,'gpuArray')
     length(simStruct.array_struct.latgrid),...
     length(simStruct.array_struct.longrid),...
     length(time_gaps)]));
-else
-   
-    AS_propagated = uint8(ones([...
-    length(simStruct.array_struct.latgrid),...
-    length(simStruct.array_struct.longrid),...
-    length(time_gaps)], 'gpuArray'));
-    
-end
+
 
 averageLklhd_space = uint8(averageLklhd_space.*255);
 AS_propagated(:,:,1) = averageLklhd_space;

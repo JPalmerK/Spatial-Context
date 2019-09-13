@@ -21,8 +21,20 @@ end
 %  cm = GPL_full('cm',k,GPL_struct);
 
 if parm.waveform==1
- xv=x(1+(start(k)-1)*skip:(finish(k)-1)*skip);
- [vec]=ww365(xv,cm_max,parm,sp(:,start(k):finish(k)));
- GPL_struct(k).waveform=vec;end
+%  xv=x(1+(start(k)-1)*skip:(finish(k)-1)*skip);
+%  [vec]=ww365(xv,cm_max,parm,sp(:,start(k):finish(k)));
+%  GPL_struct(k).waveform=vec;end
+
+%Modified on 2/23/19 by T.Helble to save waveform attributes instead of
+%GPL spectral waveform
+xv=x(1+(start(k)-1)*parm.skip:(finish(k)-1)*parm.skip);
+xvf=bandpass(xv,[1250 1600],parm.sample_freq);
+
+GPL_struct(k).waveform_rln_dB = 20*log10(sqrt(mean(xvf.^2)));
+%GPL_struct(k).waveform_sel_dB = 20*log10(sqrt(mean(xvf.^2))) +
+%10*log10(length(xvf)/parm.sample_freq); calculate this later when noise is
+%removed
+GPL_struct(k).waveform_pp_rln_dB = 20*log10(max(xvf) - min(xvf)); 
+end
 
 end

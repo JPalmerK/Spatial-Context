@@ -20,3 +20,11 @@ Scripts/call_correlation.m
 DialateQuick/
 
 Scripts/hpdi.m
+
+GPL_V3/pre_processing_files/
+
+*.tif
+
+GPL_V3/test\.wav
+
+*.wav

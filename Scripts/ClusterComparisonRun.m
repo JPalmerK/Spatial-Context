@@ -28,11 +28,6 @@ hyd_arr =vertcat(hyd_arr{2,:,:});
  end
 
 
-% Trim the LSQ space
-localize_struct = trimlocalize_struct(localize_struct, .5, 5)
-
-localize_struct = trimlocalize_struct(localize_struct, .5, 8)
-
 
 %% Pick a parent and go
 
@@ -115,15 +110,15 @@ NClustoutBaseline8 =[];
 for jj = 1:length(simThreshs)
     for ii=1:length(TimeThresh)
         simThresh = simThreshs(jj)
-        
-        exampSpatial.cutoff = simThresh;
-        exampSpatial.maxEltTime = TimeThresh(ii);
-        chains =updateChainsEncounterFirst(exampSpatial);
-        exampSpatial.chains = chains;
-        exampSpatial.Cluster_id= updateClusterID(exampSpatial);
-        [propCorrect, NClusters] = RunComp(exampSpatial, parent, hyd, truth,simThresh);
-        Propout8(ii,jj)=propCorrect;
-        NClustout8(ii,jj)=length(exampSpatial.Cluster_id)/length(exampSpatial.chains);
+%         
+%         exampSpatial.cutoff = simThresh;
+%         exampSpatial.maxEltTime = TimeThresh(ii);
+%         chains =updateChainsEncounterFirst(exampSpatial);
+%         exampSpatial.chains = chains;
+%         exampSpatial.Cluster_id= updateClusterID(exampSpatial);
+%         [propCorrect, NClusters] = RunComp(exampSpatial, parent, hyd, truth,simThresh);
+%         Propout8(ii,jj)=propCorrect;
+%         NClustout8(ii,jj)=length(exampSpatial.Cluster_id)/length(exampSpatial.chains);
         
         
         exampTDOA.maxEltTime = TimeThresh(ii);

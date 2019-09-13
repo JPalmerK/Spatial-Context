@@ -54,8 +54,7 @@ dt=parm.skip/parm.sample_freq;
    [lc,dummy]=size(calls);
    unblocked=zeros(parm.nbin,1);
    for j=1:lc
-       unblocked(calls(j,1):calls(j,2))=1;
-   end
+       unblocked(calls(j,1):calls(j,2))=1;end
 
     % disallow any detections from before
     tst=unblocked - blocked;
@@ -71,8 +70,7 @@ dt=parm.skip/parm.sample_freq;
 
     % merge  
     [k1,k2]=sort(calls(:,1));
-    st=calls(k2,1);
-    fn=calls(k2,2);
+    st=calls(k2,1);fn=calls(k2,2);
     k=find(st(2:end)-fn(1:end-1)<parm.overlap);
     omit=length(k);
     if omit>0
@@ -127,8 +125,7 @@ if (siz(1) > 0)
         
    for k=1:siz(1);
        GPL_struct(k).start_time=times(k,1);
-       GPL_struct(k).end_time=times(k,2);
-   end
+       GPL_struct(k).end_time=times(k,2);end
   
    
 
@@ -144,7 +141,11 @@ if parm.measurements==1
  [GPL_struct] = GPL_measurements(GPL_struct,sp,sp_whiten,quiet_fft,start,finish,parm);end
 
 
-
+    %%%%%% Kernel Matching
+ 
+    if parm.kernel_on==1
+        [GPL_struct]=GPL_kernel(GPL_struct,start,parm);
+    end
 
 
 %%%%%% Filter
@@ -155,9 +156,6 @@ if parm.filter==1
 end
 
 if parm.plot==1
-    
-    
-    
     ks=find(baseline0<=parm.noise_ceiling);  
     ns=[1:length(baseline0)]*parm.skip/parm.sample_freq;
 
@@ -173,7 +171,7 @@ if parm.plot==1
     for j=1:length(start)
     plot(ns(start(j):finish(j)),log10(abs(baseline0(start(j):finish(j)))),'r');
     end
-    l1=log10(parm.noise_ceiling*noise_floor); 
+    l1=log10(parm.noise_ceiling*noise_floor);
     l2=log10(parm.thresh*noise_floor);
     plot(ns,l1+0*ns,'k--');
     plot(ns,l2+0*ns,'g--');
@@ -185,7 +183,7 @@ if parm.plot==1
     imagesc(ns,fr,20*log10(abs(sp_loop)/max(max(sp_whiten))),[-40,0]); 
     axis xy; title('Whitened Spectrogram');
     
-     drawnow;
+    drawnow;
     pause;
 end
 

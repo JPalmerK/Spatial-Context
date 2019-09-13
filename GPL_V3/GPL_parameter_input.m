@@ -1,31 +1,18 @@
 function [parm]=GPL_parameter_input; 
 
-% Sample frequency of the soundfile
 parm.sample_freq=input('sample frequency\n');
-
-% Number of seconds to load at a time
 dp=input('# seconds for each record (e.g. 75)\n');
-
-% Number of samples to load at a time, must be 60 for TDOA algorithm
 parm.nrec=dp*parm.sample_freq;
-
-% Unsure, set to 0.75 and 0.75 for RW data
 parm.xp1=input('exponent for u (normed over frequency)\n');
 parm.xp2=input('exponent for y (normed over time)\n');
-
-% Minimum and maxium frequencies over which to run the GPL detector
 parm.freq_lo=input('lower frequency limit (Hz)\n');
 parm.freq_hi=input('upper frequency limit (Hz)\n');
-
-% Unsure, set to freuqency limits for the RW data
 parm.sum_freq_lo=input('lower frequency limit for summation (Hz)\n');
 parm.sum_freq_hi=input('upper frequency limit for summation (Hz)\n');
 
-% How to implment the whitening filter RWData 1,0
 parm.whiten=input('1: whiten in time only   2: whiten in time and frequency\n');
 parm.white_x=input('enhanced mean noise level?');
 
-% Call length 
 parm.min_call=input('min call length (in seconds)?\n');
 parm.max_call=input('max call length (in seconds)?\n');
 
@@ -40,6 +27,7 @@ sum_freq_hi=parm.sum_freq_hi;
 whiten=parm.whiten;
 
 % choose fftl:
+
 ideal=11+log2(sample_freq/10000);
 quot=2.^(ideal-floor(ideal)+[0,1,2,3]);
 res=ceil(quot)-quot;[k1,k2]=min(res);
@@ -79,12 +67,9 @@ parm.bin_hi=bin_hi;
 parm.nfreq=bin_hi-bin_lo+1;
 parm.sum_bin_lo=sum_bin_lo;
 parm.sum_bin_hi=sum_bin_hi;
-
-% Unclear, RW data 3 and 15
 parm.noise_ceiling=input('noise ceiling \n');
 parm.thresh=input('threshold \n');
 
-% Unclear, RW data 1, 5, 1,1,0
 %parm.iplt=input('0: plotting off  [1,2,3]: plotting on\n');
 parm.template=input('0: template off  1: template on?\n');
 if parm.template==1
@@ -97,14 +82,12 @@ parm.cm_max2_on=input('Second contour on?\n');
 
 end
 
-% Unclear RW data 1
 parm.measurements=input('0: measurements off  1: measurements on?\n');
 if parm.measurements==1
 
 parm.slope=1;
 end
 
-% Unclear RW data 0
 parm.filter=input('0: filter off  1: filter on?\n');
 if parm.filter==1
 

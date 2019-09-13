@@ -158,7 +158,7 @@ cd(workpath);
 gstart=1;
 
 
-finish=length(file_list)-1;
+finish=length(file_list);
 
 
 
@@ -261,7 +261,7 @@ for file_index=1:finish
     
     
 end
-fname ='/home/kpalmer/Desktop/cluster.txt';
+fname ='/home/kpalmer/Desktop/TylerclusterValidation.txt';
 gplDet2RavenSelTable(hyd, fname)
 
 
@@ -307,18 +307,24 @@ for ii=1:2
      array_struct_data(array_struct.master).array =array_struct;
      
      
-%     [localize_struct] = localize_cross_corr_index_check(array_struct,hyd,localize_struct,1);
-%     
-%     [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd,localize_struct,1);
-%     
-%     
+    [localize_struct] = localize_cross_corr_index_check(array_struct,hyd,localize_struct,1);
+    
+    [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd,localize_struct,1);
     
     
+    
+    % Add the template cross correlation score to the localize struct
     
     
     
     
 end
+
+
+
+
+
+
 
 %%
 % Save everything
@@ -332,9 +338,9 @@ sizeOfSave=whos('localize_struct');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'localize_struct')
+    save(strcat('DCLDE2013_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), '_localize_struct'),'localize_struct')
     
-else save(strcat('DCLDE2013RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'localize_struct', '-v7.3')
+else save(strcat('DCLDE2013RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), '_localize_struct'),'localize_struct', '-v7.3')
     
 end
 
@@ -344,9 +350,9 @@ sizeOfSave=whos('array_struct_data');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), 'arrayall'),'array_struct_data')
+    save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), '_array_struct_data'),'array_struct_data')
     
-else save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'arrayall'),'array_struct_data', '-v7.3')
+else save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'_array_struct_data'),'array_struct_data', '-v7.3')
     
 end
 
@@ -361,24 +367,13 @@ sizeOfSave=whos('hyd');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'hyd')
+    save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'_hyd'),'hyd')
     
-else save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'hyd', '-v7.3')
-    
-end
-
-clear data            %swm added Sep 25, 2014 to ensure not impacting size of save
-
-sizeOfSave=whos('new_hyd_array');
-
-
-if sizeOfSave.bytes <= 2000000000
-    
-    save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'new_hyd_array')
-    
-else save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish)),'new_hyd_array', '-v7.3')
+else save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'_hyd'),'hyd', '-v7.3')
     
 end
+
+
 
 
 

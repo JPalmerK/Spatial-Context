@@ -1,5 +1,9 @@
 function [cm,cm_max,cm_max2]=GPL_contour(bas0,cutoff);
 
+
+%bas0 = abs(diff(bas0')');  %added on Feb 10, 2019 to test minke emphasis, 
+
+
 [sz1,sz2]=size(bas0);
 bas=zeros(sz1+2,sz2+2);
 bas(2:end-1,2:end-1)=bas0;
@@ -51,6 +55,7 @@ if length(k)> a_min;
      for dummy=1:length(ks)
      msk(chain(col(ks(dummy))+1:col(ks(dummy)+1)-1))=1;end
      cm=msk.*bas;  
+    %cm=bas; Use this to just save the raw spectrogram in cm
  end;end;
 
 
