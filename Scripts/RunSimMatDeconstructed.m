@@ -315,13 +315,15 @@ c.Label.String = 'Adjusted Rand Index';
 
 
 %load('ExperimentClassifyPerfElipseFit.mat')
-nIters =50;
+nIters =20;
 TimeThresh=fliplr(linspace(2, 100, 30));
 SimThresh = linspace(.01,.99,20);
 
 aa =14;
 betaParm1= 5;
-betaParm2=[2.5, 2, 1.5];
+betaParm2_1=2.5;
+betaParm2_2=2;
+betaParm2_3= 1.5;
 
 perf_out_baseline1 = zeros(length(TimeThresh), length(SimThresh), nIters);
 perf_out_TDOA1 =perf_out_baseline1;
@@ -338,67 +340,78 @@ perf_out_MaxProd3 = perf_out_baseline1;
 
 
 ClassifierPerfExp =struct();
-% Create filter grids to knock out ambiguity surfaces 
+% Create filter grids to knock out ambiguity surfaces
 simStruct.filtGrid = createDetRangeFiltGrid(simStruct, hydrophone_struct);
 
- for jj =1:nIters
-        % Replace the space whale component
-        [spaceWhale] =   createRandomSpaceWhale(0.5, 9, hyd_arr,...
-            array_struct,hydrophone_struct, ssp, grid_depth,...
-            [array_struct.master, array_struct.slave(child_idx)]);
-        
-        % Copy for each of the methods
-        simStructNew = simStruct;
-        simStructNew.spaceWhale = spaceWhale;
-        simStructNew.arrivalTable = gather(UpdateArrTable(simStructNew));
-        simStructNew.arrivalArray= gather(UpdateArrArray(simStructNew));
-        simStructNew.TDOA_vals = gather(UpdateTDOA(simStructNew));
-        simStructNew.maxEltTime = gather(max(TimeThresh));
-        simStructNew.truthTable = createTruthTable(simStructNew);
-        
-        % Baseline
-        simStructBaseline =simStructNew;
-        
-        % TDOA
-        simStructTDOA =simStructNew;
-        simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
-        
-        % Max of mean
-        simStructMaxProd =simStructNew;
-        simStructMaxProd.Sim_mat = simMatMaxofProd(simStructMaxProd);
-        
-        b2 =betaParm2(1);
-        [aa, bb, cc] = classifierLpFx(simStructMaxProd,simStructTDOA,simStructBaseline,...
-            TimeThresh, SimThresh, betaParm1, b2);
-        perf_out_baseline1(:,jj) = aa;
-        perf_out_TDOA1(:,:,jj) =bb;
-        perf_out_MaxProd1(:,:,jj) = cc;
-        
-        
-        
-        b2 =betaParm2(2);
-        [aa, bb, cc] = classifierLpFx(simStructNew,simStructTDOA,simStructBaseline,...
-            TimeThresh, SimThresh, betaParm1, b2);
-        perf_out_baseline2(:,jj) = aa;
-        perf_out_TDOA2(:,:,jj) =bb;
-        perf_out_MaxProd2(:,:,jj) = cc;
-        
-        
-        simStructNew = simStructTDOA;
-        b2 =betaParm2(3);
-        [aa, bb, cc] = classifierLpFx(simStructNew,simStructTDOA,simStructBaseline,...
-            TimeThresh, SimThresh, betaParm1, b2);
-        perf_out_baseline3(:,jj) = aa;
-        perf_out_TDOA3(:,:,jj) =bb;
-        perf_out_MaxProd3(:,:,jj) = cc;
-        
-        
-        
-        
+UnAidedPerf1= zeros(nIters, 1);
+UnAidedPerf2= zeros(nIters, 1);
+UnAidedPerf3= zeros(nIters, 1);
 
- end
+parfor jj =1:nIters
+    % Replace the space whale component
+    [spaceWhale] =   createRandomSpaceWhale(0.5, 6, hyd_arr,...
+        array_struct,hydrophone_struct, ssp, grid_depth,...
+        [array_struct.master, array_struct.slave(child_idx)]);
     
- %%
+    % Copy for each of the methods
+    simStructNew = simStruct;
+    simStructNew.spaceWhale = spaceWhale;
+    simStructNew.arrivalTable = gather(UpdateArrTable(simStructNew));
+    simStructNew.arrivalArray= gather(UpdateArrArray(simStructNew));
+    simStructNew.TDOA_vals = gather(UpdateTDOA(simStructNew));
+    simStructNew.maxEltTime = gather(max(TimeThresh));
+    simStructNew.truthTable = createTruthTable(simStructNew);
+    
+    % Baseline
+    simStructBaseline =simStructNew;
+    
+    % TDOA
+    simStructTDOA =simStructNew;
+    simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
+    
+    % Max of mean
+    simStructMaxProd =simStructNew;
+    simStructMaxProd.Sim_mat = simMatMaxofProd(simStructMaxProd);
+    
+    [aa, bb, cc, UnAidedPerf] = classifierLpFx(simStructMaxProd,...
+        simStructTDOA,simStructBaseline,...
+        TimeThresh, SimThresh, betaParm1, betaParm2_1);
+    perf_out_baseline1(:,jj) = aa;
+    perf_out_TDOA1(:,:,jj) =bb;
+    perf_out_MaxProd1(:,:,jj) = cc;
+    UnAidedPerf1(jj)= unique(UnAidedPerf);
+    
+    
+    [aa, bb, cc, UnAidedPerf] = classifierLpFx(simStructMaxProd,simStructTDOA,simStructBaseline,...
+        TimeThresh, SimThresh, betaParm1, betaParm2_2);
+    perf_out_baseline2(:,jj) = aa;
+    perf_out_TDOA2(:,:,jj) =bb;
+    perf_out_MaxProd2(:,:,jj) = cc;
+    UnAidedPerf2(jj)=unique(UnAidedPerf);
+    
+    
+    [aa, bb, cc, UnAidedPerf] = classifierLpFx(simStructMaxProd,simStructTDOA,simStructBaseline,...
+        TimeThresh, SimThresh, betaParm1, betaParm2_3);
+    perf_out_baseline3(:,jj) = aa;
+    perf_out_TDOA3(:,:,jj) =bb;
+    perf_out_MaxProd3(:,:,jj) = cc;
+    UnAidedPerf3(jj)=unique(UnAidedPerf);
+    
+
+    
+end
+
+save('ExperimentClassifyPerfElipseFit.mat','perf_out_baseline1',...
+    'perf_out_baseline2','perf_out_baseline3','perf_out_TDOA1','perf_out_TDOA2',...
+    'perf_out_TDOA3', 'perf_out_MaxProd1','perf_out_MaxProd2','perf_out_MaxProd3',...
+    'UnAidedPerf1','UnAidedPerf2','UnAidedPerf3')
+
+
+ %% Plot the performance experiments
+ 
+ %load('ExperimentClassifyPerfElipseFit.mat')
+ 
+ close all;
    ClassifierPerfExp(1).MaxProd =gather(perf_out_MaxProd1);
    ClassifierPerfExp(2).MaxProd =gather(perf_out_MaxProd2);
    ClassifierPerfExp(3).MaxProd =gather(perf_out_MaxProd3);
@@ -413,53 +426,84 @@ simStruct.filtGrid = createDetRangeFiltGrid(simStruct, hydrophone_struct);
    ClassifierPerfExp(3).Baseline =gather(perf_out_baseline3);
     
 
+aa_error = 1 -ClassifierPerfExp(1).MaxProd;
+bb_error = 1 -ClassifierPerfExp(2).MaxProd;
+cc_error = 1 -ClassifierPerfExp(3).MaxProd; 
+UnaidError1 = 1- UnAidedPerf1;
+UnaidError2 = 1- UnAidedPerf2;
+UnaidError3 = 1- UnAidedPerf3;
 
+% Method one change inerror
+DeltErr1= mean(bsxfun(@minus,...
+    reshape(UnaidError1,[1,1, nIters]), aa_error)./aa_error, 3);
 
-%save('ExperimentClassifyPerfAssocElipseFit_prctileET_new.mat', 'ClassifierPerfExp')
+DeltErr2= mean(bsxfun(@minus,...
+    reshape(UnaidError2,[1,1, nIters]), bb_error)./bb_error, 3);
 
-
-%load('ExperimentClassifyPerfAssocElipseFit_prctileET_new.mat')
-aa = quantile(ClassifierPerfExp(1).MaxProd,.5,3);
-bb = quantile(ClassifierPerfExp(2).MaxProd,.5,3);
-cc = quantile(ClassifierPerfExp(3).MaxProd,.5,3);
+DeltErr3= mean(bsxfun(@minus,...
+    reshape(UnaidError3,[1,1, nIters]), cc_error)./cc_error, 3);
 
 
 figure;
+axisVals =[min([DeltErr1(:); DeltErr2(:); DeltErr3(:)]),...
+    max([DeltErr1(:); DeltErr2(:); DeltErr3(:)])];
 subplot(2,2,1)
-contourf(SimThresh,TimeThresh, aa,5),axis xy , colorbar
-xlabel('Time Threshold (s)'); ylabel('Similarity Threshold');
-caxis([-.6  .3])
+imagesc(SimThresh,TimeThresh, DeltErr1),axis xy , colorbar
+ylabel('Time Threshold (s)'); xlabel('Similarity Threshold');
+caxis(axisVals)
+
+
 title('Spatial Method- Low Q Classifier')
 subplot(2,2,2)
-contourf(SimThresh,TimeThresh,bb, 5),axis xy , colorbar
-xlabel('Time Threshold (s)'); ylabel('Similarity Threshold');
-caxis([-.6  .3]);
+imagesc(SimThresh,TimeThresh,DeltErr2),axis xy , colorbar
+ylabel('Time Threshold (s)'); xlabel('Similarity Threshold');
+caxis(axisVals)
+
+
 title('Spatial Method- Mod Q Classifier')
 subplot(2,2,3)
-contourf(SimThresh,TimeThresh,cc,5),axis xy , colorbar
-xlabel('Time Threshold (s)'); ylabel('Similarity Threshold');
-caxis([-.6  .3]);
+imagesc(SimThresh,TimeThresh,DeltErr3),axis xy , colorbar
+ylabel('Time Threshold (s)'); xlabel('Similarity Threshold');
 title('Spatial Method- High Q Classifier')
+caxis(axisVals)
 
 
-aa = quantile(ClassifierPerfExp(1).TDOA,.5,3);
-bb = quantile(ClassifierPerfExp(2).TDOA,.5,3);
-cc = quantile(ClassifierPerfExp(3).TDOA,.5,3);
+
+aa_error = 1 -ClassifierPerfExp(1).TDOA;
+bb_error = 1 -ClassifierPerfExp(2).TDOA;
+cc_error = 1 -ClassifierPerfExp(3).TDOA; 
+UnaidError1 = 1- UnAidedPerf1;
+UnaidError2 = 1- UnAidedPerf2;
+UnaidError3 = 1- UnAidedPerf3;
+
+% Method one change inerror
+DeltErr1= mean(bsxfun(@minus,...
+    reshape(UnaidError1,[1,1, nIters]), aa_error)./aa_error, 3);
+
+DeltErr2= mean(bsxfun(@minus,...
+    reshape(UnaidError2,[1,1, nIters]), bb_error)./bb_error, 3);
+
+DeltErr3= mean(bsxfun(@minus,...
+    reshape(UnaidError3,[1,1, nIters]), cc_error)./cc_error, 3);
+
+
+axisVals =[min([DeltErr1(:); DeltErr2(:); DeltErr3(:)]),...
+    max([DeltErr1(:); DeltErr2(:); DeltErr3(:)])];
 
 figure;
 subplot(2,2,1)
-contourf(SimThresh,TimeThresh, aa,5),axis xy , colorbar
-xlabel('Time Threshold (s)'); ylabel('Similarity Threshold');
-caxis([-.6  .3])
+imagesc(SimThresh,TimeThresh,DeltErr1),axis xy , colorbar
+ylabel('Time Threshold (s)'); xlabel('Similarity Threshold');
+caxis(axisVals)
 title('TDOA Method- Low Q Classifier')
+
 subplot(2,2,2)
-contourf(SimThresh,TimeThresh,bb,5),axis xy , colorbar
-xlabel('Time Threshold (s)'); ylabel('Similarity Threshold');
-caxis([-.6  .3])
+imagesc(SimThresh,TimeThresh,DeltErr2),axis xy , colorbar
+ylabel('Time Threshold (s)'); xlabel('Similarity Threshold');
 title('TDOA Method- Mod Q Classifier')
 subplot(2,2,3)
-contourf(SimThresh,TimeThresh,cc,5),axis xy , colorbar
-caxis([-.6  .3])
+imagesc(SimThresh,TimeThresh,DeltErr3),axis xy , colorbar
+caxis(axisVals)
 xlabel('Time Threshold (s)'); ylabel('Similarity Threshold');
 title('TDOA Method- High Q Classifier')
 
@@ -491,116 +535,17 @@ title('Baseline Method- High Q Classifier')
 
 
 
-%%)
-%%
-bins = linspace(-1, 1, 40);
-for jj=1:length(betaParm2)
-    perfMaxProd =[];
-    perfTDOA =[];
-    perfBaseline=[];
-    for ii =1:nIters
-        
-        [prct_improvement,~, ~]= extractClassiferMetrics(ClassifierPerfExp(jj).Baseline(ii));
-        perfBaseline(ii)=prct_improvement;
-        
-        [prct_improvement,~, ~]= extractClassiferMetrics(ClassifierPerfExp(jj).TDOA(ii));
-        perfTDOA(ii)=prct_improvement;
-
-        [prct_improvement,~, ~]= extractClassiferMetrics(ClassifierPerfExp(jj).MaxProd(ii));
-        perfMaxProd(ii)=prct_improvement;
-        
-        
-        
-    end
-    
-    median_error =betacdf(.5, betaParm1, betaParm2(jj));
-    
-    violinData = flipud([perfBaseline'; perfTDOA'; perfMaxProd']);
-    violinCell = flipud([repmat({'Baseline'}, size(perfBaseline'));...
-        repmat({'TDOA'}, size(perfTDOA'));...
-        repmat({'Spatial'}, size(perfMaxProd'))]);
-    
-    violinData(isinf(violinData)) =0;
-    
-    % Proportion of Runs Improved
-     IMP(1)= sum(perfBaseline>0)/length(perfBaseline)*100;
-     IMP(2)= sum(perfTDOA>0)/length(perfTDOA)*100;
-     IMP(3)= sum(perfMaxProd>0)/length(perfMaxProd)*100;
-     
-     IMP = round(IMP);
-     txt{1} = {[num2str(IMP(1)) '% Runs']; 'Improved Accuracy'};
-     txt{2} = {[num2str(IMP(2)) '% Runs']; 'Improved Accuracy'}
-     txt{3} = {[num2str(IMP(3)) '% Runs']; 'Improved Accuracy'}
-    
-    texty = max(violinData)+.5;
-    figure(9)
-    subplot(3,1,jj)
-    violinplot(violinData, violinCell, 'ViolinColor', [.5 .5 .5]);
-    title(['Median Classification Error: ' num2str(median_error)])
-    text(1:3,[texty,texty,texty], txt,'HorizontalAlignment','center')
-    ylim([-2 texty+.7])
-    
-    
-    
-%     
-%     figure(4)
-%     subplot(length(betaParm2),1,jj)
-%     %perfBaseline = perfBaseline(perfBaseline~=0);
-%     hist(perfBaseline, bins);
-%     title(['Prop Runs Improvement Baseline', num2str(num2str(sum(perfBaseline>0)/length(perfBaseline))),...
-%         ' Prop Worse ',  num2str(num2str(sum(perfBaseline<0)/length(perfBaseline)))])
-%     ylabel('Simulation Runs')
-%     xlabel(['Change in Error Rate: Initial Error ', num2str(round(...
-%         betacdf(.5, betaParm1, betaParm2(jj)),2))])
-%     xlim([-.8 .8])
-%     
-%     
-%     figure(5)
-%     subplot(length(betaParm2),1,jj)
-%     %perfTDOA = perfTDOA(perfTDOA~=0);
-%     hist(perfTDOA, bins);
-%     title(['Prop Runs Improvement TDOA', num2str(num2str(sum(perfTDOA>0)/length(perfTDOA))),...
-%         ' Prop Worse ',  num2str(num2str(sum(perfTDOA<0)/length(perfTDOA)))])
-%     ylabel('Simulation Runs')
-%     xlabel(['Change in Error Rate: Initial Error ', num2str(round(...
-%         betacdf(.5, betaParm1, betaParm2(jj)),2))])
-%     xlim([-.8 .8])
-%     
-%     
-%     
-%     figure(6)
-%     subplot(length(betaParm2),1,jj)
-%     %perfMaxProd = perfMaxProd(perfMaxProd~=0);
-%     hist(perfMaxProd, bins);
-%     title(['Prop Runs Improvement MaxProd', num2str(num2str(sum(perfMaxProd>0)/length(perfMaxProd))),...
-%         ' Prop Worse ',  num2str(num2str(sum(perfMaxProd<0)/length(perfMaxProd)))])
-%     ylabel('Simulation Runs')
-%     xlabel(['Change in Error Rate: Initial Error ', num2str(round(...
-%         betacdf(.5, betaParm1, betaParm2(jj)),2))])
-%     xlim([-.8 .8])
-%     
-%     (sum(perfMaxProd>0)/length(perfMaxProd))-(sum(perfMaxProd<0)/length(perfMaxProd))
-%         
-    
-end
-
-
-
 %% Clock Drift Experiment
-load('ExperimentClassifyPerfAssocElipseFit.mat')
 
 simStruct.c = 1500;
 simStruct.betaParm1 = betaParm1(1);
 simStruct.betaParm2=betaParm2(1);
-simStruct.cutoff =.85;
-simStruct.maxEltTime = 30;
 simStruct.hydrophone_struct = hydrophone_struct;
 clock_drift = [1 2 3 4];
 association_sec = [0 0 4 6];
 
-
 perf_assocExp =struct();
-nIters = 200;
+nIters = 4;
 
 perf_out_baseline = struct();
 perf_out_TDOA = struct();
@@ -611,6 +556,11 @@ for ii=1:length(association_sec)
     
     assoc = association_sec(ii);
     cdrift = clock_drift(ii);
+    perf_TDOA = zeros(length(TimeThresh), length(SimThresh), nIters);
+   
+    perf_Max = perf_TDOA;
+    Baseline_perf = zeros(length(TimeThresh), nIters);
+    UnaidedPerfRes = zeros([1 nIters]);
     
     parfor kk = 1:nIters
         % Replace the space whale component
@@ -618,115 +568,117 @@ for ii=1:length(association_sec)
             array_struct,hydrophone_struct, ssp, grid_depth,...
             [array_struct.master, array_struct.slave(child_idx)]);
         
+
+        % Copy for each of the methods
         simStructNew = simStruct;
         simStructNew.spaceWhale = spaceWhale;
+        simStructNew.betaParm1=5;
+        simStructNew.betaParm2=2;
         simStructNew.drift=cdrift;
         simStructNew.assSec=assoc;
-        simStructNew.arrivalTable = UpdateArrTable(simStructNew);
-        simStructNew.arrivalArray= UpdateArrArray(simStructNew);
-        simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
+        simStructNew.arrivalTable = gather(UpdateArrTable(simStructNew));
+        simStructNew.arrivalArray= gather(UpdateArrArray(simStructNew));
+        simStructNew.TDOA_vals = gather(UpdateTDOA(simStructNew));
+        simStructNew.maxEltTime = gather(max(TimeThresh));
+        simStructNew.truthTable = createTruthTable(simStructNew);
+        simStructNew.truthTable=createSpeciesPreds(simStructNew);
         
         
         
         % Baseline
         simStructBaseline =simStructNew;
-        simStructBaseline.Cluster_id = acEnc(simStructBaseline);
-        perf_out_baseline(kk).Perf =estClassifierPerf(simStructBaseline);    
-        
         
 
         % TDOA
         simStructTDOA =simStructNew;
         simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
-        simStructTDOA.chains =updateChainsEncounterFirst(simStructTDOA);
-        simStructTDOA.Cluster_id= updateClusterID(simStructTDOA);
-        perf_out_TDOA(kk).Perf= estClassifierPerf(simStructTDOA);
+        
         
         % Max of mean
-        simStructNew.Sim_mat = simMatMaxofProd(simStructNew);
-        simStructNew.chains =updateChainsEncounterFirst(simStructNew);
-        simStructNew.Cluster_id= updateClusterID(simStructNew);
-        perf_out_MaxProd(kk).Perf= estClassifierPerf(simStructNew);
+        simStructMaxProd = simStructNew;
+        simStructMaxProd.Sim_mat = simMatMaxofProd(simStructNew);
         
+        [aa bb cc, UnAidedPerf] = clockDriftLpFx(simStructMaxProd, simStructTDOA,simStructBaseline,...
+            TimeThresh, SimThresh);
+        
+        
+        Baseline_perf(:,kk) = aa;
+        perf_TDOA(:,:,kk) =bb;
+        perf_Max(:,:,kk) = cc;
+        UnaidedPerfRes(kk)=unique(UnAidedPerf);
         
         
     end
-    perf_assocExp(ii).Baseline = perf_out_baseline;
-    perf_assocExp(ii).TDOA = perf_out_TDOA;
-    perf_assocExp(ii).MaxProd = perf_out_MaxProd;
+    perf_assocExp(ii).Baseline = Baseline_perf;
+    perf_assocExp(ii).TDOA = perf_TDOA;
+    perf_assocExp(ii).MaxProd = perf_Max;
+    perf_assocExp(ii).UnaidedPerf =UnaidedPerfRes;
 end
 
 
-save('ExperimentClassifyPerfAssocElipseFit.mat', perf_assocExp)
+%% Plot Clock Drift Experiment Results
+clock_drift = [2 2 3 4];
+association_sec = [0 3 4 6];
 
-%%
-
-bins = linspace(-.8, .9, 40);
 for jj=1:length(clock_drift)
     perfMaxProd =[];
     perfTDOA =[];
     perfBaseline=[];
     
-    for ii =1:nIters
-        
-        [prct_improvement,~, ~]= extractClassiferMetrics(perf_assocExp(jj).Baseline(ii));
-        perfBaseline(ii)=prct_improvement;
-        
-        [prct_improvement,~, ~]= extractClassiferMetrics(perf_assocExp(jj).TDOA(ii));
-        perfTDOA(ii)=prct_improvement;
 
-        [prct_improvement,~, ~]= extractClassiferMetrics(perf_assocExp(jj).MaxProd(ii));
-        perfMaxProd(ii)=prct_improvement;
-        
-        
-        
-    end
+   
+    UnaidError1 =1- perf_assocExp(jj).UnaidedPerf;
     
-    figure(7)
-    subplot(length(clock_drift),1,jj)
-    %perfBaseline = perfBaseline(perfBaseline~=0);
-    hist(perfBaseline, bins);
-    title(['Prop Runs Improvement Baseline', num2str(num2str(sum(perfBaseline>0)/length(perfBaseline))),...
-        ' Prop Worse ',  num2str(num2str(sum(perfBaseline<0)/length(perfBaseline)))])
-    ylabel('Simulation Runs')
-    xlabel(['Change in Error Rate: Initial Error '])
-    xlim([-.8 .8])
+    aa_error = 1 -perf_assocExp(jj).Baseline;
+    DeltErr1= mean(bsxfun(@minus,...
+        reshape(UnaidError1,[1, nIters]), aa_error)./aa_error, 3);
+    
+    DeltErr1 = 1-quantile(DeltErr1,[ .5 .25 .75],2);
+    
+
     
     
-    figure(8)
-    subplot(length(clock_drift),1,jj)
-    %perfTDOA = perfTDOA(perfTDOA~=0);
-    hist(perfTDOA, bins);
-    title(['Prop Runs Improvement TDOA', num2str(num2str(sum(perfTDOA>0)/length(perfTDOA))),...
-        ' Prop Worse ',  num2str(num2str(sum(perfTDOA<0)/length(perfTDOA)))])
-    ylabel('Simulation Runs')
-    xlabel(['Change in Error Rate: Initial Error '])
-    xlim([-.8 .8])
+    figure
+    subplot(2,2,1)
+    plot_ci(TimeThresh, DeltErr1, 'PatchColor', 'r', 'PatchAlpha', 0.2, ...
+        'MainLineWidth', 2, 'MainLineStyle', '-', 'MainLineColor', 'b', ...
+        'LineWidth', 1.5, 'LineStyle','--', 'LineColor', 'k')
+    xlabel('Time Threshold (s)'); ylabel('Change in Accuracy')
+    title('Baseline Method- Low Q Classifier')
     
     
     
-    figure(9)
-    subplot(length(clock_drift),1,jj)
-    %perfMaxProd = perfMaxProd(perfMaxProd~=0);
-    hist(perfMaxProd, bins);
-    title(['Prop Runs Improvement MaxProd', num2str(num2str(sum(perfMaxProd>0)/length(perfMaxProd))),...
-        ' Prop Worse ',  num2str(num2str(sum(perfMaxProd<0)/length(perfMaxProd)))])
-    ylabel('Simulation Runs')
-    xlabel(['Change in Error Rate: Initial Error '])
-    xlim([-.8 .8])
+    bb_error = 1 -perf_assocExp(jj).TDOA;
+    cc_error = 1 -perf_assocExp(jj).MaxProd;
+    
+    UnaidError1 = 1- UnAidedPerf1;
+    
+    % Method one change inerror
+    
+    DeltErr2= mean(bsxfun(@minus,...
+        reshape(UnaidError1,[1,1, nIters]), bb_error)./bb_error, 3);
+    
+    DeltErr3= mean(bsxfun(@minus,...
+        reshape(UnaidError1,[1,1, nIters]), cc_error)./cc_error, 3);
+    
+    subplot(2,2,2)
+    imagesc(SimThresh,TimeThresh, DeltErr2), axis xy
+    ylabel('Time Threshold (s)'); xlabel('Similarity Threshold');
+    title([num2str(clock_drift(jj)), ' s Clock Drift', num2str(association_sec(jj)),...
+        ' s Association- TDOA'])
+    
+    subplot(2,2,3)
+    imagesc(SimThresh,TimeThresh, DeltErr3), axis xy
+    ylabel('Time Threshold (s)'); xlabel('Similarity Threshold');
+    title([num2str(clock_drift(jj)), ' s Clock Drift', num2str(association_sec(jj)),...
+        ' s Association- MaxProd'])
+
+    
+    
     
         
     
 end
-
-
-
-
-
-
-
-
-
 
 
 

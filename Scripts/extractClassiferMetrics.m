@@ -12,6 +12,7 @@ function [prct_improvement, methCorrect, methUnaided]= extractClassiferMetrics(p
     nCorrect = length(find(mod.ClusterScore> 0 & mod.TrueSpp ==1)) +...
         length(find(mod.ClusterScore<=0 & mod.TrueSpp ==0));
     methCorrect =nCorrect/height(mod);
+    
     methUnaided = (length(find(mod.Score>= .5 & mod.TrueSpp ==1))...
         + length(find(mod.Score<.5 & mod.TrueSpp ==0)))/height(mod);
     

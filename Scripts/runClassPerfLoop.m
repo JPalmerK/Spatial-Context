@@ -14,11 +14,6 @@ if nargin ==2
     
     ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
     UnAidedPerf =  ExpScoresMeth;
-    nAgents =ExpScoresMeth;
-    
-    
-    simStruct.truthTable = createTruthTable(simStruct);
-    simStruct.truthTable=createSpeciesPreds(simStruct);
     simStruct.Cluster_id = acEnc(simStruct);
     
     
@@ -33,14 +28,11 @@ if nargin ==2
             
             simStruct.Cluster_id = acEnc(simStruct);
             
-            simStruct.truthAndpreds=createSpeciesPreds(simStruct);
             perf = estClassifierPerf(simStruct);
-            [deltaPerf unaided] = extractClassiferMetrics(perf);
+            [deltaPerf,methCorrect, unaided] = extractClassiferMetrics(perf);
             
 
-            
-            
-            ExpScoresMeth(ii,1) = deltaPerf;
+            ExpScoresMeth(ii,1) = methCorrect;
             UnAidedPerf(ii,1) =unaided;
             
         end
@@ -57,7 +49,6 @@ else % Else there were three variables, so leave well enough alone
     ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
     UnAidedPerf =  ExpScoresMeth;
     % add the species predictions
-    simStruct.truthTable=createSpeciesPreds(simStruct);
     
     for jj = 1:length(SimThresh)
         simStruct.Cluster_id =[];
@@ -92,7 +83,7 @@ else % Else there were three variables, so leave well enough alone
             
             
         end
-        disp([num2str(idx) ' of ' num2str(totit) 'time/simthresh'])
+        disp([num2str(jj) ' of ' num2str(length(SimThresh)) 'time/simthresh'])
     end
 end
 
