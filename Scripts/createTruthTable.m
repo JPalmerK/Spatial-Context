@@ -22,13 +22,11 @@ truthTable= array2table(truthTable, 'VariableNames',...
 truthTable.TrueSpp = zeros([height(truthTable), 1]);
 
 agents = unique(truthTable.TrueClust);
-spp = randi([0 1], 1, length(agents));
 
-for ii=1:length(agents)
-    
-    truthTable.TrueSpp(truthTable.TrueClust==agents(ii))= spp(ii);
-end
-    
+%Pick one agent to be the target and the rest to be the false positives
+spp = randsample(agents,1);
+truthTable.TrueSpp(truthTable.TrueClust==spp) =1;
+
     
 end
 

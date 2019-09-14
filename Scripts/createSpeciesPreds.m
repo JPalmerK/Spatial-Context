@@ -23,12 +23,15 @@ score(spp1_idx) = betarnd(obj.betaParm1, obj.betaParm2, [length(spp1_idx), 1]);
 
 
 spp0_idx = find(truthTable.TrueSpp ==0);
-score(spp0_idx) = betarnd(7, 20, [length(spp0_idx), 1]);
+score(spp0_idx) = betarnd(9, 14, [length(spp0_idx), 1]);
 truthTable.Score = score;
 
 
-
-
+% 
+% aa = betarnd(obj.betaParm1, obj.betaParm2, [500,1]);
+% bb = betarnd(9, 14, [500, 1])
+% cc =[aa bb];
+% hist(cc)
 
 
 end

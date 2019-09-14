@@ -7,24 +7,31 @@ function [Precision, Recall]= ClassiferPrecisionRecall(perf)
     end
     
     
+    scorethreshs = [0.2:.05:.95];
+    Precision_unaided =zeros(size(scorethreshs));
+    Recall_unaided=zeros(size(scorethreshs));
+    Precision_clust=zeros(size(scorethreshs));
+    Recall_clust=zeros(size(scorethreshs));
+    
+    for ii = 1:length(scorethreshs)
+        scorethresh = scorethreshs(ii);
     
     
     
     % Precision and Recall of the clustering algorithim
     nSpp_1 = sum(mod.TrueSpp);
-    nCorrectSpp_1 = length(find((mod.TrueSpp ==1 & mod.GeoMean> .85)));
+    nCorrectSpp_1 = length(find(( mod.GeoMean> scorethresh & mod.TrueSpp ==1)));
    
-    Precision_clust = nCorrectSpp_1/ height(mod);
-    Recall_clust = nCorrectSpp_1/nSpp_1;
+    Precision_clust(ii) = nCorrectSpp_1/ height(mod);
+    Recall_clust(ii) = nCorrectSpp_1/nSpp_1;
     
     % Precision and Recall of the baseline classifier
-    nCorrectSpp_1_unaided = sum(mod.Score> 0.85 & mod.TrueSpp ==1);
+    nCorrectSpp_1_unaided = sum(mod.Score> scorethresh & mod.TrueSpp ==1);
    
-    Precision_unaided = nCorrectSpp_1_unaided/ height(mod);
-    Recall_unaided = nCorrectSpp_1_unaided/nSpp_1;
-    
-    Precision = [Precision_clust Precision_unaided];
-    Recall = [Recall_clust Recall_unaided];
+    Precision_unaided(ii) = nCorrectSpp_1_unaided/ height(mod);
+    Recall_unaided(ii) = nCorrectSpp_1_unaided/nSpp_1;
+
+    end
     
     
 end

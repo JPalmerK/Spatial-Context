@@ -55,16 +55,11 @@
             
             % If clock drift is present, add/subtract it from the channels
             if isfield(simStruct, 'drift')
+                
+                % add clock drift to the master
                 if simStruct.drift ~=0
                     disp(['Add/Sub ', num2str(simStruct.drift), ' s of clock drift'])
-                    for channum =1:length(simStruct.child_idx)
-                        
-                        % Shift the arrivals to simulate clock drift by either
-                        % positive or negative values
-                        clock_shift = (mod(channum, 2)*2-1) * simStruct.drift;
-                        
-                        array(:,channum+1) = array(:,channum+1) + clock_shift;
-                    end
+                    array(:,1) = array(:,1) + simStruct.drift;
                 end
             end
         

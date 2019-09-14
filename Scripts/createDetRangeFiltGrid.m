@@ -31,20 +31,20 @@ hyd_idx = zeros(length(hydrophone_struct),2);
 
 % Detection Probability bubbles
 for ii =1:length(hydrophone_struct)
-[~, lat_dy] = min(abs(array_struct.latgrid-hydrophone_struct(ii).location(1)));
-[~, lon_dx] = min(abs(array_struct.longrid-hydrophone_struct(ii).location(2)));
-
-swim_filter_x = (grid_dx*lon_dx) - (0:grid_dx:(length(array_struct.longrid)-1)*grid_dx);
-swim_filter_y = (grid_dy*lat_dy) - (0:grid_dy:(length(array_struct.latgrid)-1)*grid_dy);
-
-[Fx,Fy] = meshgrid(swim_filter_x, swim_filter_y);
-SD = sqrt(Fx.^2 + Fy.^2);
-
-F = 0*SD;
-F((SD <= truncateKm*1000)) = 1;
-
-filt_grid(:,:,ii) = F;
-hyd_idx(ii,1) = lat_dy;
-hyd_idx(ii,2) = lon_dx;
-
+    [~, lat_dy] = min(abs(array_struct.latgrid-hydrophone_struct(ii).location(1)));
+    [~, lon_dx] = min(abs(array_struct.longrid-hydrophone_struct(ii).location(2)));
+    
+    swim_filter_x = (grid_dx*lon_dx) - (0:grid_dx:(length(array_struct.longrid)-1)*grid_dx);
+    swim_filter_y = (grid_dy*lat_dy) - (0:grid_dy:(length(array_struct.latgrid)-1)*grid_dy);
+    
+    [Fx,Fy] = meshgrid(swim_filter_x, swim_filter_y);
+    SD = sqrt(Fx.^2 + Fy.^2);
+    
+    F = 0*SD;
+    F((SD <= truncateKm*1000)) = 1;
+    
+    filt_grid(:,:,ii) = F;
+    hyd_idx(ii,1) = lat_dy;
+    hyd_idx(ii,2) = lon_dx;
+    
 end

@@ -1,4 +1,4 @@
-function simMat= simMatMaxofProd(simStruct)
+function Sim_mat= simMatMaxofProd(simStruct)
 % This function creates the simulation matrix using the low
 % memory approach. This should be used in most cases where not
 % exploring the algorithims in depth.
@@ -52,7 +52,7 @@ sig_tot = sqrt(simStruct.PosUncertsigma + simStruct.drift^2);
 
 for ii =1:length(arrivalArray)
     
-    %% Pick the set of call delays (number of calls)
+    % Pick the set of call delays (number of calls)
     
     % Get the range filter
     delays = simStruct.TDOA_vals(ii, :);
@@ -136,7 +136,5 @@ end
 %profile off
 %disp([num2str(ii), ' of ',...
 %    num2str(length(obj.arrivalArray))])
-
-simMat  =Sim_mat;
 
 end

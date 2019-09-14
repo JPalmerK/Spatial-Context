@@ -316,11 +316,11 @@ c.Label.String = 'Adjusted Rand Index';
 
 %load('ExperimentClassifyPerfElipseFit.mat')
 nIters =50;
-TimeThresh=fliplr(linspace(5, 120, 30));
+TimeThresh=fliplr(linspace(2, 100, 30));
 SimThresh = linspace(.01,.99,20);
 
 aa =14;
-betaParm1= 7;
+betaParm1= 5;
 betaParm2=[2.5, 2, 1.5];
 
 perf_out_baseline1 = zeros(length(TimeThresh), length(SimThresh), nIters);
@@ -343,7 +343,7 @@ simStruct.filtGrid = createDetRangeFiltGrid(simStruct, hydrophone_struct);
 
  for jj =1:nIters
         % Replace the space whale component
-        [spaceWhale] =   createRandomSpaceWhale(0.5, 6, hyd_arr,...
+        [spaceWhale] =   createRandomSpaceWhale(0.5, 9, hyd_arr,...
             array_struct,hydrophone_struct, ssp, grid_depth,...
             [array_struct.master, array_struct.slave(child_idx)]);
         
@@ -354,6 +354,7 @@ simStruct.filtGrid = createDetRangeFiltGrid(simStruct, hydrophone_struct);
         simStructNew.arrivalArray= gather(UpdateArrArray(simStructNew));
         simStructNew.TDOA_vals = gather(UpdateTDOA(simStructNew));
         simStructNew.maxEltTime = gather(max(TimeThresh));
+        simStructNew.truthTable = createTruthTable(simStructNew);
         
         % Baseline
         simStructBaseline =simStructNew;

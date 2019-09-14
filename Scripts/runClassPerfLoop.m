@@ -56,16 +56,8 @@ else % Else there were three variables, so leave well enough alone
     
     ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
     UnAidedPerf =  ExpScoresMeth;
-    
-    simStruct.Cluster_id = acEnc(simStruct);
-    simStruct.truthTable = createTruthTable(simStruct);
+    % add the species predictions
     simStruct.truthTable=createSpeciesPreds(simStruct);
-    
-    Precision_unaided = ExpScoresMeth;
-    Recall_unaided = ExpScoresMeth;
-    
-    Precision_cluster = ExpScoresMeth;
-    Recall_cluster =ExpScoresMeth;
     
     for jj = 1:length(SimThresh)
         simStruct.Cluster_id =[];
@@ -78,25 +70,25 @@ else % Else there were three variables, so leave well enough alone
             
             simStruct.chains =updateChainsEncounterFirst(simStruct);
             simStruct.Cluster_id= updateClusterID(simStruct);
-            
-            
-            
-            perf = estClassifierPerf(simStruct);
-            %[deltaPerf unaided] = extractClassiferMetrics(perf);
-            
-            
-            [Precision, Recall]= ClassiferPrecisionRecall(perf);
-            
-            Precision_cluster(ii,jj) = Precision(1);
-            Recall_cluster(ii,jj) =Recall(1);
-            
-            Precision_unaided(ii,jj) =Precision(2);
-            Recall_unaided(ii,jj) = Recall(2);
+           
 
             
+            perf = estClassifierPerf(simStruct);
+            [deltaPerf, methCorrect, methUnaided] = extractClassiferMetrics(perf);
+            
+            
+%             [Precision, Recall]= ClassiferPrecisionRecall(perf);
 %             
-%             ExpScoresMeth(ii,jj) = deltaPerf;
-%             UnAidedPerf(ii,jj) =unaided;
+%             Precision_cluster(ii,jj) = Precision(1);
+%             Recall_cluster(ii,jj) =Recall(1);
+%             
+%             Precision_unaided(ii,jj) =Precision(2);
+%             Recall_unaided(ii,jj) = Recall(2);
+
+            
+            
+            ExpScoresMeth(ii,jj) = methCorrect;
+            UnAidedPerf(ii,jj) =methUnaided;
             
             
         end
