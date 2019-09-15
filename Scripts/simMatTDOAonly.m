@@ -2,11 +2,6 @@ function Sim_mat = simMatTDOAonly(simStruct)
 
 % Create the simulation matrix using TDOA values only
 
-if isempty(simStruct.TDOA_vals)
-    disp(['Updating TDOA values'])
-    UpdateTDOA(simStruct);
-end
-
 Sim_mat = zeros(size(simStruct.arrivalArray));
 
 for ii =1:(length(simStruct.arrivalArray))

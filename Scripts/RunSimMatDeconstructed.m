@@ -73,7 +73,9 @@ simStruct.filtGrid = createDetRangeFiltGrid(simStruct, hydrophone_struct);
 % elapsed time are trimmed such that it's ok to calculate the sensitivy
 % threshold when the encounter is too large, but will break when it's too
 % small
-nIters = 200;
+
+
+nIters = 20;
 TimeThresh=fliplr(linspace(2, 100, 30));
 SimThresh = linspace(.01,.99,20);
 
@@ -89,33 +91,51 @@ allSimStructs =[];
 % Number of agents (experiemnts)
 nAgents = [3,6,9];
 
-nIters = 4;
 % Structure for output
 AgentExp = struct();
-tic
 
+
+tic
 for jj =1:length(nAgents)
 
-    ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters, 'gpuArray')/0;
+    ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters)/0;
     ExpScoresMeth_outTDOA = ExpScoresMeth_out2D;
     ExpScoresMeth_outMaxProd = ExpScoresMeth_out2D;
     nAgent = nAgents(jj);
+    
+    
     parfor ii=1:nIters
+        
+        
+        
+        
+        % Copy for each of the methods
+        simStructNew = simStruct;
         % Replace the space whale component
         [spaceWhale] =   createRandomSpaceWhale(0.5, nAgent, hyd_arr,...
             array_struct,hydrophone_struct, ssp, grid_depth,...
             [array_struct.master, array_struct.slave(child_idx)]);
-        
-        % Copy for each of the methods
-        simStructNew = simStruct;
         simStructNew.spaceWhale = spaceWhale;
         simStructNew.arrivalTable = gather(UpdateArrTable(simStructNew));
         simStructNew.arrivalArray= gather(UpdateArrArray(simStructNew));
         simStructNew.TDOA_vals = gather(UpdateTDOA(simStructNew));
+        
+        while length(simStructNew.TDOA_vals)<10
+            [spaceWhale] =   createRandomSpaceWhale(0.5, nAgent, hyd_arr,...
+            array_struct,hydrophone_struct, ssp, grid_depth,...
+            [array_struct.master, array_struct.slave(child_idx)]);
+        simStructNew.spaceWhale = spaceWhale;
+        simStructNew.arrivalTable = gather(UpdateArrTable(simStructNew));
+        simStructNew.arrivalArray= gather(UpdateArrArray(simStructNew));
+        simStructNew.TDOA_vals = gather(UpdateTDOA(simStructNew));
+        end
+
+        
+        
+        
         simStructNew.maxEltTime = gather(max(TimeThresh));
         simStructNew.truthTable = createTruthTable(simStructNew);
         
-       
         
         % Baseline model
         simStructBaseline = simStructNew;
@@ -134,7 +154,7 @@ for jj =1:length(nAgents)
         [ExpScoresMethMaxProd, ~] = runSensitivtyLp(simStructMaxProd,TimeThresh,SimThresh);
         ExpScoresMeth_outMaxProd(:,:,ii) = ExpScoresMethMaxProd;
         
-        ii
+        
         
     end
     AgentExp(jj).TDOA =ExpScoresMeth_outTDOA;
@@ -145,8 +165,8 @@ for jj =1:length(nAgents)
     
 end
 toc
-%%
-save('ExperimentCallDensityElipseFit.mat', AgentExp)
+
+save('ExperimentCallDensityElipseFit.mat', 'AgentExp')
 
 %% Plot experiment 1
 % 3 Agents
@@ -291,11 +311,7 @@ c.Label.String = 'Adjusted Rand Index';
 
 
 %load('ExperimentClassifyPerfElipseFit.mat')
-nIters =20;
-TimeThresh=fliplr(linspace(2, 100, 30));
-SimThresh = linspace(.01,.99,20);
 
-aa =14;
 betaParm1= 5;
 betaParm2_1=2.5;
 betaParm2_2=2;
@@ -511,15 +527,22 @@ title('Baseline Method- High Q Classifier')
 
 %% Clock Drift Experiment
 
+
+aa =14;
+betaParm1= 5;
+betaParm2_1=2.5;
+betaParm2_2=2;
+betaParm2_3= 1.5;
+
 simStruct.c = 1500;
-simStruct.betaParm1 = betaParm1(1);
-simStruct.betaParm2=betaParm2(1);
+simStruct.betaParm1 = betaParm1;
+simStruct.betaParm2 = betaParm2_2;
 simStruct.hydrophone_struct = hydrophone_struct;
 clock_drift = [1 2 3 4];
 association_sec = [0 0 4 6];
 
 perf_assocExp =struct();
-nIters = 4;
+
 
 perf_out_baseline = struct();
 perf_out_TDOA = struct();
@@ -589,6 +612,8 @@ for ii=1:length(association_sec)
     perf_assocExp(ii).UnaidedPerf =UnaidedPerfRes;
 end
 
+save('ExperimentClockDriftElipseFit.mat', 'perf_assocExp')
+
 
 %% Plot Clock Drift Experiment Results
 clock_drift = [2 2 3 4];
@@ -657,3 +682,4 @@ end
 
 
 
+toc
