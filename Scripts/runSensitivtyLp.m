@@ -20,9 +20,7 @@ if nargin ==2
         
         for ii = 1:length(TimeThresh)
             
-            simStruct.Cluster_id =[];
             simStruct.maxEltTime=(TimeThresh(ii));
-            
             simStruct.Cluster_id = acEnc(simStruct);
             ExpScoresMeth(ii,1)  = getRand(simStruct);
             nAgents(ii,1) = length(unique(simStruct.Cluster_id));
@@ -33,12 +31,9 @@ if nargin ==2
     
     
 else % Else there were three variables, so leave well enough alone
-    try
-        ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh), 'gpuArray')/0;
-    catch
-        
-        ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
-    end
+
+    ExpScoresMeth = zeros(length(TimeThresh), length(SimThresh))/0;
+
     nAgents =ExpScoresMeth;
     idx =0;
     totit = length(SimThresh)*length(TimeThresh);
@@ -48,13 +43,13 @@ else % Else there were three variables, so leave well enough alone
         simStruct_copy.Cluster_id =[];
         simStruct_copy.cutoff = SimThresh(jj);
         
-        parfor ii = 1:length(TimeThresh)
+        for ii = 1:length(TimeThresh)
             simStructTmp = simStruct_copy;
-            simStructTmp.Cluster_id =[];
             simStructTmp.maxEltTime=(TimeThresh(ii));
             
             simStructTmp.chains =updateChainsEncounterFirst(simStructTmp);
             simStructTmp.Cluster_id= updateClusterID(simStructTmp);
+           
             
             ExpScoresMeth(ii,jj) =  getRand(simStructTmp);
             nAgents(ii,jj) = length(unique(simStructTmp.Cluster_id));

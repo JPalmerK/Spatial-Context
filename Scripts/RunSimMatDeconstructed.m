@@ -58,6 +58,8 @@ simStruct.arrivalArray= gather(UpdateArrArray(simStruct));
 simStruct.TDOA_vals = gather(UpdateTDOA(simStruct));
 
 
+% Create filter grids to knock out ambiguity surfaces
+simStruct.filtGrid = createDetRangeFiltGrid(simStruct, hydrophone_struct);
 
 
 %% Sensitivity Experiment
@@ -72,30 +74,31 @@ simStruct.TDOA_vals = gather(UpdateTDOA(simStruct));
 % threshold when the encounter is too large, but will break when it's too
 % small
 nIters = 200;
-TimeThresh=fliplr(linspace(5, 120, 30));
+TimeThresh=fliplr(linspace(2, 100, 30));
 SimThresh = linspace(.01,.99,20);
 
 
 ExpScoresMeth_out2D = zeros(length(TimeThresh),...
-    length(SimThresh), nIters, 'gpuArray')/0;
+    length(SimThresh), nIters)/0;
 ExpScoresMeth_outTDOA = ExpScoresMeth_out2D;
 ExpScoresMeth_outMaxProd = ExpScoresMeth_out2D;
-ExpScoresMeth_outBaseline = zeros(length(TimeThresh), 1, nIters, 'gpuArray')/0;
+ExpScoresMeth_outBaseline = zeros(length(TimeThresh), 1, nIters)/0;
 allSimStructs =[];
 
 %%
 % Number of agents (experiemnts)
 nAgents = [3,6,9];
 
+nIters = 4;
 % Structure for output
-%AgentExp = struct();
+AgentExp = struct();
 tic
 
 for jj =1:length(nAgents)
 
-    %ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters, 'gpuArray')/0;
+    ExpScoresMeth_out2D = zeros(length(TimeThresh), length(SimThresh), nIters, 'gpuArray')/0;
     ExpScoresMeth_outTDOA = ExpScoresMeth_out2D;
-   % ExpScoresMeth_outMaxProd = ExpScoresMeth_out2D;
+    ExpScoresMeth_outMaxProd = ExpScoresMeth_out2D;
     nAgent = nAgents(jj);
     parfor ii=1:nIters
         % Replace the space whale component
@@ -105,65 +108,38 @@ for jj =1:length(nAgents)
         
         % Copy for each of the methods
         simStructNew = simStruct;
-        simStructNew.maxEltTime = max(TimeThresh);
+        simStructNew.spaceWhale = spaceWhale;
+        simStructNew.arrivalTable = gather(UpdateArrTable(simStructNew));
+        simStructNew.arrivalArray= gather(UpdateArrArray(simStructNew));
+        simStructNew.TDOA_vals = gather(UpdateTDOA(simStructNew));
+        simStructNew.maxEltTime = gather(max(TimeThresh));
+        simStructNew.truthTable = createTruthTable(simStructNew);
         
-        % Update the arrival array and simulation matrix
-        simStructNew.spaceWhale=spaceWhale;
-        simStructNew.arrivalTable = UpdateArrTable(simStructNew);
-        simStructNew.arrivalArray= UpdateArrArray(simStructNew);
-        simStructNew.TDOA_vals = UpdateTDOA(simStructNew);
+       
         
         % Baseline model
         simStructBaseline = simStructNew;
         [ExpScoresMethBaseline, ~] = runSensitivtyLp(simStructBaseline,TimeThresh);
          ExpScoresMeth_outBaseline(:,:,ii) = ExpScoresMethBaseline;
-        
-        
-        % Create copy for TDOA method
-        simStructTDOA = simStructNew;
-        
-        % TDOA only method
-        simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
-        
-        %Run the sensitivity loop
-        [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
-        ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
 
-%         % Baseline model
-%         simStructBaseline = simStructNew;
-%         [ExpScoresMethBaseline, ~] = runSensitivtyLp(simStructBaseline,TimeThresh);
-%         ExpScoresMeth_outBaseline(:,:,ii) = ExpScoresMethBaseline;
-        
-        
-        % Create copy for TDOA method
-        simStructTDOA = simStructNew;
-        
         % TDOA only method
+        simStructTDOA = simStructNew;
         simStructTDOA.Sim_mat = simMatTDOAonly(simStructTDOA);
-        
-        
-        %Run the sensitivity loop
         [ExpScoresMethTDOA, ~] = runSensitivtyLp(simStructTDOA,TimeThresh,SimThresh);
         ExpScoresMeth_outTDOA(:,:,ii) = ExpScoresMethTDOA;
         
-%         % Max of prod
-%         simStructMaxProd = simStructNew;
-%         
-%   
-%         % Product Method
-%         simStructMaxProd.Sim_mat = simMatMaxofProd(simStructMaxProd);
-%    
-%         
-%         %Run the sensitivity loop
-%         [ExpScoresMethMaxMean, ~] = runSensitivtyLp(simStructMaxProd,TimeThresh,SimThresh);
-%         ExpScoresMeth_outMaxProd(:,:,ii) = ExpScoresMethMaxMean;
+        % Max of prod
+        simStructMaxProd = simStructNew;
+        simStructMaxProd.Sim_mat = simMatMaxofProd(simStructMaxProd);
+        [ExpScoresMethMaxProd, ~] = runSensitivtyLp(simStructMaxProd,TimeThresh,SimThresh);
+        ExpScoresMeth_outMaxProd(:,:,ii) = ExpScoresMethMaxProd;
         
         ii
         
     end
-      AgentExp(jj).TDOA =ExpScoresMeth_outTDOA;
-%      AgentExp(jj).MaxProd = ExpScoresMeth_outMaxProd;
-%      AgentExp(jj).Baseline = ExpScoresMeth_outBaseline;
+    AgentExp(jj).TDOA =ExpScoresMeth_outTDOA;
+    AgentExp(jj).MaxProd = ExpScoresMeth_outMaxProd;
+    AgentExp(jj).Baseline = ExpScoresMeth_outBaseline;
     
     
     
@@ -340,8 +316,6 @@ perf_out_MaxProd3 = perf_out_baseline1;
 
 
 ClassifierPerfExp =struct();
-% Create filter grids to knock out ambiguity surfaces
-simStruct.filtGrid = createDetRangeFiltGrid(simStruct, hydrophone_struct);
 
 UnAidedPerf1= zeros(nIters, 1);
 UnAidedPerf2= zeros(nIters, 1);

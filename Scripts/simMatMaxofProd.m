@@ -75,7 +75,7 @@ for ii =1:length(arrivalArray)
     idx_end = find(diff_times>= simStruct.maxEltTime,1);
     
     if isempty(idx_end)
-        idx_end = length(time_gaps)
+        idx_end = length(time_gaps);
     end
     
     time_gaps = time_gaps(1:idx_end);
@@ -128,13 +128,5 @@ for ii =1:length(arrivalArray)
 end
 
 
-%
-%                 % Populate the simulation matrix
-%                 Sim_mat(ii, ii:ii+length(simValue)-1) = simValue;
-%                 Sim_mat(ii:ii+length(simValue)-1,ii) = simValue;
-%profile report
-%profile off
-%disp([num2str(ii), ' of ',...
-%    num2str(length(obj.arrivalArray))])
 
 end

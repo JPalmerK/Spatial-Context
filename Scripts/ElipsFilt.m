@@ -35,7 +35,6 @@ averageLklhd_space = gather(averageLklhd_space);
 % Trim the average likelhiood space
 AS_propagated(:,:,1) = (averageLklhd_space);
 
-tic
 for ii=1:length(msd)
     % Create the eliptical swim filter
     swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
@@ -56,41 +55,13 @@ for ii=1:length(msd)
     F = 0*SD;
     F((SD <= msd(ii))) = 1;
 
-    
-    AS_propagated(:,:,ii) = filt.*imdilate(averageLklhd_space, F);  
+    if sum(F(:))>=prod(size(averageLklhd_space))
+        AS_propagated(:,:,ii) = filt.*imdilate(averageLklhd_space, F);
+    else
+        AS_propagated(:,:,ii) = ones(size(averageLklhd_space));
+    end
     
 end
-toc 
-%Elapsed time is 3.750770 seconds.
-
-% hyd_loc = cat(1,simStruct.hydrophone_struct.location);
-% hyd_loc(4,:) =[];
-% % Figure for paper
-% figure
-% subplot(1,2,1)
-% imagesc(array_struct.longrid, array_struct.latgrid, squeeze(AS_propagated(:,:,1))), axis xy
-% c = colorbar;
-% c.Label.String = 'Likelihood';
-% hold on
-% scatter(hyd_loc(:,2), hyd_loc(:,1), 'filled', 'k', 'd')
-% scatter(hyd_loc([1:3],2), hyd_loc([1:3],1), 'filled', 'w', 'd')
-% scatter(hyd_loc(4,2), hyd_loc(4,1), 'filled', 'r', 'd')
-% xlabel('Longitude')
-% ylabel('Latitude')
-% title('Projected Ambiguity Surface')
-%
-%
-% subplot(1,2,2)
-% imagesc(array_struct.longrid, array_struct.latgrid, squeeze(AS_propagated(:,:,end))), axis xy
-% c = colorbar;
-% c.Label.String = 'Likelihood';
-% hold on
-% scatter(hyd_loc(:,2), hyd_loc(:,1), 'filled', 'k', 'd')
-% scatter(hyd_loc([1:3],2), hyd_loc([1:3],1), 'filled', 'w', 'd')
-% scatter(hyd_loc(4,2), hyd_loc(4,1), 'filled', 'r', 'd')
-% xlabel('Longitude')
-% ylabel('Latitude')
-% title('Projected Ambiguity Surface')
 
 
 
