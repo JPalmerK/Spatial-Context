@@ -29,6 +29,7 @@ ssp = 1500;
 grid_depth = 5;
 
 child_idx = [1:8];
+array_struct = array_struct_data(parent).array;
 %% Create the agents
 
 

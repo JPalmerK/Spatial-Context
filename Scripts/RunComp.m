@@ -1,4 +1,4 @@
-function [propCorrect, NClusters, nCorrect] = RunComp(examp, parent, hyd, truth, corr_thresh)
+function [propCorrect, NClusters, nCorrect,GPLSummary] = RunComp(examp, parent, hyd, truth, corr_thresh)
 
 % Input -
 % Examp: simulation class object pre-processed for similarity matrix
@@ -98,35 +98,26 @@ end
 idxTruth = find(truth.LowFreq_Hz_ < hyd(5).detection.parm.freq_hi);
 truth_trimmed = truth(idxTruth,:);
 
-gpldat =  RavenTable;
-gpldat.mstart = datenum('20090328', 'yyyymmdd')+gpldat.BeginS/86400;
-gpldat.mend =datenum('20090328', 'yyyymmdd')+gpldat.EndS/86400;
-gpldat.spp = repmat({'unknown'}, [height(gpldat),1]);
-gpldat.Lat =RavenTable.Lat;
-gpldat.Lon = RavenTable.Lon;
+RavenTable.mstart = datenum('20090328', 'yyyymmdd')+RavenTable.BeginS/86400;
+RavenTable.mend =datenum('20090328', 'yyyymmdd')+RavenTable.EndS/86400;
+RavenTable.spp = repmat({'unknown'}, [height(RavenTable),1]);
+RavenTable.Lat =RavenTable.Lat;
+RavenTable.Lon = RavenTable.Lon;
 
 wiggleroom_days = .5/60/60/24;
 % step through and add the species where available
-for ii=1:height(gpldat)
+for ii=1:height(RavenTable)
     
-    gpl_time = (gpldat.mstart(ii)+gpldat.mend(ii))/2;
+    gpl_time = (RavenTable.mstart(ii)+RavenTable.mend(ii))/2;
+    bb = truth_trimmed.Channel==RavenTable.Channel(ii);
+    cc = truth_trimmed.mend> (gpl_time-wiggleroom_days);
+    dd = truth_trimmed.mstart< (gpl_time +wiggleroom_days);
     
-    
-    % Canidate calls
-%     linkedID = (...
-%         intersect(...
-%         find(truth.Channel==gpldat.Channel(ii)),...
-%         find((abs(truth.mid - gpl_time)*24*60*60)<.25)));
-    
-         bb = truth_trimmed.Channel==gpldat.Channel(ii);
-         cc = truth_trimmed.mend> (gpl_time-wiggleroom_days);
-         dd = truth_trimmed.mstart< (gpl_time +wiggleroom_days);
-    
-         linkedID = find(prod([bb, cc, dd],2));
+    linkedID = find(prod([bb, cc, dd],2));
     
     if length(linkedID)>=1
         spp =truth_trimmed.Species(linkedID);
-        gpldat.spp(ii) = spp(1);
+        RavenTable.spp(ii) = spp(1);
         %disp(num2str(ii));
     end
     
@@ -137,12 +128,12 @@ end
 
 
 
-h1 = gpldat(logical(strcmp(gpldat.spp, 'hb')),:);
-h2 = gpldat(logical(strcmp(gpldat.spp, 'rw')),:);
-h3 = gpldat(logical(~strcmp(gpldat.spp, 'unknown')),:);
+h1 = RavenTable(logical(strcmp(RavenTable.spp, 'hb')),:);
+h2 = RavenTable(logical(strcmp(RavenTable.spp, 'rw')),:);
+h3 = RavenTable(logical(~strcmp(RavenTable.spp, 'unknown')),:);
 
 
-chan_ids = unique(gpldat.Channel);
+chan_ids = unique(RavenTable.Channel);
 
 % number of detections by channel
 nGPLdet = zeros([1,9]);
@@ -153,20 +144,24 @@ nMNTP = nGPLdet;
 nEGTP = nGPLdet;
 
 for ii =1:9
+    %Number of GPL detections, total per channel
     nGPLdet(ii) = sum(RavenTable.Channel == chan_ids(ii));
     
     
-    sppBInary = cellfun(@strcmp, gpldat.spp, repmat({'hb'},height(gpldat),1));
-    ChannBinary = gpldat.Channel == chan_ids(ii);
+    sppBInary = cellfun(@strcmp, RavenTable.spp, repmat({'hb'},height(RavenTable),1));
+    ChannBinary = RavenTable.Channel == chan_ids(ii);
+    % GPL that were associated with humpback per channel
     nGPLMN(ii) = sum(and(sppBInary, ChannBinary));
     
-    sppBInary = cellfun(@strcmp, gpldat.spp, repmat({'rw'},height(gpldat),1));
-    ChannBinary = gpldat.Channel == chan_ids(ii);
+    sppBInary = cellfun(@strcmp, RavenTable.spp, repmat({'rw'},height(RavenTable),1));
+    ChannBinary = RavenTable.Channel == chan_ids(ii);
+    % GPL that were associated with rightwhale per channel
     nGPLEG(ii) = sum(and(sppBInary, ChannBinary));
 
 
-    sppBInary = cellfun(@strcmp, gpldat.spp, repmat({'unknown'},height(gpldat),1));
-    ChannBinary = gpldat.Channel == chan_ids(ii);
+    sppBInary = cellfun(@strcmp, RavenTable.spp, repmat({'unknown'},height(RavenTable),1));
+    ChannBinary = RavenTable.Channel == chan_ids(ii);
+    %Total GPL that were false positve
     nGPLFP(ii) = sum(and(sppBInary, ChannBinary));
     
     
@@ -187,45 +182,16 @@ GPLSummary = table(nGPLdet', nGPLMN', nMNTP', nGPLEG', nEGTP', nGPLFP',...
 GPLSummary.Channel = chan_ids;
 
 
-
-%
-% figure;
-% subplot(2,1,1)
-% title('Truth: Known Species IDs')
-% hold on;
-% scatter(h1.Lon, h1.Lat,[], 'f', 'b')
-% scatter(h2.Lon, h2.Lat,[], 'f', 'r')
-% %scatter(hyd_arr(:,2),hyd_arr(:,1), 80, 'k', 'filled', 'd')
-% legend('Humpback', 'Right Whale')
-%
-% subplot(2,1,2)
-% title('Clustered Results')
-% clust_ids = unique(h3.ClusterId);
-% colors = jet(length(clust_ids));
-% colors=colors(randsample(1:length(colors),length(colors)),:);
-
-% for ii=1:length(clust_ids)
-%     hold on
-%     ha = h3(h3.ClusterId==clust_ids(ii),:);
-%     scatter(ha.Lon, ha.Lat,[], colors(ii,:), 'f');
-%     
-% end
-
 N = (unique(h3.ClusterId));
-% legendCell = char(transpose(cellstr(num2str(N, '%-d'))));
-% legend(legendCell);
-
-%scatter(hyd_arr(:,2),hyd_arr(:,1), 80, 'k', 'filled', 'd')
 
 
 
 
 
-k2 = ~strcmp(gpldat.spp, 'unknown');
+k2 = ~strcmp(RavenTable.spp, 'unknown');
 
 
-%gpldatout = gpldat(gpldat.Channel==5,:);
-gpldatout = gpldat(k2,:);
+gpldatout = RavenTable(k2,:);
 gpldatout.voting=repmat({'Unk'},[height(gpldatout),1]);
 cluster_ids = unique(gpldatout.ClusterId);
 
@@ -253,30 +219,6 @@ propCorrect = nCorrect/height(gpldatout);
 NClusters = length((gpldatout.ClusterId))/length(unique(gpldatout.ClusterId));
 
 
-
-
-
-% Report number of gpl detections (only run once
-
-% number of detections by channel
-nGPLdet = zeros([1,9]);
-nGPLMN = nGPLdet;
-nGPLEG = nGPLdet;
-channel_id = unique(gpldatout.Channel);
-
-for ii =1:9;
-    nGPLdet(ii) = length(gpldat.spp(gpldat.Channel == channel_id(ii)));
-    mnsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'hb'},height(gpldatout),1)));
-    gplMN = gpldatout(mnsubIDX,:)
-    nGPLMN(ii) = length(gplMN.spp(gplMN.Channel == channel_id(ii)));
-    egsubIDX = (cellfun(@strcmp, gpldatout.spp, repmat({'rw'},height(gpldatout),1)));
-    gplEG = gpldatout(egsubIDX,:)
-    nGPLEG(ii) = length(gplEG.spp(gplEG.Channel == channel_id(ii)));
-end
-
-
-GPLSummary = table(nGPLdet', nGPLMN', nGPLEG', 'Variable',{'GPLDet', 'GPLDetMn','GPLDetEg'});
-GPLSummary.Channel = channel_id;
 
 
 

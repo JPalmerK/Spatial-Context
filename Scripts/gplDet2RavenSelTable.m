@@ -5,13 +5,55 @@ function gplDet2RavenSelTable(hyd, fname)
 
 
 RavenTable = table();
-
-% frequency information
-f_low =  hyd(1).detection.parm.freq_lo; % frequency limits
-f_high = hyd(1).detection.parm.freq_hi;
-df = (f_high-f_low)/(hyd(1).detection.parm.bin_hi-hyd(1).detection.parm.bin_lo);
+% basic frequency information
+f_low =  hyd(5).detection.parm.freq_lo; % frequency limits
+f_high = hyd(5).detection.parm.freq_hi;
 
 
+
+if ~isfield(hyd(5).detection.calls, 'f_high')
+    
+    fr=linspace(hyd(5).detection.parm.freq_lo,...
+    hyd(5).detection.parm.freq_hi, ...
+    hyd(5).detection.parm.bin_hi-...
+    hyd(5).detection.parm.bin_lo+1);
+    
+    
+    
+    for ii=1:length(hyd)
+        
+        if ~isempty(hyd(ii).detection)
+        for jj=1:length(hyd(ii).detection.calls)
+            
+            
+            cm_max =  GPL_full('cm_max',jj, hyd(ii).detection.calls);
+            non_zero_sums = find(sum(cm_max'));
+            
+            % If there were data present then save the detections
+            if~isempty(non_zero_sums)
+                
+                
+                fmin = fr(min(non_zero_sums));
+                fmax = fr(max(non_zero_sums));
+                
+                
+                
+            else
+                fmin =f_low;
+                fmax =f_high;
+                
+                
+            end
+            
+            hyd(ii).detection.calls(jj).flow = fmin;
+            hyd(ii).detection.calls(jj).high = fmax;
+        end
+        end
+    end
+end
+
+
+% Make the Raven Table
 hyd_idx =1;
 
 for ii =1:length(hyd)
@@ -40,6 +82,7 @@ if ~isempty(hyd(hyd_idx).detection.calls)
     Channel =  repmat(ii, [n_calls,1]);
     ClusterId = ones([n_calls, 1]);
     matlabDate = calls.julian_start_time;
+    thresh = calls.calltype_1_score;
    
     aa = table(Selection,...
         View, ...
@@ -50,8 +93,10 @@ if ~isempty(hyd(hyd_idx).detection.calls)
         high_f,...
         ClusterId,...
         matlabDate,...
+        thresh,...
         'VariableNames',{'Selection', 'View', 'Channel',...
-        'BeginS', 'EndS', 'LowF', 'HighF', 'ClusterId','MtlbDtStr'});
+        'BeginS', 'EndS', 'LowF', 'HighF', 'ClusterId',...
+        'MtlbDtStr', 'Trheshold'});
     
 
     RavenTable =[RavenTable; aa];
@@ -67,7 +112,8 @@ end
 writetable(RavenTable, fname, 'Delimiter', '\t', 'WriteVariableNames', false)    
 
 header=strcat('Selection\tView\tChannel\tBegin Time (s)\tEnd Time (s)',...
-    '\tLow Freq (Hz)\tHigh Freq (Hz)\tClusterId\tMtLbDatestr\n');
+    '\tLow Freq (Hz)\tHigh Freq (Hz)\',...
+    'tClusterID\tMT1\n');
 
 
 % export the file

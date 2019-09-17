@@ -2,38 +2,42 @@ function Sim_mat = simMatTDOAonly(simStruct)
 
 % Create the simulation matrix using TDOA values only
 
-Sim_mat = zeros(size(simStruct.arrivalArray));
+Sim_mat = zeros(size(simStruct.arrivalArray))/0;
 
-for ii =1:(length(simStruct.arrivalArray))
-    
-    % First TDOA
-    tdoa_orig = simStruct.TDOA_vals(ii,:);
+arrivalArray= (simStruct.arrivalArray);
+for ii =1:(size(simStruct.TDOA_vals,1))
     
     
-    % index of all calls within the elapsed time
-    nextTimes = simStruct.arrivalArray(ii:end,1);
-    elapsedTime =  nextTimes- nextTimes(1);
-    
-    % Identify the calls within the the acoustic encounter
-    acousticEncIdx = find(diff(nextTimes)>= simStruct.maxEltTime,1)-1;
-    elapsedTime = elapsedTime(1:acousticEncIdx);
-    
-    % Get the TDOA values
-    nextTDOAidxStart = ii+1;
-    nextTDOAidxEnd = ii+(acousticEncIdx)-1;
-    TDOA_next = simStruct.TDOA_vals(nextTDOAidxStart:nextTDOAidxEnd,:);
+    tdoa_orig =simStruct.TDOA_vals(ii,:);
     
     
+    % Figure out the number of time gaps within the maximum
+    % allowed correlation time (time_cut)
+    time_gaps = arrivalArray(ii:end, 1)-...
+        arrivalArray(ii, 1);
     
-    % For each hydrophone pair calculate likelihood values
-    deltaTDOALklhd =[];
+    diff_times = diff(arrivalArray(ii:end, 1));
+    
+    % Find first big gap
+    idx_end = find(diff_times>= simStruct.maxEltTime,1)-1;
+    
+    if isempty(idx_end)
+        idx_end = length(time_gaps);
+    end
+    
+    time_gaps = time_gaps(1:idx_end);
+    TDOA_next = simStruct.TDOA_vals(ii:ii+idx_end-1,:);
     
     
-    for jj=1:size(TDOA_next,2)
+    deltaTDOA = bsxfun(@minus, tdoa_orig,TDOA_next);
+    elapsedTime = time_gaps;
+    
+    deltaTDOALklhd=zeros(size(deltaTDOA));
+    for jj=1:size(deltaTDOA,2)
         
-        mu = zeros(length(elapsedTime),1);
-        sigmaSwim = 2* sqrt((elapsedTime * (simStruct.s)/simStruct.c).^2);
-        x =[0; (tdoa_orig(jj) - TDOA_next(:,jj))]; %values
+        mu = zeros(size(TDOA_next,1),1);
+        sigmaSwim = 2* sqrt(simStruct.drift^2+ (elapsedTime * (simStruct.s)/simStruct.c).^2);
+        x =deltaTDOA(:,jj); %values
         
         likelihood = normpdf(x,mu,sigmaSwim);
         
@@ -42,7 +46,7 @@ for ii =1:(length(simStruct.arrivalArray))
         NormLikelihood = likelihood./LikelihoodNormFac;
         
         % Normalized likelihood
-        deltaTDOALklhd = [deltaTDOALklhd, NormLikelihood]; % sigma
+        deltaTDOALklhd(:,jj)= NormLikelihood; % sigma
         % Create normalizing factor
    
     end
