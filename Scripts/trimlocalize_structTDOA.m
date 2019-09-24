@@ -1,4 +1,4 @@
-function localize_struct_temp = trimlocalize_struct(localize_struct, hyd, corrThresh)
+function localize_struct_temp = trimlocalize_structTDOA(localize_struct, hyd)
 
 localize_struct_temp = localize_struct;
 
@@ -12,22 +12,30 @@ for ii = 1: length(localize_struct_temp.hyd)
         % Get the id's of the calls that were detected by two or mor hydrophone and
         % with cross correlation scores above
         
-        scores = cat(1,hyd(ii).detection.calls.calltype_1_score);
-        UpcallIDX = find(scores>=corrThresh);
+        % get the maximum TDOA 
         
+        % Step through the cc matrix, find the maximum TDOAs, and trim the
+        % delays
+        for jj = 2:length(localize_struct_temp.hyd(ii).array.toa_diff)
+            
+            % Minimum allowable TDOA
+            minTDOA = min(min(localize_struct_temp.hyd(ii).array.toa_diff{jj})); 
+           
+            
+            % calls under the tdoa
+            badIdx = localize_struct_temp.hyd(ii).delays(:,jj-1)<=minTDOA; 
+            localize_struct_temp.hyd(ii).delays(badIdx,jj-1) = nan;
+            
+            maxTDOA = max(max(localize_struct_temp.hyd(ii).array.toa_diff{jj}));
+            
+            badIdx = localize_struct_temp.hyd(ii).delays(:,jj-1)>=maxTDOA; 
+            localize_struct_temp.hyd(ii).delays(badIdx,jj-1) = nan;
+            
+        end
         
-        
-        % Now get the call id's represented by the calls for good matches. Localize
-        % struct contains the calls that were detected on two or more channels
-        UpcallCallIDs = intersect(UpcallIDX, localize_struct_temp.hyd(ii).dex);
-        
-        
-        k2 = find(ismember(localize_struct_temp.hyd(ii).dex,UpcallCallIDs));
-        
-        % Add the scores
-         localize_struct_temp.hyd(ii).detectorScore = scores(UpcallCallIDs);
-        
-        
+        % index of rows with TDOA's only
+        k2 = find(sum(~isnan(localize_struct_temp.hyd(ii).delays),2)>0);
+
         % Trim calls
         localize_struct_temp.hyd(ii).score = localize_struct_temp.hyd(ii).score(:,k2);
         

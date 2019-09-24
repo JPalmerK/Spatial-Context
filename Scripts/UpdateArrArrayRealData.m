@@ -5,12 +5,6 @@ function array = UpdateArrArray(simStruct)
 % arrival TDOA pair nearest to TDOA of 0 is chosen.
 % This selection is somewhat arbritrary as per design.
 
-% Check if the arrival table is present if not update it
-if isempty(simStruct.arrivalTable)
-    disp('Updating Arrival Table')
-    UpdateArrTable(simStruct)
-    
-end
 
 % Array containing the parent and children hydrophones
 

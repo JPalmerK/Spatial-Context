@@ -10,7 +10,7 @@ simmat= gather(obj.Sim_mat);
 arraivalArray = gather(obj.arrivalArray);
 max_gap = obj.maxEltTime;
 simthresh = obj.cutoff;
-ids = 1:length(arraivalArray);
+ids = 1:size(arraivalArray,1);
 timeDiffs = [0; diff(arraivalArray(:,1))];
 acousticEncounterBreaks = [1; (find(timeDiffs>max_gap))];
 

@@ -136,6 +136,8 @@ num_slates_file=15;
 
 cwd='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/All';
 cwd ='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/NOPP6_EST_20090328'
+
+cwd ='D:\data\DCL_NEFSC_NARW_upcall_data\NOPP6_EST_20090328'
 cd(cwd)
 
 file_list=dir('*.aif');
@@ -228,7 +230,8 @@ for file_index=1:finish
         
         
         
-        cd('/home/kpalmer/AnacondaProjects/Spatial-Context/Scripts');
+        %cd('/home/kpalmer/AnacondaProjects/Spatial-Context/Scripts');
+        cd('D:\Anaconda Projects\Spatial-Context\Scripts')
         
         [calls]=process_RW_sub(data(hydrophone_struct(j).channel,:),...
             parm,...
@@ -261,9 +264,25 @@ for file_index=1:finish
     
     
 end
-fname ='/home/kpalmer/Desktop/TylerclusterValidation.txt';
-gplDet2RavenSelTable(hyd, fname)
 
+%%
+% Clean out detections that did not have a correlation threshold
+
+for ii=1:length(hyd)
+    if ~isempty(hyd(ii).detection.calls) 
+    idx = find(~isnan(cat(2,hyd(ii).detection.calls.spec_rl)));
+    hyd(ii).detection.calls = hyd(ii).detection.calls(idx)
+    end
+end
+
+
+
+
+
+% 
+% fname ='/home/kpalmer/Desktop/TylerclusterValidation.txt';
+% gplDet2RavenSelTable(hyd, fname)
+% 
 
 
 
@@ -288,7 +307,7 @@ for ii=1:2
     
     
     % Create the array structure
-    
+
     array_struct.master= all_hyd(hyd_of_int(ii));
     
     
@@ -297,10 +316,9 @@ for ii=1:2
     
     new_hyd_array = all_hyd(logical(all_hyd ~=array_struct.master));
     
-    
-    
-    
-    array_struct.slave=new_hyd_array; %define supporting hydrophones (ch 4 left out b/c it didn't produce data)
+
+    array_struct.slave=new_hyd_array;
+    %define supporting hydrophones (ch 4 left out b/c it didn't produce data)
    
     
     [array_struct] = setup_TDOA_grid(hydrophone_struct, array_struct, localize_struct, parm);

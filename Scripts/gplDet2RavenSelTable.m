@@ -106,14 +106,14 @@ hyd_idx =hyd_idx+1;
    
 end
 
+fname = 'DetForNewTruth.txt'
+RavenTableTemp = RavenTable(:,[1:7, 10, 16])
 
-
-
-writetable(RavenTable, fname, 'Delimiter', '\t', 'WriteVariableNames', false)    
+writetable(RavenTableTemp, fname, 'Delimiter', '\t', 'WriteVariableNames', false)    
 
 header=strcat('Selection\tView\tChannel\tBegin Time (s)\tEnd Time (s)',...
     '\tLow Freq (Hz)\tHigh Freq (Hz)\',...
-    'tClusterID\tMT1\n');
+    'tScore\tSpp\n');
 
 
 % export the file

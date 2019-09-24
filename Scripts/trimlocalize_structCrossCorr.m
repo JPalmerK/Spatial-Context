@@ -1,4 +1,4 @@
-function localize_struct_temp = trimlocalize_struct(localize_struct, hyd, corrThresh)
+function localize_struct_temp = trimlocalize_structCrossCorr(localize_struct, hyd)
 
 localize_struct_temp = localize_struct;
 
@@ -7,27 +7,20 @@ localize_struct_temp = localize_struct;
 
 for ii = 1: length(localize_struct_temp.hyd)
     
-    if ~isempty(localize_struct.hyd(ii).delays)
+    if ~isempty(localize_struct_temp.hyd(ii).delays)
         
-        % Get the id's of the calls that were detected by two or mor hydrophone and
-        % with cross correlation scores above
+        % Figure out where perfect cross correlation
         
-        scores = cat(1,hyd(ii).detection.calls.calltype_1_score);
-        UpcallIDX = find(scores>=corrThresh);
+        unreasonableVals = (localize_struct_temp.hyd(ii).cross_score)> 0.999;
         
+        localize_struct_temp.hyd(ii).cross_score(unreasonableVals) = nan;
+
+        localize_struct_temp.hyd(ii).delays(unreasonableVals) = nan;
         
-        
-        % Now get the call id's represented by the calls for good matches. Localize
-        % struct contains the calls that were detected on two or more channels
-        UpcallCallIDs = intersect(UpcallIDX, localize_struct_temp.hyd(ii).dex);
-        
-        
-        k2 = find(ismember(localize_struct_temp.hyd(ii).dex,UpcallCallIDs));
-        
-        % Add the scores
-         localize_struct_temp.hyd(ii).detectorScore = scores(UpcallCallIDs);
-        
-        
+        % index of rows with TDOA's only
+        k2 = find(sum(isnan(localize_struct_temp.hyd(ii).cross_score),2) ...
+            < length(localize_struct_temp.hyd));
+
         % Trim calls
         localize_struct_temp.hyd(ii).score = localize_struct_temp.hyd(ii).score(:,k2);
         

@@ -4,7 +4,7 @@ function TDOA_vals = UpdateTDOA(simStruct)
 
 
 
-TDOA_vals =zeros(length(simStruct.arrivalArray), length(simStruct.child_idx));
+TDOA_vals =zeros(size(simStruct.arrivalArray,1), length(simStruct.child_idx));
 
 % Time difference of arrivals (can only handle two atm)
 

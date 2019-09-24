@@ -21,6 +21,12 @@ if (isnumeric(in)==1)
 else % if input is cell or character
     %Returns elements in an array with no repetitions
     [values, mm, nn] = unique(in);
+    
+        % Remove the unknowns if there are other
+        if length(values)>1
+            values((strcmp(values, 'unknown')))=[];
+        end
+    
     %count the number of times a element in an array occurs
     count=zeros(length(values),1);
     
@@ -28,15 +34,10 @@ else % if input is cell or character
         count(i)=sum(nn==i);
     end
     
-%     if ~all(cellfun(@strcmp, in, repmat(values(1),length(in),1)))
-%         disp('blarg')
-%     end
-    
+
     % if tie make it random
     if all(count == count(1))
         argmax = datasample(1:length(values),1);
-%         disp('Equal counts, random selection')
-%         values(argmax)
     else
         %Find the array index corresponding to  the value with the most occurrences
         [Vmax,argmax]=max(count);

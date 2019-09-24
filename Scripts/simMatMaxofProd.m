@@ -50,7 +50,7 @@ sig_tot = sqrt(simStruct.PosUncertsigma + simStruct.drift^2);
 
 
 
-for ii =1:length(arrivalArray)
+for ii =1:size(arrivalArray,1)
     
     % Pick the set of call delays (number of calls)
     

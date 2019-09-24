@@ -8,9 +8,9 @@ child_hyd = obj.array_struct.slave;
 ParentArrival = obj.localize_struct.hyd(parent).rtimes'./obj.fs;
 TDOA =obj.localize_struct.hyd(parent).delays;
 
-ArrivalSec =zeros(length(TDOA), (length(obj.hydrophone_struct)))/0;
+ArrivalSec =zeros(size(TDOA,1), (length(obj.hydrophone_struct)))/0;
 ArrivalSec(:,parent) =ParentArrival;
-CrossScores =zeros(length(TDOA), (length(obj.hydrophone_struct)))/0;
+CrossScores =zeros(size(TDOA,1), (length(obj.hydrophone_struct)))/0;
 
 for ii=1:length(child_hyd)
     ArrivalSec(:,child_hyd(ii)) = (ParentArrival+TDOA(:,ii)).*...
@@ -41,7 +41,8 @@ at.ID = zeros(height(at),1)/0;
 
 
 % limit the amount of time considered
-if ~isempty(obj.limitTime)
+if isfield(obj, 'limitTime') && ~isempty(obj.limitTime)
+    disp(['Cutting data to', num2str(obj.limitTime/60), ' sec.']);
     good_idx = logical(cumsum(diff(ArrivalSec(:, parent)))<obj.limitTime);
     at = at(good_idx,:);
 end

@@ -18,18 +18,14 @@ RavenTable = array2table(zeros(0,12),...
     'MtlbDtStr','nPairs'});
 
 % Loop through the child indexes and create the arrival tables
-
-hyds = [parent, localize_struct.hyd(parent).array.slave(examp.child_idx)];
-% Calls
-
 hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
 
 
 calls =struct2table(hyd(parent).detection.calls);
-
 calls.duration = (calls.end_time-calls.start_time)/2000;
 child_idx =1;
 
+% Create the raven table from the localize structure
 for ii =1:length(hyd_idx)
     
     
@@ -45,8 +41,7 @@ for ii =1:length(hyd_idx)
     end
     
     % Arrival times
-    Arrival_times = localize_struct.hyd(parent).rtimes'/2000+hyd_delay;
-    
+    Arrival_times = localize_struct.hyd(parent).rtimes'/2000+hyd_delay; 
     start_times = Arrival_times-(0.5*calls.duration(localize_struct.hyd(parent).dex));
     end_times = start_times + calls.duration(localize_struct.hyd(parent).dex);
     
@@ -125,66 +120,6 @@ for ii=1:height(RavenTable)
     
     
 end
-
-
-
-h1 = RavenTable(logical(strcmp(RavenTable.spp, 'hb')),:);
-h2 = RavenTable(logical(strcmp(RavenTable.spp, 'rw')),:);
-h3 = RavenTable(logical(~strcmp(RavenTable.spp, 'unknown')),:);
-
-
-chan_ids = unique(RavenTable.Channel);
-
-% number of detections by channel
-nGPLdet = zeros([1,9]);
-nGPLMN = nGPLdet;
-nGPLEG = nGPLdet;
-nGPLFP = nGPLdet;
-nMNTP = nGPLdet;
-nEGTP = nGPLdet;
-
-for ii =1:9
-    %Number of GPL detections, total per channel
-    nGPLdet(ii) = sum(RavenTable.Channel == chan_ids(ii));
-    
-    
-    sppBInary = cellfun(@strcmp, RavenTable.spp, repmat({'hb'},height(RavenTable),1));
-    ChannBinary = RavenTable.Channel == chan_ids(ii);
-    % GPL that were associated with humpback per channel
-    nGPLMN(ii) = sum(and(sppBInary, ChannBinary));
-    
-    sppBInary = cellfun(@strcmp, RavenTable.spp, repmat({'rw'},height(RavenTable),1));
-    ChannBinary = RavenTable.Channel == chan_ids(ii);
-    % GPL that were associated with rightwhale per channel
-    nGPLEG(ii) = sum(and(sppBInary, ChannBinary));
-
-
-    sppBInary = cellfun(@strcmp, RavenTable.spp, repmat({'unknown'},height(RavenTable),1));
-    ChannBinary = RavenTable.Channel == chan_ids(ii);
-    %Total GPL that were false positve
-    nGPLFP(ii) = sum(and(sppBInary, ChannBinary));
-    
-    
-    sppBInary = cellfun(@strcmp, truth_trimmed.Species, repmat({'hb'},height(truth_trimmed),1));
-    ChannBinary = truth_trimmed.Channel == chan_ids(ii);
-    nMNTP(ii) = sum(and(sppBInary, ChannBinary));
-    
-     sppBInary = cellfun(@strcmp, truth_trimmed.Species, repmat({'rw'},height(truth_trimmed),1));
-    ChannBinary = truth_trimmed.Channel == chan_ids(ii);
-    nEGTP(ii) = sum(and(sppBInary, ChannBinary));
-
-end
-
-
-
-GPLSummary = table(nGPLdet', nGPLMN', nMNTP', nGPLEG', nEGTP', nGPLFP',...
-    'Variable',{'GPLDet', 'GPLDetMn', 'TPMN','GPLDetEg','TPEG', 'nGPLFP'});
-GPLSummary.Channel = chan_ids;
-
-
-N = (unique(h3.ClusterId));
-
-
 
 
 

@@ -2,12 +2,7 @@
 %Cluster based only on time of arrivals Baseline (step 4) equivallent to acoustic encounters
 function cluster_vals = acEnc(obj)
 
-% Check if the arrival table is present if not update it
-if isempty(obj.arrivalArray)
-    disp(['Updating arrival Array'])
-    UpdateArrArray(obj);
-    
-end
+
 % Look for gaps bigger than the maximum overlap time
 diff_vals = diff(obj.arrivalArray(:,1));
 
