@@ -5,26 +5,30 @@
             delays = (obj.TDOA_vals(callIdx, :));
             
             
-            child_idx = obj.child_idx(~isnan(delays));
             
+            child_idx = obj.child_idx(~isnan(delays));
             averageLklhd_space = zeros([length(obj.array_struct.latgrid),...
                 length(obj.array_struct.longrid),...
                 length(child_idx)]);
 
             
             child_hyds = obj.array_struct.slave(obj.child_idx);
-            child_hyds = child_hyds(~isnan(delays));
+          
               
-            
-            for ii=1:length(child_idx)
+            Arraytdoa_idx = [obj.array_struct.master obj.array_struct.slave];
+            for ii=1:length(child_hyds)
                 
-                % Get the expected delay spaces for the hydrophone pairs
-                toa_space = (...
-                    cell2mat(obj.array_struct.toa_diff(child_idx(ii)+1)));
-                
-                % Delta TOA space
-                averageLklhd_space(:,:,ii) = (toa_space - delays(ii));
-                
+                if ~isnan(delays(ii))
+                    
+                    hyd_id =find(Arraytdoa_idx==child_hyds(ii));
+                    
+                    % Get the expected delay spaces for the hydrophone pairs
+                    toa_space = (...
+                        cell2mat(obj.array_struct.toa_diff(hyd_id)));
+                    
+                    % Delta TOA space
+                    averageLklhd_space(:,:,ii) = (toa_space - delays(ii));
+                end
 %                 
 %                 figure;
 %                 contourf(obj.array_struct.longrid, obj.array_struct.latgrid, (averageLklhd_space(:,:,ii)))

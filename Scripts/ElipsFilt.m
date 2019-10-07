@@ -24,42 +24,63 @@ th = 0:0.01:2*pi;
 
 % Prealocate propagated filter size
 
-AS_propagated = ones([...
+AS_propagated = zeros([...
     length(simStruct.array_struct.latgrid),...
     length(simStruct.array_struct.longrid),...
     length(time_gaps)]);
 
 
-averageLklhd_space = gather(averageLklhd_space);
-
 % Trim the average likelhiood space
-AS_propagated(:,:,1) = (averageLklhd_space);
+AS_propagated(:,:,1) = (averageLklhd_space).*filt;
 
-for ii=1:length(msd)
-    % Create the eliptical swim filter
-    swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
-    swim_filter_x = [-fliplr(swim_filter_x(2:end)) swim_filter_x];
-    swim_filter_y = 0:grid_dy:msd(ii)+grid_dy;
-    swim_filter_y = [-fliplr(swim_filter_y(2:end)) swim_filter_y];
-    
-    % Swim distance from cernter of filter to each grid point
-    [Fx,Fy] = meshgrid(swim_filter_x, swim_filter_y);
-    SD = sqrt(Fx.^2 + Fy.^2);
-    
-    
-    % Find point in the filter with swim distance less than or equal to what is
-    % possible and set them to 1
-    % Note: This doesn't account for the probability of an animal swimming the
-    % various distances. We might want to include this (i.e. make this weighted
-    % toward the middle?)
-    F = 0*SD;
-    F((SD <= msd(ii))) = 1;
+[row,col] = find(filt>0.00);
 
-    if sum(F(:))>=prod(size(averageLklhd_space))
-        AS_propagated(:,:,ii) = filt.*imdilate(averageLklhd_space, F);
+row_idx = minmax(row');
+col_idx = minmax(col');
+
+DetArea = averageLklhd_space(row_idx(1):row_idx(2),...
+    col_idx(1):col_idx(2));
+
+% This bit is bloody **** slow and heats up computers.
+
+
+for ii=2:length(msd)
+    
+    % If the last ambiguity space was all ones, the next one will be too so
+    % just skip the dialation filter and use the filter
+    if sum(sum(AS_propagated(:,:,ii-1)))< sum(filt(:))
+        
+        % Create the eliptical swim filter
+        swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
+        swim_filter_x = [-fliplr(swim_filter_x(2:end)) swim_filter_x];
+        swim_filter_y = 0:grid_dy:msd(ii)+grid_dy;
+        swim_filter_y = [-fliplr(swim_filter_y(2:end)) swim_filter_y];
+        
+        % Swim distance from cernter of filter to each grid point
+        [Fx,Fy] = meshgrid(swim_filter_x, swim_filter_y);
+        SD = sqrt(Fx.^2 + Fy.^2);
+        
+        
+        % Find point in the filter with swim distance less than or equal to what is
+        % possible and set them to 1
+        % Note: This doesn't account for the probability of an animal swimming the
+        % various distances. We might want to include this (i.e. make this weighted
+        % toward the middle?)
+        F = 0*SD;
+        F((SD <= msd(ii))) = 1;
+        
+        
+        dialateVal = imdilate(DetArea, F);
+        
+        AS_propagated(row_idx(1):row_idx(2),...
+            col_idx(1):col_idx(2),ii) = dialateVal;
+        
+        AS_propagated(:,:,ii)=AS_propagated(:,:,ii).*filt;
     else
-        AS_propagated(:,:,ii) = ones(size(averageLklhd_space));
+        AS_propagated(:,:,ii)=filt;
     end
+    
+    
     
 end
 
