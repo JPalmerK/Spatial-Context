@@ -1,14 +1,14 @@
 
 % Run experiments
 close all; clear all; clc
-
+% Comments required 
 dclde_2013_meta = xlsread('DCL2013_NEFSC_SBNMS_200903_metadata.xlsx');
 load('DCLDE2013_DCLDE_2013_10_Chan201912091_95_localize_struct.mat')
 load('DCLDE2013_RW_DCLDE_2013_10_Chan201912091_95_hyd.mat')
 load('DCLDE2013_RWDCLDE_2013_10_Chan201912091_95_array_struct_data.mat')
 clear whereAmI
 
-
+% Convert met to what GPL expects
 hydrophone_struct= struct();
 for ii=1:size(dclde_2013_meta,1)
     hydrophone_struct(ii).name = num2str(dclde_2013_meta(ii,1));
@@ -41,16 +41,16 @@ fs = 2000;
 ssp = localize_struct.parm.ssp;
 grid_depth = localize_struct.parm.grid_depth;
 
-parent = 5;
+parent = 8;
 examp = struct();
 examp.hydrophone_struct = hydrophone_struct;
 examp.randomMiss =0;
 examp.s = 8;
 examp.child_idx = 1:8;
 examp.fs =2000;
-examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2;
-examp.drift = 2;
-examp.c =1400;
+examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2; % seconds see EM Nosal 20
+examp.drift = 1;
+examp.c =1500; 
 examp.truncateKm=20;
 examp.array_struct = localize_struct.hyd(parent).array;
 
@@ -63,25 +63,25 @@ examp.filtGrid = createDetRangeFiltGrid(examp, hydrophone_struct);
 
 % Trim fals positives randomly
 localize_struct_trimmed = trimFalsePositives(localize_struct, parent,...
-    hyd, truth, 99.9);
+    hyd, truth, 90);
 
 
 % Clip the detections by the correlation threshold and add correlation
 % scores (Get rid of calls with Nan values for the template cross
 % correlation)
 localize_struct_trimmed = trimlocalize_struct(localize_struct_trimmed,...
-    hyd, -1);
+    hyd, .2);
 
 % 
 % % Remove all the delays where the TDOA is greater than the array geometry
-% localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
-%     hyd, examp.drift)
+localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
+    hyd, examp.drift)
 
 % % Remove calls where cross correlation is 1
 % % Template indexes
 % TemplateIdx = [5942 5816 5687 5614  5599 5559 5530];
-% localize_struct_trimmed = trimlocalize_structCrossCorr(...
-%     localize_struct_trimmed, hyd)
+localize_struct_trimmed = trimlocalize_structCrossCorr(...
+    localize_struct_trimmed, hyd)
 
 
 
@@ -126,8 +126,8 @@ ExperimentMaxProd = struct();
 ExperimentUnaided = struct();
 
 % Pre allocate the output matrix
-PrecisionMatSpatial = zeros(length(simThreshs), length(TimeThreshs),...
-    length(corrThresh))/0;
+PrecisionMatSpatial = inf(length(simThreshs), length(TimeThreshs),...
+    length(corrThresh));
 RecallMatSpatial = PrecisionMatSpatial;
 PrecisionMatTDOA = PrecisionMatSpatial;
 RecallMatTDOA = PrecisionMatSpatial;
@@ -151,7 +151,7 @@ examp.maxEltTime = max(TimeThreshs);
 exampSpatial = examp;
 exampTDOA = examp;
 exampBaseline = examp;
-
+% Create simulation matricies (extra large, then trim down as time threshs)
 exampSpatial.Sim_mat= simMatMaxofProd(exampSpatial);
 exampTDOA.Sim_mat = simMatTDOAonly(examp);
 exampBaseline.Cluster_id = acEnc(examp);
@@ -215,9 +215,9 @@ for ii = 1:length(simThreshs)
 end
 
 %%
-timeidx =20;
+timeidx =5;
 figure; 
-jitterAmount = 0.0005;
+jitterAmount = 0.005;
 for ii =1:10
     
     titlestr =[num2str(TimeThreshs(timeidx)), ' sec TimeThresh ',...
@@ -234,14 +234,15 @@ for ii =1:10
     *jitterAmount;   % +/-jitterAmount max
 
     
-    plot(Results.Baseline(1,1).Recall+jitterValuesX,...
-        Results.Baseline(1,1).Precision+jitterValuesY, '.-')
     plot(Results.TDOA(ii,timeidx).Recall,...
         Results.TDOA(ii,timeidx).Precision, '.-')
     plot(Results.Spatial(ii,timeidx).Recall,...
         Results.Spatial(ii,timeidx).Precision, '.-')
     plot(Results.AcousticEncounters(ii,timeidx).Recall,...
         Results.AcousticEncounters(ii,timeidx).Precision, '.-')
+    
+    plot(Results.Baseline(1,1).Recall+jitterValuesX,...
+        Results.Baseline(1,1).Precision+jitterValuesY, '.-')
     xlabel('Recall'); ylabel('Precision');
   
     title(titlestr)
@@ -249,18 +250,9 @@ for ii =1:10
 
 end
 
- legend('Detector Only', 'TDOA', 'Spatial', 'Acoustic Encounters Only')
+ legend('TDOA', 'Spatial', 'Acoustic Encounters Only','Detector Only')
 
 
-culsterNtdoa =[];
-for ii=1:size(Results.TDOAClusters,1)
-    for jj=1:size(Results.TDOAClusters,2)
-    
-    culsterNtdoa(ii,jj) = length((Results.TDOAClusters{ii,jj}))/...
-        length(unique(Results.TDOAClusters{ii,jj}));
-    
-    end
-end
  
  
  

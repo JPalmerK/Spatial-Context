@@ -7,7 +7,7 @@ child_hyd = obj.array_struct.slave;
 
 ParentArrival = obj.localize_struct.hyd(parent).rtimes'./obj.fs;
 TDOA =obj.localize_struct.hyd(parent).delays;
-
+% Arrival time in seconds for all hydrophones based on delays
 ArrivalSec =zeros(size(TDOA,1), (length(obj.hydrophone_struct)))/0;
 ArrivalSec(:,parent) =ParentArrival;
 CrossScores =zeros(size(TDOA,1), (length(obj.hydrophone_struct)))/0;
@@ -26,6 +26,8 @@ x(:,2)=squeeze(obj.localize_struct.hyd(parent).coordinates(end,2,:));
 % Index of the detection
 idx = obj.localize_struct.hyd(parent).dex'+1;
 
+idx = obj.localize_struct.hyd(parent).dex';
+
 %
 % Create the arrivals table (at) from the localize structure
 at = table(...
@@ -40,11 +42,5 @@ at.ID = zeros(height(at),1)/0;
 
 
 
-% limit the amount of time considered
-if isfield(obj, 'limitTime') && ~isempty(obj.limitTime)
-    disp(['Cutting data to', num2str(obj.limitTime/60), ' sec.']);
-    good_idx = logical(cumsum(diff(ArrivalSec(:, parent)))<obj.limitTime);
-    at = at(good_idx,:);
-end
 
 end

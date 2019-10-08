@@ -54,7 +54,7 @@ for ii =1:size(arrivalArray,1)
     
     % Pick the set of call delays (number of calls)
     
-    % Get the range filter
+    
     delays = simStruct.TDOA_vals(ii, :);
     hyd_det = [simStruct.array_struct.master ...
         simStruct.array_struct.slave(simStruct.child_idx(~isnan(delays)))];
@@ -72,7 +72,7 @@ for ii =1:size(arrivalArray,1)
     diff_times = diff(arrivalArray(ii:end, 1));
     
     % Find first big gap
-    idx_end = find(diff_times>= simStruct.maxEltTime,1);
+    idx_end = find(diff_times>= simStruct.maxEltTime,1)-1;
     
     if isempty(idx_end)
         idx_end = length(time_gaps);
@@ -83,7 +83,7 @@ for ii =1:size(arrivalArray,1)
     Lklhd_space_proj_out =  ElipsFilt(simStruct,averageLklhd_space, time_gaps,...
         grid_v,grid_h, ii);
     
-    
+    simValue=[];
     % If there are more than one time gap over which we need to
     % look then do the projections
     
@@ -103,13 +103,14 @@ for ii =1:size(arrivalArray,1)
             (getTruHdSpaceProd(simStruct,(ii+jj-1), sig_tot));
         
         
-        delaysnew = simStruct.TDOA_vals(ii+jj-1, :);
-        delaysnew = simStruct.array_struct.slave(simStruct.child_idx(~isnan(delays)));
-        delaysnew = unique([delaysnew simStruct.array_struct.master]);
+        
+        hydIDsChildDet = simStruct.array_struct.slave(...
+            simStruct.child_idx(~isnan(delays)));
+        hydIDsChildDet = unique([hydIDsChildDet simStruct.array_struct.master]);
         
         % Filter the next likelihood projected space by range
         nextLklhdSpace = nextLklhdSpace .*...
-            prod(simStruct.filtGrid(:,:,delaysnew),3);
+            prod(simStruct.filtGrid(:,:,hydIDsChildDet),3);
         
 
         AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3);

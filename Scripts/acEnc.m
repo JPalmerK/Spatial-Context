@@ -14,10 +14,10 @@ diff_vals = diff(obj.arrivalArray(:,1));
 % For sensitivity analysis
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 time_idx = obj.maxEltTime;
-
+% Find all break points
 idx = find(diff_vals>time_idx);
 
-
+% Double check!! 
 cluster_vals= ones(size(obj.arrivalArray(:,1)));
 cluster_id =2;
 

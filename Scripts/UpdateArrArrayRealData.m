@@ -1,4 +1,4 @@
-function array = UpdateArrArray(simStruct)
+function array = UpdateArrArrayRealData(simStruct)
 % This funcion creates the array of arrivals, if the
 % arrivalsMiss parameter is set to 1, then where multiple calls
 % fall within the expected TDOA range, the call with the

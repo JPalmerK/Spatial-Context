@@ -1,5 +1,5 @@
 function localize_struct_temp = trimlocalize_struct(localize_struct, hyd, corrThresh)
-
+% comments
 localize_struct_temp = localize_struct;
 
 
@@ -24,9 +24,10 @@ for ii = 1: length(localize_struct_temp.hyd)
         
         k2 = find(ismember(localize_struct_temp.hyd(ii).dex,UpcallCallIDs));
         
-        % Add the scores
+        % copy the scores the scores
          localize_struct_temp.hyd(ii).detectorScore = scores(UpcallCallIDs);
         
+        % More comments needed!
         
         % Trim calls
         localize_struct_temp.hyd(ii).score = localize_struct_temp.hyd(ii).score(:,k2);

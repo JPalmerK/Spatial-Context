@@ -6,12 +6,12 @@ function chain = updateChainsEncounterFirst(obj)
 
 
 % Ladder Linkages rebuild
-simmat= gather(obj.Sim_mat);
-arraivalArray = gather(obj.arrivalArray);
+simmat= (obj.Sim_mat);
+arrivalArray = (obj.arrivalArray);
 max_gap = obj.maxEltTime;
 simthresh = obj.cutoff;
-ids = 1:size(arraivalArray,1);
-timeDiffs = [0; diff(arraivalArray(:,1))];
+ids = 1:size(arrivalArray,1);
+timeDiffs = [0; diff(arrivalArray(:,1))];
 acousticEncounterBreaks = [1; (find(timeDiffs>max_gap))];
 
 
@@ -20,8 +20,8 @@ dataTable.timeDiffs = timeDiffs;
 dataTable.TrueIDs = ids';
 dataTable.AcousticEncounters = ids'./ids';
 dataTable.Clustered = ids'-ids';
-dataTable.ArrivalTimes = arraivalArray(:,1);
-dataTable.TrueCluster = arraivalArray(:,end);
+dataTable.ArrivalTimes = arrivalArray(:,1); % Double check this!!
+dataTable.TrueCluster = arrivalArray(:,end);
 
 
 for ii=1:length(acousticEncounterBreaks)
@@ -50,7 +50,7 @@ for ii=1:length(unique(dataTable.AcousticEncounters))
     encounterSub.SimScore(idx:end) = simmat(encounterSub.TrueIDs(idx),...
         encounterSub.TrueIDs(idx):...
         encounterSub.TrueIDs(end))';
-    
+    % comment
     encounterSub.Clustered(1)=1;
     
     % Index into the acoustic encounter
