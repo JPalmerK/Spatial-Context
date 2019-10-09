@@ -56,6 +56,12 @@ for ii =1:size(arrivalArray,1)
     
     
     delays = simStruct.TDOA_vals(ii, :);
+    
+    if all (isnan(delays))
+    disp('something broke')
+    end
+        
+
     hyd_det = [simStruct.array_struct.master ...
         simStruct.array_struct.slave(simStruct.child_idx(~isnan(delays)))];
     
@@ -87,6 +93,10 @@ for ii =1:size(arrivalArray,1)
     % If there are more than one time gap over which we need to
     % look then do the projections
     
+    if length(time_gaps)==0
+        simValue=1;
+    end
+        
     % Step through the time gaps, project the current likelihood surface
     % and compare it to the next likelihood surfaces
     for jj= 1:length(time_gaps)
@@ -111,19 +121,27 @@ for ii =1:size(arrivalArray,1)
         % Filter the next likelihood projected space by range
         nextLklhdSpace = nextLklhdSpace .*...
             prod(simStruct.filtGrid(:,:,hydIDsChildDet),3);
+       
         
 
-        AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3);
+        AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3)/2;
         %Stic
-        sim = max(AScompare(:));
+        kk =(nextLklhdSpace-Lklhd_space_proj);
         
-        simValue(jj)=  sim;
+      
+        
+        sim = sum(abs(kk(:)))/...
+            sum(sum( prod(simStruct.filtGrid(:,:,hydIDsChildDet),3)));
+%         
+%         sim = max(AScompare(:));
+%         sim = Lklhd_space_proj./nextLklhdSpace;
+
+        simValue(jj)=  1-sim;
     end
     
     Sim_mat(ii, ii:ii+length(simValue)-1)= simValue;
     Sim_mat(ii:ii+length(simValue)-1,ii)= simValue;
     
-    simValue =[];
     disp([num2str(ii), ' of ', num2str(length(arrivalArray))])
     
 end

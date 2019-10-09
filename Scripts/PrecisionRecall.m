@@ -18,8 +18,9 @@ RavenTable = array2table(zeros(0,13),...
 % Loop through the child indexes and create the arrival tables
 hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
 
-for jj =1:length(parent)
-    calls =struct2table(hyd(parent(jj)).detection.calls);
+% Convert localize struct to data table/raven compatable file
+
+    calls =struct2table(hyd(parent).detection.calls);
     calls.duration = (calls.end_time-calls.start_time)/2000;
     child_idx =1;
     
@@ -31,17 +32,17 @@ for jj =1:length(parent)
         hyd_id = hyd_idx(ii);
         
         % Delay time to add, if parent add nothing
-        if hyd_id~= parent(jj)
-            hyd_delay = localize_struct.hyd(parent(jj)).delays(:,child_idx);
+        if hyd_id~= parent
+            hyd_delay = localize_struct.hyd(parent).delays(:,child_idx);
             child_idx= child_idx+1;
         else
             hyd_delay =0;
         end
         
         % Arrival times
-        Arrival_times = localize_struct.hyd(parent(jj)).rtimes'/2000+hyd_delay;
+        Arrival_times = localize_struct.hyd(parent).rtimes'/2000+hyd_delay;
         start_times = Arrival_times-(0.5*calls.duration(localize_struct.hyd(parent).dex));
-        end_times = start_times + calls.duration(localize_struct.hyd(parent).dex);
+        end_times = start_times + (0.5*calls.duration(localize_struct.hyd(parent).dex));
         
         % Low and High FRequency
         low_f = calls.flow(localize_struct.hyd(parent).dex);
@@ -97,7 +98,7 @@ for jj =1:length(parent)
     truth_trimmed = truth(idxTruth,:);
     truth_trimmed = truth_trimmed(truth_trimmed.Channel==parent,:);
     truth_temp = truth_trimmed;
-    
+    RavenTable = RavenTable(RavenTable.Channel == parent,:);
     RavenTable.mstart = datenum('20090328', 'yyyymmdd')+...
         RavenTable.BeginS/86400;
     RavenTable.mend =datenum('20090328', 'yyyymmdd')+RavenTable.EndS/86400;
@@ -238,7 +239,7 @@ for jj =1:length(parent)
     
     
     
-end
+
 
 
 

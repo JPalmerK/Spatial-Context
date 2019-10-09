@@ -3,9 +3,9 @@
 close all; clear all; clc
 % Comments required 
 dclde_2013_meta = xlsread('DCL2013_NEFSC_SBNMS_200903_metadata.xlsx');
-load('DCLDE2013_DCLDE_2013_10_Chan201912091_95_localize_struct.mat')
-load('DCLDE2013_RW_DCLDE_2013_10_Chan201912091_95_hyd.mat')
-load('DCLDE2013_RWDCLDE_2013_10_Chan201912091_95_array_struct_data.mat')
+load('DCLDE2013_DCLDE_2013_10_Chan201908101_96_localize_struct.mat')
+load('DCLDE2013_RW_DCLDE_2013_10_Chan201908101_96_hyd.mat')
+load('DCLDE2013_RWDCLDE_2013_10_Chan201908101_96_array_struct_data.mat')
 clear whereAmI
 
 % Convert met to what GPL expects
@@ -41,7 +41,7 @@ fs = 2000;
 ssp = localize_struct.parm.ssp;
 grid_depth = localize_struct.parm.grid_depth;
 
-parent = 8;
+parent = 5;
 examp = struct();
 examp.hydrophone_struct = hydrophone_struct;
 examp.randomMiss =0;
@@ -61,19 +61,21 @@ examp.filtGrid = createDetRangeFiltGrid(examp, hydrophone_struct);
 % figure; imagesc(examp.array_struct.latgrid, ...
 % examp.array_struct.latgrid, examp.filtGrid(:,:,1)), axis xy
 
-% Trim fals positives randomly
-localize_struct_trimmed = trimFalsePositives(localize_struct, parent,...
-    hyd, truth, 90);
 
 
 % Clip the detections by the correlation threshold and add correlation
 % scores (Get rid of calls with Nan values for the template cross
 % correlation)
-localize_struct_trimmed = trimlocalize_struct(localize_struct_trimmed,...
+localize_struct_trimmed = trimlocalize_struct(localize_struct,...
     hyd, .2);
 
+
+% Trim fals positives randomly
+localize_struct_trimmed = trimFalsePositives(localize_struct_trimmed, parent,...
+    hyd, truth, 80);
+
 % 
-% % Remove all the delays where the TDOA is greater than the array geometry
+% % % Remove all the delays where the TDOA is greater than the array geometry
 localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
     hyd, examp.drift)
 
@@ -83,33 +85,35 @@ localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
 localize_struct_trimmed = trimlocalize_structCrossCorr(...
     localize_struct_trimmed, hyd)
 
-
-
+% 
+% % 
 % Remove rows from the localizatoin structure where the calls are not
 % detected on two or more hydrophones
-% mm = sum(~isnan(...
-%     localize_struct_trimmed.hyd(5).cross_score(:,examp.child_idx)),2)
-% badidx = find(mm==0);
-% localize_struct_trimmed.hyd(5).delays(badidx,:)=[];
-% localize_struct_trimmed.hyd(5).cross_score(badidx,:)=[];
-% localize_struct_trimmed.hyd(5).coord_time(badidx,:)=[];
-% localize_struct_trimmed.hyd(5).rtimes(badidx)=[];
-% localize_struct_trimmed.hyd(5).dex(badidx)=[];
-% localize_struct_trimmed.hyd(5).coordinates(:,:,badidx)=[];
-% localize_struct_trimmed.hyd(5).score(:,badidx)=[];
-% localize_struct_trimmed.hyd(5).detectorScore(badidx)=[];
-% % 
-% % 
-% mm = sum(~isnan(localize_struct_trimmed.hyd(8).cross_score(:,examp.child_idx)),2)
-% badidx = find(mm==0);
-% localize_struct_trimmed.hyd(8).delays(badidx,:)=[];
-% localize_struct_trimmed.hyd(8).cross_score(badidx,:)=[];
-% localize_struct_trimmed.hyd(8).coord_time(badidx,:)=[];
-% localize_struct_trimmed.hyd(8).rtimes(badidx)=[];
-% localize_struct_trimmed.hyd(8).dex(badidx)=[];
-% localize_struct_trimmed.hyd(8).coordinates(:,:,badidx)=[];
-% localize_struct_trimmed.hyd(8).score(:,badidx)=[];
-% localize_struct_trimmed.hyd(8).detectorScore(badidx)=[]
+mm = sum(~isnan(...
+    localize_struct_trimmed.hyd(5).delays),2)
+
+
+badidx = find(mm==0);
+localize_struct_trimmed.hyd(5).delays(badidx,:)=[];
+localize_struct_trimmed.hyd(5).cross_score(badidx,:)=[];
+localize_struct_trimmed.hyd(5).coord_time(badidx,:)=[];
+localize_struct_trimmed.hyd(5).rtimes(badidx)=[];
+localize_struct_trimmed.hyd(5).dex(badidx)=[];
+localize_struct_trimmed.hyd(5).coordinates(:,:,badidx)=[];
+localize_struct_trimmed.hyd(5).score(:,badidx)=[];
+localize_struct_trimmed.hyd(5).detectorScore(badidx)=[];
+
+mm = sum(~isnan(...
+    localize_struct_trimmed.hyd(8).delays),2)
+badidx = find(mm==0);
+localize_struct_trimmed.hyd(8).delays(badidx,:)=[];
+localize_struct_trimmed.hyd(8).cross_score(badidx,:)=[];
+localize_struct_trimmed.hyd(8).coord_time(badidx,:)=[];
+localize_struct_trimmed.hyd(8).rtimes(badidx)=[];
+localize_struct_trimmed.hyd(8).dex(badidx)=[];
+localize_struct_trimmed.hyd(8).coordinates(:,:,badidx)=[];
+localize_struct_trimmed.hyd(8).score(:,badidx)=[];
+localize_struct_trimmed.hyd(8).detectorScore(badidx)=[]
 
 
 
@@ -118,7 +122,7 @@ localize_struct_trimmed = trimlocalize_structCrossCorr(...
 
 %% Create the structure
 simThreshs = linspace(0.01,.99, 10);
-TimeThreshs = fliplr(linspace(2,50,20));
+TimeThreshs = fliplr(linspace(2,200,20));
 corrThresh = fliplr(linspace(0.1,.8,15));
 
 ExperimentTDOA = struct();
@@ -217,7 +221,7 @@ end
 %%
 timeidx =5;
 figure; 
-jitterAmount = 0.005;
+jitterAmount = 0.000;
 for ii =1:10
     
     titlestr =[num2str(TimeThreshs(timeidx)), ' sec TimeThresh ',...

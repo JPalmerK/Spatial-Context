@@ -61,6 +61,12 @@ for ii = 1: length(localize_struct_temp.hyd)
         % and delays (not dealing with CC matrix atm)
         localize_struct_temp.hyd(ii).delays = ...
             localize_struct_temp.hyd(ii).delays(k2,:);
+        
+        if isfield(localize_struct_temp.hyd(ii), 'detectorScore')
+            localize_struct_temp.hyd(ii).detectorScore=...
+                 localize_struct_temp.hyd(ii).detectorScore(k2);
+        end
+        
     end
     
 end

@@ -106,14 +106,14 @@ hyd_idx =hyd_idx+1;
    
 end
 
-fname = 'DetForNewTruth.txt'
-RavenTableTemp = RavenTable(:,[1:7, 10, 16])
+fname = 'TrialPrecRecall.txt'
+RavenTableTemp = RavenTable(:,[1:7, 10,11, 16])
 
 writetable(RavenTableTemp, fname, 'Delimiter', '\t', 'WriteVariableNames', false)    
 
 header=strcat('Selection\tView\tChannel\tBegin Time (s)\tEnd Time (s)',...
     '\tLow Freq (Hz)\tHigh Freq (Hz)\',...
-    'tScore\tSpp\n');
+    'tScore\tClusterId\tSpp\n');
 
 
 % export the file
