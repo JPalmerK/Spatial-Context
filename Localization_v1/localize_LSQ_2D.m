@@ -266,7 +266,7 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
         %      end % cutoff
         
         
-    end; % jj0 loop
+    end % jj0 loop
     
     %
     localize_struct.hyd(local_array(1)).delays=delays;
@@ -276,6 +276,7 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
     localize_struct.hyd(local_array(1)).dex=dex;
     localize_struct.hyd(local_array(1)).coordinates=coordinates;
     localize_struct.hyd(local_array(1)).score=score;
+    
     
     
     
