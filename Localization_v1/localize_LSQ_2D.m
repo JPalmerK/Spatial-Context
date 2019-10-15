@@ -14,7 +14,7 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
     num_calls=localize_struct.parm.num_calls;
     
     % Number of maxima to cross correlate
-    nm=localize_struct.parm.number_maxima;
+    nCallsXcorr=localize_struct.parm.number_maxima;
     
     % LSQ cuttoff
     cutoff=localize_struct.parm.lsq_cutoff;
@@ -62,11 +62,11 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
     end
     
     %(??)
-    [sz1,sz2]=size(cc_matrix.slv{1});
+    [sz1,nOtherCalls]=size(cc_matrix.slv{1});
     
     
     % Create empty matrix for delay, rdelay (?) and peak
-    delay=zeros(nm,sz2,length(cc_matrix.slv));
+    delay=zeros(nCallsXcorr,nOtherCalls,length(cc_matrix.slv));
     rdelay=delay;
     peak=delay+nan;
     
@@ -75,8 +75,8 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
     for(jj=1:length(cc_matrix.slv))
         
         % Get the size of the cross correlation matrix
-        A=cc_matrix.slv{jj};
-        [sz1,sz2]=size(cc_matrix.slv{jj});
+        CC_matSlave=cc_matrix.slv{jj};
+        [sz1,nOtherCalls]=size(cc_matrix.slv{jj});
         
         
         
@@ -93,26 +93,29 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
             crop=localize_struct.parm.phase-trm;
             
             if crop>0
-                A=A(crop+1:end-crop,:);end
+                CC_matSlave=CC_matSlave(crop+1:end-crop,:);end
             
         else
             pha(jj)=array_struct(array_number).phase(jj);
         end
         
         
-        for k=1:sz2
-            ks=find((A(3:end,k)-A(2:end-1,k)).*(A(2:end-1,k)-A(1:end-2,k))<0)+1;
-            kp=find(A(ks,k)-A(ks+1,k)>0);
+        for k=1:nOtherCalls
+            ks=find((CC_matSlave(3:end,k)-CC_matSlave(2:end-1,k)).*...
+                (CC_matSlave(2:end-1,k)-CC_matSlave(1:end-2,k))<0)+1;
+            
+            kp=find(CC_matSlave(ks,k)-CC_matSlave(ks+1,k)>0);
             ks=ks(kp);
-            if length(ks)>nm-1
+            if length(ks)>nCallsXcorr-1
                 
-                [k1,k2]=sort(A(ks,k));ks=ks(k2(end-(nm-1):end));
+                [k1,k2]=sort(CC_matSlave(ks,k));
+                ks=ks(k2(end-(nCallsXcorr-1):end));
                 
                 delay(:,k,jj)=ks;
-                peak(:,k,jj)=k1(end-(nm-1):end);
+                peak(:,k,jj)=k1(end-(nCallsXcorr-1):end);
                 
-                for j=1:nm
-                    an=polyfit(-1:1,A(ks(j)-1:ks(j)+1,k)',2);
+                for j=1:nCallsXcorr
+                    an=polyfit(-1:1,CC_matSlave(ks(j)-1:ks(j)+1,k)',2);
                     rdelay(j,k,jj)=ks(j)-an(2)/2/an(1);
                 end;
             end
@@ -142,7 +145,7 @@ function [localize_struct] = localize_LSQ_2D(array_struct, hydrophone_struct,hyd
     test0=test0(k,:);  % delays than min required for a
     % localization
     
-    k=find(trim+num_calls-1<=sz2);
+    k=find(trim+num_calls-1<=nOtherCalls);
     trim=trim(k);test0=test0(k,:); % avoid endpoint problem for rtime computation
     
     % start looping over ensembles with nontrivial entries
