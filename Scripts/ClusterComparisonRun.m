@@ -3,9 +3,9 @@
 close all; clear all; clc
 % Comments required 
 dclde_2013_meta = xlsread('DCL2013_NEFSC_SBNMS_200903_metadata.xlsx');
-load('DCLDE2013_DCLDE_2013_10_Chan201908101_96_localize_struct.mat')
+load('DCLDE2013_DCLDE_2013_10_Chan201914101_96_localize_struct.mat')
 load('DCLDE2013_RW_DCLDE_2013_10_Chan201908101_96_hyd.mat')
-load('DCLDE2013_RWDCLDE_2013_10_Chan201908101_96_array_struct_data.mat')
+load('DCLDE2013_RWDCLDE_2013_10_Chan201914101_96_array_struct_data.mat')
 clear whereAmI
 
 % Convert met to what GPL expects
@@ -34,6 +34,31 @@ truth.mstart = datenum('20090328', 'yyyymmdd')+truth.BeginTime_s_/86400;
 truth.mend = datenum('20090328', 'yyyymmdd')+truth.EndTime_s_/86400;
 truth.mid = (truth.mend+truth.mstart)/2;
 
+% Create subset of truth data where calls are interleaved
+truth.Sec = (truth.mstart-floor(truth.mstart))*60*60*24;
+truth_sub = truth(truth.BeginTime_s_>=6.49e04 &...
+    truth.BeginTime_s_<= 6.85e04,:);
+
+
+
+% Trim the GPL structure as well
+% correlation)
+localize_struct = trimlocalize_struct(localize_struct,...
+    hyd, .2);
+
+arr_times_sec = localize_struct.hyd(5).rtimes/2000;
+noninterleavedIdx = find(arr_times_sec<6.49e04 | arr_times_sec> 6.85e04);
+
+localize_struct.hyd(5).delays(noninterleavedIdx,:)=[];
+localize_struct.hyd(5).cross_score(noninterleavedIdx,:)=[];
+localize_struct.hyd(5).coord_time(noninterleavedIdx,:)=[];
+localize_struct.hyd(5).rtimes(noninterleavedIdx)=[];
+localize_struct.hyd(5).dex(noninterleavedIdx)=[];
+localize_struct.hyd(5).coordinates(:,:,noninterleavedIdx)=[];
+localize_struct.hyd(5).score(:,noninterleavedIdx)=[];
+localize_struct.hyd(5).detectorScore(noninterleavedIdx)=[];
+
+
 % Get the total number of detections and TP for precision/recall
 %%
 
@@ -46,13 +71,13 @@ examp = struct();
 examp.hydrophone_struct = hydrophone_struct;
 examp.randomMiss =0;
 examp.s = 8;
-examp.child_idx = 1:8;
+examp.child_idx = [1,2,3,4,6]; % local array for 5, [1,2,3,4,6], for 8 master 4:8
 examp.fs =2000;
 examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2; % seconds see EM Nosal 20
-examp.drift = 1;
+examp.drift = 2;
 examp.c =1500; 
-examp.truncateKm=20;
-examp.array_struct = localize_struct.hyd(parent).array;
+examp.truncateKm=18;
+examp.array_struct = array_struct_data(parent).array;
 
 % Create filter grids to knock out ambiguity surfaces where calls can't
 % have come from
@@ -65,32 +90,33 @@ examp.filtGrid = createDetRangeFiltGrid(examp, hydrophone_struct);
 
 % Clip the detections by the correlation threshold and add correlation
 % scores (Get rid of calls with Nan values for the template cross
-% correlation)
-localize_struct_trimmed = trimlocalize_struct(localize_struct,...
-    hyd, .2);
-
-
-% Trim fals positives randomly
-localize_struct_trimmed = trimFalsePositives(localize_struct_trimmed, parent,...
-    hyd, truth, 80);
+ localize_struct_trimmed = trimlocalize_structCrossCorr(...
+     localize_struct, hyd, .8)
 
 % 
 % % % Remove all the delays where the TDOA is greater than the array geometry
 localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
     hyd, examp.drift)
 
-% % Remove calls where cross correlation is 1
-% % Template indexes
-% TemplateIdx = [5942 5816 5687 5614  5599 5559 5530];
-localize_struct_trimmed = trimlocalize_structCrossCorr(...
-    localize_struct_trimmed, hyd)
+% % Trim fals positives randomly
+% localize_struct_trimmed = trimFalsePositives(localize_struct_trimmed, parent,...
+%     hyd, truth, 80);
+% 
+
+
+% 
+% % % Remove calls where cross correlation is 1
+% % % Template indexes
+% % TemplateIdx = [5942 5816 5687 5614  5599 5559 5530];
 
 % 
 % % 
-% Remove rows from the localizatoin structure where the calls are not
-% detected on two or more hydrophones
+% % % 
+% % Remove rows from the localizatoin structure where the calls are not
+% % detected on two or more hydrophones
+% Hydrophone 5 as parent - idxs= 1,2,3,4,6
 mm = sum(~isnan(...
-    localize_struct_trimmed.hyd(5).delays),2)
+    localize_struct_trimmed.hyd(5).cross_score(:, [1,2,3,4,6])),2)
 
 
 badidx = find(mm==0);
@@ -103,17 +129,20 @@ localize_struct_trimmed.hyd(5).coordinates(:,:,badidx)=[];
 localize_struct_trimmed.hyd(5).score(:,badidx)=[];
 localize_struct_trimmed.hyd(5).detectorScore(badidx)=[];
 
-mm = sum(~isnan(...
-    localize_struct_trimmed.hyd(8).delays),2)
-badidx = find(mm==0);
-localize_struct_trimmed.hyd(8).delays(badidx,:)=[];
-localize_struct_trimmed.hyd(8).cross_score(badidx,:)=[];
-localize_struct_trimmed.hyd(8).coord_time(badidx,:)=[];
-localize_struct_trimmed.hyd(8).rtimes(badidx)=[];
-localize_struct_trimmed.hyd(8).dex(badidx)=[];
-localize_struct_trimmed.hyd(8).coordinates(:,:,badidx)=[];
-localize_struct_trimmed.hyd(8).score(:,badidx)=[];
-localize_struct_trimmed.hyd(8).detectorScore(badidx)=[]
+
+
+% % Hydrophone 8 as parent -4:8
+% mm = sum(~isnan(...
+%     localize_struct_trimmed.hyd(5).cross_score(:, [4:8])),2)
+% badidx = find(mm==0);
+% localize_struct_trimmed.hyd(8).delays(badidx,:)=[];
+% localize_struct_trimmed.hyd(8).cross_score(badidx,:)=[];
+% localize_struct_trimmed.hyd(8).coord_time(badidx,:)=[];
+% localize_struct_trimmed.hyd(8).rtimes(badidx)=[];
+% localize_struct_trimmed.hyd(8).dex(badidx)=[];
+% localize_struct_trimmed.hyd(8).coordinates(:,:,badidx)=[];
+% localize_struct_trimmed.hyd(8).score(:,badidx)=[];
+% localize_struct_trimmed.hyd(8).detectorScore(badidx)=[]
 
 
 
@@ -142,8 +171,8 @@ RecallMatAcEnc =PrecisionMatSpatial;
 % Create the basic structure, this needs to be done for every correlation
 % threshold
 
-
 %%
+
 examp.localize_struct =localize_struct_trimmed;
 examp.maxEltTime = max(TimeThreshs);
 examp.callParm =  hyd(parent).detection.parm;
@@ -155,12 +184,13 @@ examp.maxEltTime = max(TimeThreshs);
 exampSpatial = examp;
 exampTDOA = examp;
 exampBaseline = examp;
-% Create simulation matricies (extra large, then trim down as time threshs)
+Results=struct();
+%% Create simulation matricies (extra large, then trim down as time threshs)
 exampSpatial.Sim_mat= simMatMaxofProd(exampSpatial);
 exampTDOA.Sim_mat = simMatTDOAonly(examp);
 exampBaseline.Cluster_id = acEnc(examp);
 
-Results=struct();
+
 %%
 
 for ii = 1:length(simThreshs)
@@ -188,9 +218,9 @@ for ii = 1:length(simThreshs)
             exampBaseline.Cluster_id = acEnc(examp);
             
             % Spatial and baseline
-            [ClusteredSpatial, Detector, ErrorRate,...
+            [ClusteredSpatial, Detector,...
                 gpldatout_chan, FNBaseline] = ...
-                PrecisionRecall(exampSpatial, parent, hyd, truth);
+                PrecisionRecall(exampSpatial, parent, hyd, truth_sub);
             Results.Spatial(ii,jj) = ClusteredSpatial;
             Results.SpatialClusters(ii,jj) = {exampSpatial.Cluster_id};
             Results.GPLTable(ii,jj) = {gpldatout_chan};
@@ -202,14 +232,14 @@ for ii = 1:length(simThreshs)
             
             % TDOA precision/recall
             [ClusteredTDOA, ~] = PrecisionRecall(exampTDOA, parent,...
-                hyd, truth);
+                hyd, truth_sub);
             Results.TDOA(ii,jj) = ClusteredTDOA;
             Results.TDOAClusters(ii,jj) = {exampTDOA.Cluster_id};
             
             
             % Baseline clustering precision recall
             [ClusteredBase, ~] = PrecisionRecall(exampBaseline, parent,...
-                hyd, truth);
+                hyd, truth_sub);
             Results.AcousticEncounters(ii,jj) = ClusteredBase;
             Results.AcousticEncountersClusters(ii,jj) = ...
                 {exampBaseline.Cluster_id};
@@ -219,7 +249,7 @@ for ii = 1:length(simThreshs)
 end
 
 %%
-timeidx =5;
+timeidx =19;
 figure; 
 jitterAmount = 0.000;
 for ii =1:10

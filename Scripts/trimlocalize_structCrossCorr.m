@@ -1,4 +1,4 @@
-function localize_struct_temp = trimlocalize_structCrossCorr(localize_struct, hyd)
+function localize_struct_temp = trimlocalize_structCrossCorr(localize_struct, hyd, thresh)
 
 localize_struct_temp = localize_struct;
 
@@ -11,11 +11,12 @@ for ii = 1: length(localize_struct_temp.hyd)
         
         % Figure out where perfect cross correlation
         
-        unreasonableVals = (localize_struct_temp.hyd(ii).cross_score)> 0.999;
+        lowCrossVals = (localize_struct_temp.hyd(ii).cross_score)<thresh |...
+            isnan(localize_struct_temp.hyd(ii).cross_score);
         
-        localize_struct_temp.hyd(ii).cross_score(unreasonableVals) = nan;
+        localize_struct_temp.hyd(ii).cross_score(lowCrossVals) = nan;
 
-        localize_struct_temp.hyd(ii).delays(unreasonableVals) = nan;
+        localize_struct_temp.hyd(ii).delays(lowCrossVals) = nan;
         
         % index of rows with TDOA's only
         k2 = find(sum(isnan(localize_struct_temp.hyd(ii).cross_score),2) ...

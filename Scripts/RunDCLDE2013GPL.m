@@ -107,7 +107,7 @@
 
 %%
 close all; clear all; clc
-load('parm_RWtrial_kaitlin.mat')
+load('parm_RWtrial_kaitlin_measurements_40_400_kernels.mat')
 load('localizestruct.mat')
 load('arraystruct.mat')
 load('hydrophonestruct.mat')
@@ -133,9 +133,9 @@ localize_struct.parm.pow = 1.5 %FFT power of the call to cross corelate
 num_slates_file=15;
 
 %[filename, pathname]= uigetfile('*.aif');
-
-cwd='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/All';
-cwd ='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/NOPP6_EST_20090328'
+% 
+% cwd='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/All';
+% cwd ='/cache/kpalmer/quick_ssd/data/DCLDE_2013_10Channel/NOPP6_EST_20090328'
 
 cwd ='D:\data\DCL_NEFSC_NARW_upcall_data\NOPP6_EST_20090328'
 cd(cwd)
@@ -190,7 +190,7 @@ start_date = datenum(str2num(extract_date(1:4)),...
 %for file_index=gstart:2
 
 
-for file_index=1:finish
+for file_index=1:3%finish
     
     
     

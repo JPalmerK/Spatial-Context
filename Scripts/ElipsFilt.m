@@ -18,6 +18,9 @@ grid_dx = grid_h/ (length(array_struct.longrid)-1);
 % Maximum swim speed
 s = simStruct.s;
 
+
+
+
 % Maximum swim distance
 msd = gather(s*time_gaps);
 th = 0:0.01:2*pi;
@@ -48,7 +51,7 @@ for ii=2:length(msd)
     
     % If the last ambiguity space was all ones, the next one will be too so
     % just skip the dialation filter and use the filter
-    if sum(sum(AS_propagated(:,:,ii-1)))< sum(filt(:))
+
         
         % Create the eliptical swim filter
         swim_filter_x = 0:grid_dx:msd(ii)+grid_dx;
@@ -76,9 +79,7 @@ for ii=2:length(msd)
             col_idx(1):col_idx(2),ii) = dialateVal;
         
         AS_propagated(:,:,ii)=AS_propagated(:,:,ii).*filt;
-    else
-        AS_propagated(:,:,ii)=filt;
-    end
+
     
     
     

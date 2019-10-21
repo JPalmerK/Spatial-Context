@@ -1,4 +1,5 @@
-function [Clustered, Detector, ErrorRate, gpldatout_chan, FNBaseline] = PrecisionRecall(examp, parent, hyd, truth)
+function [Clustered, Detector, RavenTable, FNBaseline] = ...
+    PrecisionRecall(examp, parent, hyd, truth)
 
 % Input -
 % Examp: simulation class object pre-processed for similarity matrix
@@ -97,7 +98,10 @@ hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
     idxTruth = find(truth.LowFreq_Hz_< hyd(parent).detection.parm.freq_hi);
     truth_trimmed = truth(idxTruth,:);
     truth_trimmed = truth_trimmed(truth_trimmed.Channel==parent,:);
+    truth_trimmed.Sec = (truth_trimmed.mstart-min(truth_trimmed.mstart))*60*60*24;
     truth_temp = truth_trimmed;
+    
+    % Add some variables to the GPL Raven table for comparison
     RavenTable = RavenTable(RavenTable.Channel == parent,:);
     RavenTable.mstart = datenum('20090328', 'yyyymmdd')+...
         RavenTable.BeginS/86400;
@@ -105,6 +109,13 @@ hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
     RavenTable.spp = repmat({'unknown'}, [height(RavenTable),1]);
     
     
+    %Trim to periods where calls interleave
+    RavenTable.Sec = (RavenTable.mstart-floor(RavenTable.mstart))*60*60*24;
+    RavenTable = RavenTable(RavenTable.Sec>=min(truth_trimmed.BeginTime_s_) &...
+        RavenTable.Sec<= max(truth_trimmed.BeginTime_s_),:);
+   
+    
+    % Overlap between the GPL detections and truth
     wiggleroom_days = .3/60/60/24;
     
     % Link truth species classifications with GPL detections. Add species to
@@ -132,31 +143,29 @@ hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
         
     end
     
-    
-    gpldatout = RavenTable;
-    % Pull out the parent channel for comparison
-    gpldatout_chan = gpldatout(gpldatout.Channel == parent,:);
-    gpldatout_chan.voting= zeros([height(gpldatout_chan),1])/0;
-    cluster_ids = unique(gpldatout_chan.ClusterId);
+    RavenTable.voting= zeros([height(RavenTable),1])/0;
+    cluster_ids = unique(RavenTable.ClusterId);
     
     for jj = 1:length(cluster_ids)
         
         clus = cluster_ids(jj);
         
-        corrScores = gpldatout_chan.Scores(gpldatout_chan.ClusterId==clus);
+        corrScores = RavenTable.Scores(RavenTable.ClusterId==clus);
         corrScores = corrScores(~isnan(corrScores));
         %LR = geomean(corrScores);
         %LR = max(corrScores);
         LR = log(prod(corrScores./(1.00001-corrScores)))/length(corrScores);
-        gpldatout_chan.voting(gpldatout_chan.ClusterId==clus)=LR;
+        RavenTable.voting(RavenTable.ClusterId==clus)=LR;
         
         
         
     end
     
     % threhsold scores for calculating precision recall
-    scores = sort(unique(log(gpldatout_chan.Scores./...
-        (1.0000001 - gpldatout_chan.Scores))));
+    RavenTable.LRscores = log(RavenTable.Scores./...
+        (1.0000001 - RavenTable.Scores));
+    
+    scores = unique(RavenTable.LRscores);
     
     
     %Pre allocate output
@@ -171,58 +180,52 @@ hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
     
     % False positives that were missed
     FNBaseline = length(find(strcmp(truth_temp.Species, 'rw')));
+    FNBaseline =0;
     
-    
-    for ii = 1:length(scores)
+    for jj = 1:length(scores)
         
-        TP = length(find...
-            (log(gpldatout_chan.Scores./(1-gpldatout_chan.Scores)) >= ...
-            scores(ii) &...
-            strcmp(gpldatout_chan.spp, 'rw')));
+        % Detector only Precision Recall
+        TP(jj) = sum((RavenTable.LRscores >= scores(jj)).*...
+                        strcmp(RavenTable.spp, 'rw'));
+       
         
         % Labeled right whale but were not right whale
-        FP = length(find(...
-            log((gpldatout_chan.Scores./(1-gpldatout_chan.Scores))) >= ...
-            scores(ii)&...
-            ~strcmp(gpldatout_chan.spp, 'rw')));
+        FP(jj) = sum((RavenTable.LRscores >= scores(jj)).*...
+                    ~strcmp(RavenTable.spp, 'rw'));
         
         % Not labeled right whale but were right whale
-        FN = FNBaseline + length(find...
-            (log((gpldatout_chan.Scores./(1-gpldatout_chan.Scores))) <...
-            scores(ii)&...
-            strcmp(gpldatout_chan.spp, 'rw')));
+        FN(jj) = FNBaseline + ...
+                    sum((RavenTable.LRscores < scores(jj)).*...
+                        strcmp(RavenTable.spp, 'rw'));
         
-        RecallDetOnly(ii) = TP/(TP+FN);
-        PrecisionDetOnly(ii) = TP/(TP+FP);
-        ErrorRateDetector(ii) = 1-(TP/length(find(...
-            (log((gpldatout_chan.Scores./(1-gpldatout_chan.Scores))) >=...
-            scores(ii)))));
-        
+
         
         % Number of detections that were labeled RW and were in agreement with the
         % truth value
-        TPv = length(find(gpldatout_chan.voting >= (scores(ii))&...
-            strcmp(gpldatout_chan.spp, 'rw')));
+        TPv(jj) = sum((RavenTable.voting >= (scores(jj))).*...
+                        strcmp(RavenTable.spp, 'rw'));
         
         % Labeled right whale but were not right whale
-        FPv = length(find(gpldatout_chan.voting >= (scores(ii))&...
-            ~strcmp(gpldatout_chan.spp, 'rw')));
+        FPv(jj) = sum((RavenTable.voting >= (scores(jj))).*...
+                        ~strcmp(RavenTable.spp, 'rw'));
         
         % Not labeled right whale but were right whale
-        FNv = FNBaseline+ length(find(gpldatout_chan.voting <...
-            (scores(ii))&....
-            strcmp(gpldatout_chan.spp, 'rw')));
-        
-        % Add detections that were trimmed via thresholding to the fn's
-        RecallClustered(ii)= TPv/(TPv+FNv);
-        PrecisionClustered(ii) = TPv/(TPv+FPv);
-        ErrorRateClustered(ii) = 1-(TPv/length(find(...
-            (gpldatout_chan.voting >= scores(ii)))));
-        
-        
+        FNv(jj) = FNBaseline+ ...
+                    sum((RavenTable.voting <(scores(jj))).*....
+                    strcmp(RavenTable.spp, 'rw')); 
         
     end
     
+    
+    RecallDetOnly = TP./(TP+FN);
+    PrecisionDetOnly = TP./(TP+FP);
+
+    
+    
+    % Add detections that were trimmed via thresholding to the fn's
+    RecallClustered= TPv./(TPv+FNv);
+    PrecisionClustered = TPv./(TPv+FPv);
+
     
     Clustered= struct();
     Clustered.Precision = PrecisionClustered;
@@ -233,9 +236,6 @@ hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
     Detector.Precision = PrecisionDetOnly;
     Detector.Recall =RecallDetOnly;
     
-    ErrorRate=struct();
-    ErrorRate.Detector = ErrorRateDetector;
-    ErrorRate.Clustered = ErrorRateClustered;
     
     
     

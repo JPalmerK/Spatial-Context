@@ -86,6 +86,9 @@ for ii =1:size(arrivalArray,1)
     
     time_gaps = time_gaps(1:idx_end);
     
+    % Create hard rule, if greater than 20 minutes we aren't going to consider it
+    time_gaps = time_gaps(time_gaps<(15*60));
+    
     Lklhd_space_proj_out =  ElipsFilt(simStruct,averageLklhd_space, time_gaps,...
         grid_v,grid_h, ii);
     
@@ -124,19 +127,16 @@ for ii =1:size(arrivalArray,1)
        
         
 
-        AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3)/2;
-        %Stic
-        kk =(nextLklhdSpace-Lklhd_space_proj);
+        AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3);
+%         %Stic
+%         kk =(nextLklhdSpace-Lklhd_space_proj);
+%         sim = sum(abs(kk(:)))/...
+%             sum(sum( prod(simStruct.filtGrid(:,:,hydIDsChildDet),3)));
         
-      
-        
-        sim = sum(abs(kk(:)))/...
-            sum(sum( prod(simStruct.filtGrid(:,:,hydIDsChildDet),3)));
-%         
-%         sim = max(AScompare(:));
-%         sim = Lklhd_space_proj./nextLklhdSpace;
+        sim = max(AScompare(:));
 
-        simValue(jj)=  1-sim;
+
+        simValue(jj)=  sim;
     end
     
     Sim_mat(ii, ii:ii+length(simValue)-1)= simValue;
