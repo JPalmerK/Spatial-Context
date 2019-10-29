@@ -36,7 +36,8 @@ for ii =1:(size(simStruct.TDOA_vals,1))
     for jj=1:size(deltaTDOA,2)
         
         mu = zeros(size(TDOA_next,1),1);
-        sigmaSwim = 2* sqrt(simStruct.drift^2+ (elapsedTime * (simStruct.s)/simStruct.c).^2);
+        sigmaSwim = 2* sqrt(simStruct.drift^2+ (elapsedTime *...
+            (simStruct.s)/simStruct.c).^2);
         x =deltaTDOA(:,jj); %values
         
         likelihood = normpdf(x,mu,sigmaSwim);

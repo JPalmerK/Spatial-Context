@@ -4,9 +4,20 @@ function chain = updateChainsEncounterFirst(obj)
 
 % Use the similarity matrix to update the cluster chains
 
+% If similarity matrix was pre-allocated, recreate it
 
+if ismatrix(obj.Sim_mat)
 % Pull out a bunch of the variables to make life easier
 simmat= (obj.Sim_mat); % The similarity matrix
+else
+
+    % Pull out the similarity values for each call
+    
+end
+
+
+
+
 arrivalArray = (obj.arrivalArray); % Arrival times for the calls
 max_gap = obj.maxEltTime; % user parameter
 simthresh = obj.cutoff;% user parameter
