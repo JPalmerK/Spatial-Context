@@ -61,6 +61,7 @@ hyd_idx = [parent  localize_struct.hyd(parent).array.slave];
         % Detector Scores
         if hyd_id==parent
             scores = localize_struct.hyd(parent).detectorScore(arra_ids);
+            scores = reshape(scores,[length(scores),1 ]);
         else
             scores = zeros(size(narrivals))/0;
         end

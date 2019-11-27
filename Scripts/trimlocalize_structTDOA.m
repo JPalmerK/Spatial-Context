@@ -1,4 +1,7 @@
-function localize_struct_temp = trimlocalize_structTDOA(localize_struct, hyd, driftSec)
+function localize_struct_temp = trimlocalize_structTDOA(localize_struct,...
+    hyd, driftSec, array)
+
+
 
 localize_struct_temp = localize_struct;
 
@@ -8,13 +11,16 @@ localize_struct_temp = localize_struct;
 for ii = 1: length(localize_struct_temp.hyd)
     
     if ~isempty(localize_struct.hyd(ii).delays)
+        if nargin==3
+            array = localize_struct_temp.hyd(ii).array;
+        end
         
-
-        for jj = 2:length(localize_struct_temp.hyd(ii).array.toa_diff)
+        
+        for jj = 2:length(array.toa_diff)
             
             % Minimum allowable TDOA
             minTDOA = min(min(...
-                localize_struct_temp.hyd(ii).array.toa_diff{jj})); 
+                array.toa_diff{jj})); 
            
             
             % calls under the tdoa
@@ -23,7 +29,7 @@ for ii = 1: length(localize_struct_temp.hyd)
             localize_struct_temp.hyd(ii).delays(badIdx,jj-1) = nan;
             
             maxTDOA = max(max(...
-                localize_struct_temp.hyd(ii).array.toa_diff{jj}));
+                array.toa_diff{jj}));
             
             badIdx = localize_struct_temp.hyd(ii).delays(:,jj-1)>=...
                 (maxTDOA +  driftSec); 
@@ -65,6 +71,11 @@ for ii = 1: length(localize_struct_temp.hyd)
         if isfield(localize_struct_temp.hyd(ii), 'detectorScore')
             localize_struct_temp.hyd(ii).detectorScore=...
                  localize_struct_temp.hyd(ii).detectorScore(k2);
+        end
+        
+        if isfield(localize_struct_temp.hyd(ii), 'pruned')
+            localize_struct_temp.hyd(ii).pruned=...
+                localize_struct_temp.hyd(ii).pruned(k2);
         end
         
     end

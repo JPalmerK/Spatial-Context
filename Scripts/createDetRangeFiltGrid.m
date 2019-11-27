@@ -26,8 +26,11 @@ grid_dx = grid_h/ (length(array_struct.longrid)-1);
 grid_dy = grid_v/ (length(array_struct.latgrid)-1);
 grid_dx = grid_h/ (length(array_struct.longrid)-1);
 
-filt_grid = zeros([size(array_struct.toa_diff{2}), 10]);
+filt_grid = zeros([size(array_struct.toa_diff{2}), length(hydrophone_struct)]);
 hyd_idx = zeros(length(hydrophone_struct),2);
+
+% Half normal distance function
+pd4 = @(beta,sig,y) 1-exp(-(y/sig).^-beta);
 
 % Detection Probability bubbles
 for ii =1:length(hydrophone_struct)
@@ -39,11 +42,15 @@ for ii =1:length(hydrophone_struct)
     
     [Fx,Fy] = meshgrid(swim_filter_x, swim_filter_y);
     SD = sqrt(Fx.^2 + Fy.^2);
+%     
+%     
+%     F = 0*SD;
+%     F((SD <= truncateKm*1000)) = 1;
     
-    F = 0*SD;
-    F((SD <= truncateKm*1000)) = 1;
+    pdfHyd =  pd4(2,18000,SD);
+    pdfHyd(pdfHyd<0.001)=0;
     
-    filt_grid(:,:,ii) = F;
+    filt_grid(:,:,ii) = pdfHyd;
     hyd_idx(ii,1) = lat_dy;
     hyd_idx(ii,2) = lon_dx;
     

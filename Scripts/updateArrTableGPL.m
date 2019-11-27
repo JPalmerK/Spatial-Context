@@ -37,7 +37,13 @@ at = table(...
     TDOA,...
     idx,...
     'VariableNames',{'ArrivalSec', 'Location','CrossScore', 'TDOA', 'dex'});
-at.ID = zeros(height(at),1)/0;
+
+if isfield(obj.localize_struct.hyd, 'pruned')
+    at.ID = obj.localize_struct.hyd(parent).pruned';
+else
+    at.ID = zeros(height(at),1)/0;
+end
+
 % Clear out any detections greater than Xkm from the receiver
 
 

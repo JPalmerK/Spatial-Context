@@ -128,11 +128,6 @@ for ii =1:size(arrivalArray,1)
         
 
         AScompare = prod(cat(3,Lklhd_space_proj, nextLklhdSpace),3);
-%         %Stic
-%         kk =(nextLklhdSpace-Lklhd_space_proj);
-%         sim = sum(abs(kk(:)))/...
-%             sum(sum( prod(simStruct.filtGrid(:,:,hydIDsChildDet),3)));
-        
         sim = max(AScompare(:));
 
 

@@ -1,5 +1,5 @@
 function localize_struct_temp = trimlocalize_struct(localize_struct, hyd, corrThresh)
-% comments
+% Trim the localize structure based on detector scores
 localize_struct_temp = localize_struct;
 
 
@@ -12,20 +12,9 @@ for ii = 1: length(localize_struct_temp.hyd)
         % Get the id's of the calls that were detected by two or mor hydrophone and
         % with cross correlation scores above
         
-        scores = cat(1,hyd(ii).detection.calls.calltype_1_score);
-        UpcallIDX = find(scores>=corrThresh);
+        k2 = find(localize_struct_temp.hyd(ii).detectorScore>=corrThresh);
         
         
-        
-        % Now get the call id's represented by the calls for good matches. Localize
-        % struct contains the calls that were detected on two or more channels
-        UpcallCallIDs = intersect(UpcallIDX, localize_struct_temp.hyd(ii).dex);
-        
-        
-        k2 = find(ismember(localize_struct_temp.hyd(ii).dex,UpcallCallIDs));
-        
-        % copy the scores the scores
-         localize_struct_temp.hyd(ii).detectorScore = scores(UpcallCallIDs);
         
         % More comments needed!
         
@@ -49,6 +38,17 @@ for ii = 1: length(localize_struct_temp.hyd)
         
         % and delays (not dealing with CC matrix atm)
         localize_struct_temp.hyd(ii).delays = localize_struct_temp.hyd(ii).delays(k2,:);
+        
+        % and delays (not dealing with CC matrix atm)
+        localize_struct_temp.hyd(ii).detectorScore = ...
+            localize_struct_temp.hyd(ii).detectorScore(k2);
+        
+        
+        if isfield(localize_struct_temp.hyd(ii), 'pruned')
+            localize_struct_temp.hyd(ii).pruned=...
+                localize_struct_temp.hyd(ii).pruned(k2);
+        end
+        
     end
     
 end

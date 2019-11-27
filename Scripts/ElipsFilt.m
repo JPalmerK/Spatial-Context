@@ -33,7 +33,7 @@ AS_propagated = zeros([...
     length(time_gaps)]);
 
 
-% Trim the average likelhiood space
+% Trim the average likelhiood space 
 AS_propagated(:,:,1) = (averageLklhd_space).*filt;
 
 [row,col] = find(filt>0.00);

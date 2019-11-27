@@ -19,8 +19,8 @@ for ii = 1: length(localize_struct_temp.hyd)
         localize_struct_temp.hyd(ii).delays(lowCrossVals) = nan;
         
         % index of rows with TDOA's only
-        k2 = find(sum(isnan(localize_struct_temp.hyd(ii).cross_score),2) ...
-            < length(localize_struct_temp.hyd));
+        k2 = find(sum(~isnan(localize_struct_temp.hyd(ii).cross_score),2) ...
+            > 0);
 
         % Trim calls
         localize_struct_temp.hyd(ii).score = localize_struct_temp.hyd(ii).score(:,k2);
@@ -47,6 +47,14 @@ for ii = 1: length(localize_struct_temp.hyd)
             localize_struct_temp.hyd(ii).detectorScore=...
                 localize_struct_temp.hyd(ii).detectorScore(k2);
         end
+        
+        if isfield(localize_struct_temp.hyd(ii), 'pruned')
+            localize_struct_temp.hyd(ii).pruned=...
+                localize_struct_temp.hyd(ii).pruned(k2);
+        end
+        
+        
+        
     end
     
 end

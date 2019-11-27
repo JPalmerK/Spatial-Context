@@ -9,7 +9,7 @@
             child_idx = obj.child_idx(~isnan(delays));
             averageLklhd_space = zeros([length(obj.array_struct.latgrid),...
                 length(obj.array_struct.longrid),...
-                length(child_idx)]);
+                length(child_idx)])/0;
 
             
             child_hyds = obj.array_struct.slave(obj.child_idx);
@@ -28,7 +28,6 @@
                     
                     % Delta TOA space
                     averageLklhd_space(:,:,ii) = (toa_space - delays(ii));
-                end
 %                 
 %                 figure;
 %                 contourf(obj.array_struct.longrid, obj.array_struct.latgrid, (averageLklhd_space(:,:,ii)))
@@ -36,6 +35,8 @@
 %                 caxis([-3 3])
 %                 hold on
 %                 scatter(obj.arrivalArray(callIdx,end-1), obj.arrivalArray(callIdx,end-2))
+                end
+                
             end
 
         end

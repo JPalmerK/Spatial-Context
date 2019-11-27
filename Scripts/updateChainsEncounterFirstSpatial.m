@@ -1,4 +1,4 @@
-function chain = updateChainsEncounterFirst(obj)
+function chain = updateChainsEncounterFirstSpatial(obj)
 % Use the similarity matrix to update the cluster chains
 
 
@@ -39,8 +39,6 @@ dataTable.ArrivalTimes = arrivalArray(:,1); % Arrival time on the parent
 dataTable.TrueCluster = arrivalArray(:,end); % Dummy, unused for testing
 dataTable.Scores = cat(1,obj.localize_struct.hyd(obj.array_struct.master).detectorScore');
 dataTable.dex = cat(1,obj.localize_struct.hyd(obj.array_struct.master).dex)';
-
-
 % Demarkate the acoustic encounters in the datatable
 for ii=1:length(acousticEncounterBreaks)
     
@@ -87,18 +85,15 @@ for ii=1:length(unique(dataTable.AcousticEncounters))
         disp('NAN similarity score encountered')
     end
     
+    % Testing
+    if length(unique(encounterSub.TrueCluster))>1
+        disp('blarg')
+    end
     
-    % If all scores the same, make the cluster
-    if all(encounterSub.SimScore==1)
+    if  ismember(747, encounterSub.TrueIDs)
+        disp('blarg')
+    end
         
-        
-            chain(clusterID).index = ...
-                encounterSub.TrueIDs(encounterSub.Clustered==1);
-            clusterID=clusterID+1;
-        
-    else
-    
-    
     % Step throug the acoustic encounter making sub encounters where the
     % spatial contex matches up
     while height(encounterSub)>0
@@ -152,15 +147,19 @@ for ii=1:length(unique(dataTable.AcousticEncounters))
         % iterator to the next most similar call (above threshold) and add
         % it to the acoustic encounter
         else
-
+            
+            
+            
             
             % Take the geometric mean of the delta time, detector score and
-%             %spatial similarity. Pick the best
+%             % spatial similarity. Pick the best
 %             meanVals = geomean(...
-%                 [1-encounterSub.SimScore(goodIDs),...
-%                 abs(encounterSub.Scores(1)-encounterSub.Scores(goodIDs))],2);
-
-            meanVals= encounterSub.SimScore(goodIDs);
+%                 [encounterSub.SimScore(goodIDs),...
+%                 abs(encounterSub.Scores(1)-encounterSub.Scores(goodIDs)),...
+%                 encounterSub.ElapsedTime(goodIDs)],2);
+            
+            meanVals = encounterSub.SimScore(goodIDs);
+            
             % Find which of the 'goodID' had the highest similarity score
             [~, maxIDx]=max(meanVals);
             
@@ -188,7 +187,6 @@ for ii=1:length(unique(dataTable.AcousticEncounters))
             
         end
         
-    end
     end
     
     

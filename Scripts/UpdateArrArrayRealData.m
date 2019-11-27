@@ -12,7 +12,7 @@ function array = UpdateArrArrayRealData(simStruct)
 % reference
 if isfield(simStruct, {'calls'}) && ~isempty(simStruct.calls)
     disp('GPL Calls Detected, array ID variable being filled by dex')
-    IDval = simStruct.arrivalTable.dex+1; % Bug in GPL code leave this in until recieved fix from Tyler XXX
+    IDval = simStruct.arrivalTable.dex ;
 else
     IDval = simStruct.arrivalTable.ID;
 end
@@ -28,9 +28,7 @@ array = [simStruct.arrivalTable.ArrivalSec(:,...
 % Remove calls that weren't detected on the parent hydrophone
 array = array(~isnan(array(:,1)),:);
 
-% At least 1 tdoa value needed, therefore remove any calls
-% (master) where there aren't at least two arrivals
-array = array(sum(~isnan(array(:,1:end)),2)>= 2,:);
+simStruct.arrivalTable(~isnan(array(:,1)),:);
 
 
 
@@ -39,7 +37,8 @@ array = array(sum(~isnan(array(:,1:end)),2)>= 2,:);
 [~,sortidx] = sort(array(:,1));
 array = (array(sortidx,:));
 
-
+% Sort the arrival table as well since dex is used elseware
+simStruct.arrivalTable = simStruct.arrivalTable(sortidx,:);
 
 
 
