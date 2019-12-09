@@ -114,6 +114,7 @@ load('D:\ReginaGrayWhaleDetections\ReginaGPL_Erdata\parameter structures\regina_
 % Pruned file loc
 flocValid = 'D:\ReginaGrayWhaleDetections\ReginaGPL_Erdata\Pruned_detection_files\'
 
+% time (in days) allowable for assoication
 wiggleroom = .5/60/60/24;
 
 % Load the first detection file with validation (prune) notes
@@ -126,6 +127,13 @@ currentPartitian = 1;
 pruned = zeros(length(localize_struct.hyd.dex),1)/0;
 mDates = pruned;
 det_score = pruned;
+
+% 'Pruned' is what GPL/Localization code uses to denote annotations. A
+% detection that has been 'pruned' as type 1 means the user ascribed the
+% detection to call type 1. For this work call type 1 is the gray whale M3
+% call (what we are after). pruned value 0 means noise and pruned value 2
+% are detections annotated as fin whales
+
 
 % Location of the unverified detection files
 flocUnverf = 'D:\ReginaGrayWhaleDetections\GraniteCanyonNonValid\';
@@ -191,8 +199,8 @@ end
 
 
 
-localize_struct.hyd.pruned = pruned;
-localize_struct.hyd.detectorScore = det_score;
+localize_struct.hyd.pruned = pruned';
+localize_struct.hyd.detectorScore = det_score';
 localize_struct.hyd.mdate = mDates;
 
 
@@ -330,10 +338,8 @@ exampTDOA.Sim_mat = simMatTDOAonly(examp);
 exampBaseline.Sim_mat = ones(size(exampTDOA.Sim_mat));
 %%
 
-simThreshsSpatial = (linspace(.9,.99,8));
-simThreshs = linspace(.01,.99, 8);
-TimeThreshs = fliplr(linspace(50,250,5));
-corrThresh = fliplr(linspace(0.1,.8,15));
+simThreshs = linspace(.1,.98, 9);
+TimeThreshs = fliplr(linspace(30,300,10));
 
 ExperimentTDOA = struct();
 ExperimentMaxProd = struct();
@@ -358,7 +364,7 @@ nmi_spatial = nmi_baseline;
 
 for ii = 1:length(simThreshs)
     simThresh = simThreshs(ii);
-    exampSpatial.cutoff = simThreshsSpatial(ii);
+    exampSpatial.cutoff = simThresh;
     exampTDOA.cutoff = simThresh;
     exampBaseline.cutoff=.5;
     disp('next simThresh')
@@ -372,7 +378,7 @@ for ii = 1:length(simThreshs)
            
             
             % Run the clustering spatial
-            exampSpatial.chains = updateChainsEncounterFirstSpatial(exampSpatial);
+            exampSpatial.chains = updateChainsEncounterFirst(exampSpatial);
             exampSpatial.Cluster_id= updateClusterID(exampSpatial);
             
             %Run the clustering TDOA
@@ -418,6 +424,50 @@ for ii = 1:length(simThreshs)
     disp('Finish Sim Thres Iter')
 end
 
+%% Create a nice plot
+
+simIdx =2;
+figure
+hold on
+
+for jj=1:length(TimeThreshs)
+    timeidx =jj;
+    
+        
+        
+        subplot(1,3,1)
+        hold on
+        plot(Results.TDOA(simIdx,timeidx).Recall,...
+            Results.TDOA(simIdx,timeidx).Precision, '.-',...
+            'color',[230/255 159/255 0/255])
+        plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+         xlabel('Recall'); ylabel('Precision');
+        title('TDOA')
+        
+        subplot(1,3,2)
+        hold on
+        plot(Results.Spatial(simIdx,timeidx).Recall,...
+            Results.Spatial(simIdx,timeidx).Precision, '.-',...
+            'color',[86/255 180/255 233/255])
+        plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+         xlabel('Recall'); ylabel('Precision');
+        title('Ambiguity Surface Method')
+        
+        subplot(1,3,3)
+        hold on
+        plot(Results.AcousticEncounters(simIdx,timeidx).Recall,...
+            Results.AcousticEncounters(simIdx,timeidx).Precision, '.-',...
+            'color',[0/255 158/255 115/255])
+        plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        xlabel('Recall'); ylabel('Precision');
+        title('Acoustic Encounters')
+        
+        
+    
+end
 %%
 close all
 jitterAmount = 0.000;

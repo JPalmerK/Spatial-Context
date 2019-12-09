@@ -19,47 +19,48 @@ for n=local_array
     end
 end
 
-sz2 = zeros(1,length(hyd(local_array(1)).detection.calls));
-sf2 = zeros(length(hyd(local_array(1)).detection.calls),2);
+callsDurFFTStart = zeros(1,length(hyd(local_array(1)).detection.calls));
+callsStartEnd = zeros(length(hyd(local_array(1)).detection.calls),2);
 
 for k=1:length(hyd(local_array(1)).detection.calls)
     
-    sz2(k) = (hyd(local_array(1)).detection.calls(k).end_time ...
+    callsDurFFTStart(k) = (hyd(local_array(1)).detection.calls(k).end_time ...
         - hyd(local_array(1)).detection.calls(k).start_time +1)/skip;
-    sf2(k,:)=[hyd(local_array(1)).detection.calls(k).start_time,...
+    callsStartEnd(k,:)=[hyd(local_array(1)).detection.calls(k).start_time,...
         hyd(local_array(1)).detection.calls(k).end_time];
 end
 
 for i1=2:length(local_array)
     clear sf1 sz1
-    disp(num2str(i1))
+    disp(['Checking hydrophone ', num2str(i1), 'of ', num2str(length(local_array))])
     %i1
     % backwards compatible
     if isfield(array_struct(array_number),'phase') ==0
-        phase=localize_struct.phase;
+        %phase=localize_struct.phase;
+        phase=localize_struct.parm.phase; % KJP change 10/22/19
     else
         phase=array_struct(array_number).phase(i1-1);
     end
     
-    sz1 = zeros(1,length(hyd(local_array(i1)).detection.calls));
-    sf1 = zeros(length(hyd(local_array(i1)).detection.calls),2);
+    callsSlaveDurfftSamp = zeros(1,length(hyd(local_array(i1)).detection.calls));
+    callsSlvStartEnd = zeros(length(hyd(local_array(i1)).detection.calls),2);
     
     for k=1:length(hyd(local_array(i1)).detection.calls)
         
         % duration of call in bins
-        sz1(k) = (hyd(local_array(i1)).detection.calls(k).end_time ...
+        callsSlaveDurfftSamp(k) = (hyd(local_array(i1)).detection.calls(k).end_time ...
             - hyd(local_array(i1)).detection.calls(k).start_time +1)/skip;
         
         % start and end call times in samples
-        sf1(k,:)=[hyd(local_array(i1)).detection.calls(k).start_time,...
+        callsSlvStartEnd(k,:)=[hyd(local_array(i1)).detection.calls(k).start_time,...
             hyd(local_array(i1)).detection.calls(k).end_time];
     end
     
     % array length bins (samples/fft skip) for last call
-    diss=zeros(1,ceil(sf1(end,2)/skip));
+    diss=zeros(1,ceil(callsSlvStartEnd(end,2)/skip));
     
     % Bin index of start times
-    dex=round((sf1(:,1)-1)/skip);
+    Bindex=round((callsSlvStartEnd(:,1)-1)/skip);
     
     % For each call, 
     for k=1:length(hyd(local_array(i1)).detection.calls)
@@ -68,24 +69,28 @@ for i1=2:length(local_array)
             hyd(local_array(i1)).detection.calls).^(2*pow));
         
         % Fill in the energy sums?
-        diss(dex(k)+1:dex(k)+sz1(k))=den;
+        diss(Bindex(k)+1:Bindex(k)+callsSlaveDurfftSamp(k))=den;
     end
-    
-    kstart=find(sf2(:,1)-phase*skip>sf1(1,1));
-    
+    % Find calls on the master with start times greater than the first
+    % Slave index
+    kstart=find(callsStartEnd(:,1)-phase*skip>callsSlvStartEnd(1,1));
+    % Set the start index to the first call on the master that occures
+    % after the first call on the slave hydrophone
     if(~isempty(kstart > 0))
         kstart=kstart(1);
     end
-    
-    kend=find(sf2(:,2)+phase*skip<=sf1(end,2));
-    
+    % last call on the master worth looking at
+    kend=find(callsStartEnd(:,2)+phase*skip<=callsSlvStartEnd(end,2));
+    % Index of the last call to consider
     if(~isempty(kend > 0))
         kend=kend(end)-num_calls;
     end
     
+    % Array,two times the phase (rows), columns as many as detections
+    pprod=zeros(2*phase+1,...
+        length(hyd(local_array(1)).detection.calls));
     
-    pprod=zeros(2*phase+1,length(hyd(local_array(1)).detection.calls));
-    
+    % If there is something in the index starts and end
     if (~isempty(kstart > 0) && ~isempty(kend > 0) && kend >= kstart)
         
         clear num_bs den_b den_s % reset for each master-slave
@@ -95,9 +100,9 @@ for i1=2:length(local_array)
             kk=kstart;
             for ic=1:num_calls
                 base=GPL_full('cm_max',kk+ic,hyd(local_array(1)).detection.calls).^pow;
-                tim=sf2(kk+ic,:);
+                tim=callsStartEnd(kk+ic,:);
                 %[b1,b2]=size(base);
-                b2 = size(base,2);
+                baseSize = size(base,2);
                 
                 [x,y]=find(base);
                 lower=min(x); upper=max(x);
@@ -105,12 +110,12 @@ for i1=2:length(local_array)
                 den_base(ic)=sum(sum(base.^2));
                 
                 interval=[tim(1)-phase*skip,tim(2)+phase*skip];
-                k1=find(sf1(:,1)<=interval(1));k1=k1(end);
-                k2=find(sf1(:,2)>=interval(2));k2=k2(1);
+                k1=find(callsSlvStartEnd(:,1)<=interval(1));k1=k1(end);
+                k2=find(callsSlvStartEnd(:,2)>=interval(2));k2=k2(1);
                 
-                subset=zeros(nfreq,round((sf1(k2,2)-sf1(k1,1)+1)/skip) );
+                subset=zeros(nfreq,round((callsSlvStartEnd(k2,2)-callsSlvStartEnd(k1,1)+1)/skip) );
                 for j=k1:k2
-                    start=round((sf1(j,1)-sf1(k1,1))/skip); % round in case of noninteger
+                    start=round((callsSlvStartEnd(j,1)-callsSlvStartEnd(k1,1))/skip); % round in case of noninteger
                     add=GPL_full('cm_max',j,hyd(local_array(i1)).detection.calls).^pow;
                     
                     %[s1,s2]=size(add);
@@ -118,12 +123,12 @@ for i1=2:length(local_array)
                     subset(:,start+1:start+s2)=add;
                 end
                 
-                int_close=[sf1(k1,1),sf1(k2,2)];
+                int_close=[callsSlvStartEnd(k1,1),callsSlvStartEnd(k2,2)];
                 cut1=round((interval(1)-int_close(1))/skip);
                 
-                subset=subset(:,cut1+1:cut1+b2+2*phase);
+                subset=subset(:,cut1+1:cut1+baseSize+2*phase);
                 for j=1:(2*phase)+1
-                    slate=subset(:,j:b2+j-1);
+                    slate=subset(:,j:baseSize+j-1);
                     slate=slate(lower:upper,min(y):max(y));
                     num_bs(ic,j)=sum(sum(base.*slate));
                 end
@@ -134,11 +139,12 @@ for i1=2:length(local_array)
             
             den_s = zeros(1,2*phase+1);
             for j=1:(2*phase+1)
-                lm=round([(sf2(kk+1,1)-1)/skip,sf2(kk+num_calls,2)/skip])+j-1-phase;
+                lm=round([(callsStartEnd(kk+1,1)-1)/skip,callsStartEnd(kk+num_calls,2)/skip])+j-1-phase;
                 den_s(j)=sum(diss(lm(1):lm(2)));
             end
             pprod(:,kk)=(sum(num_bs)./den_s.^.5/den_b^.5)';
-            k=find(den_s==0);pprod(k,kk)=0;  % safety valve!
+            k=find(den_s==0);
+            pprod(k,kk)=0;  % safety valve!
             for kk=kstart+1:kend
                 disp([num2str(kk) ' of ' num2str(kend)])
                 
@@ -147,9 +153,9 @@ for i1=2:length(local_array)
                 %             end
                 
                 base=GPL_full('cm_max',kk+num_calls,hyd(local_array(1)).detection.calls).^pow;
-                tim=sf2(kk+num_calls,:);
+                tim=callsStartEnd(kk+num_calls,:);
                 %[b1,b2]=size(base);
-                b2 = size(base,2);
+                baseSize = size(base,2);
                 
                 [x,y]=find(base);
                 lower=min(x); upper=max(x);
@@ -161,20 +167,22 @@ for i1=2:length(local_array)
                 den_base(num_calls)=sum(sum(base.^2));
                 
                 interval=[tim(1)-phase*skip,tim(2)+phase*skip];
-                k1=find(sf1(:,1)<=interval(1));
+                k1=find(callsSlvStartEnd(:,1)<=interval(1));
                 if isempty(k1)
                     test = 'Hi';
                 end
                 k1=k1(end);
-                k2=find(sf1(:,2)>=interval(2));
+                k2=find(callsSlvStartEnd(:,2)>=interval(2));
                 if isempty(k2)
                     test = 'Hi';
                 end
                 k2=k2(1);
                 
-                subset=zeros(nfreq,round((sf1(k2,2)-sf1(k1,1)+1)/skip)); % round in case of noninteger
+                subset=zeros(nfreq,round((callsSlvStartEnd(k2,2)...
+                    -callsSlvStartEnd(k1,1)+1)/skip)); % round in case of noninteger
                 for j=k1:k2
-                    start=round((sf1(j,1)-sf1(k1,1))/skip); % round in case of noninteger
+                    start=round((callsSlvStartEnd(j,1)...
+                        -callsSlvStartEnd(k1,1))/skip); % round in case of noninteger
                     add=GPL_full('cm_max',j,...
                         hyd(local_array(i1)).detection.calls).^pow;
                     %[s1,s2]=size(add);
@@ -183,15 +191,15 @@ for i1=2:length(local_array)
                 end
                 
                 
-                int_close=[sf1(k1,1),sf1(k2,2)];
+                int_close=[callsSlvStartEnd(k1,1),callsSlvStartEnd(k2,2)];
                 cut1=round((interval(1)-int_close(1))/skip);
-                subset=subset(lower:upper,cut1+1:cut1+b2+2*phase);
+                subset=subset(lower:upper,cut1+1:cut1+baseSize+2*phase);
                 
                 num_bs(1:num_calls-1,:)=num_bs(2:num_calls,:);
                 
-                [b1,b2]=size(base);base=reshape(base,1,b1*b2);
+                [b1,baseSize]=size(base);base=reshape(base,1,b1*baseSize);
                 for j=1:(2*phase)+1
-                    slate=reshape(subset(:,j+min(y)-1:j+max(y)-1),b1*b2,1);
+                    slate=reshape(subset(:,j+min(y)-1:j+max(y)-1),b1*baseSize,1);
                     num_bs(num_calls,j)=base*slate;
                 end
                 
@@ -199,7 +207,7 @@ for i1=2:length(local_array)
                 den_b=sum(den_base);
                 
                 for j=1:(2*phase+1)
-                    lm=round([(sf2(kk+1,1)-1)/skip,sf2(kk+num_calls,2)/skip])+j-1-phase;
+                    lm=round([(callsStartEnd(kk+1,1)-1)/skip,callsStartEnd(kk+num_calls,2)/skip])+j-1-phase;
                     den_s(j)=sum(diss(lm(1):lm(2)));
                 end
                 pprod(:,kk)=(sum(num_bs)./den_s.^.5./den_b^.5)';
@@ -216,23 +224,38 @@ for i1=2:length(local_array)
                 %                 kk
                 %             end
                 
-                base=GPL_full('cm_max',kk+1,hyd(local_array(1)).detection.calls).^pow;
-                tim=sf2(kk+1,:);
+                % Cleaned spectrogram
+                base=GPL_full('cm_max',...
+                    kk+1,...
+                    hyd(local_array(1)).detection.calls).^pow;
+                % start and end time of the call
+                tim=callsStartEnd(kk+1,:);
                 %[b1,b2]=size(base);
-                b2 = size(base,2);
+                baseSize = size(base,2);
                 
+                % Locations where there is energy in the cleaned
+                % spectrogram
                 [x,y]=find(base);
-                lower=min(x); upper=max(x);
+                
+                % Trim the cleaned spectrogram times
+                lower=min(x); 
+                upper=max(x);
                 base=base(lower:upper,min(y):max(y));
                 den_base=sum(sum(base.^2));
                 
-                interval=[tim(1)-phase*skip,tim(2)+phase*skip];
-                k1=find(sf1(:,1)<=interval(1));k1=k1(end);
-                k2=find(sf1(:,2)>=interval(2));k2=k2(1);
+                % Interval for the call start and end
+                interval=[tim(1)-phase*skip, tim(2)+phase*skip];
                 
-                subset=zeros(nfreq,round((sf1(k2,2)-sf1(k1,1)+1)/skip) );
+                % Find calls on the slave that fall within the start and
+                % end times
+                k1=find(callsSlvStartEnd(:,1)<=interval(1));
+                k1=k1(end);
+                k2=find(callsSlvStartEnd(:,2)>=interval(2));
+                k2=k2(1);
+                
+                subset=zeros(nfreq,round((callsSlvStartEnd(k2,2)-callsSlvStartEnd(k1,1)+1)/skip) );
                 for j=k1:k2
-                    start=round((sf1(j,1)-sf1(k1,1))/skip); % round in case of noninteger
+                    start=round((callsSlvStartEnd(j,1)-callsSlvStartEnd(k1,1))/skip); % round in case of noninteger
                     add=GPL_full('cm_max',j,hyd(local_array(i1)).detection.calls).^pow;
                     
                     %[s1,s2]=size(add);
@@ -240,17 +263,17 @@ for i1=2:length(local_array)
                     subset(:,start+1:start+s2)=add;
                 end % j loop
                 
-                int_close=[sf1(k1,1),sf1(k2,2)];
+                int_close=[callsSlvStartEnd(k1,1),callsSlvStartEnd(k2,2)];
                 cut1=round((interval(1)-int_close(1))/skip);
-                subset=subset(:,cut1+1:cut1+b2+2*phase);
+                subset=subset(:,cut1+1:cut1+baseSize+2*phase);
                 for j=1:(2*phase)+1
-                    slate=subset(:,j:b2+j-1);
+                    slate=subset(:,j:baseSize+j-1);
                     slate=slate(lower:upper,min(y):max(y));
                     num_bs(j)=sum(sum(base.*slate));
                 end % j loop
                 
                 for j=1:(2*phase+1)
-                    lm=round([(sf2(kk+1,1)-1)/skip,sf2(kk+num_calls,2)/skip])+j-1-phase;
+                    lm=round([(callsStartEnd(kk+1,1)-1)/skip,callsStartEnd(kk+num_calls,2)/skip])+j-1-phase;
                     den_s(j)=sum(diss(lm(1):lm(2)));
                 end % j loop
                 

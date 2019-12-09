@@ -242,8 +242,7 @@ exampBaseline.Sim_mat = ones(size(exampTDOA.Sim_mat));
 exampBaseline.Cluster_id = acEnc(examp);
 %%
 
-simThreshsSpatial = (linspace(.1,.999,9));
-simThreshs = linspace(.1,.99, 9);
+simThreshs = linspace(.1,.98, 9);
 TimeThreshs = fliplr(linspace(8,120,10));
 
 ExperimentTDOA = struct();
@@ -269,7 +268,7 @@ nmi_spatial = nmi_baseline;
 
 for ii = 1:length(simThreshs)
     simThresh = simThreshs(ii);
-    exampSpatial.cutoff = simThreshsSpatial(ii);
+    exampSpatial.cutoff = simThresh;
     exampTDOA.cutoff = simThresh;
     exampBaseline.cutoff=.5;
     disp('next simThresh')
@@ -283,7 +282,7 @@ for ii = 1:length(simThreshs)
            
             
             % Run the clustering spatial
-            exampSpatial.chains = updateChainsEncounterFirstSpatial(exampSpatial);
+            exampSpatial.chains = updateChainsEncounterFirst(exampSpatial);
             exampSpatial.Cluster_id= updateClusterID(exampSpatial);
             
             %Run the clustering TDOA
@@ -328,6 +327,50 @@ for ii = 1:length(simThreshs)
 
     disp('Finish Sim Thres Iter')
 end
+
+%% Create a nice plot
+
+simIdx =3;
+figure
+hold on
+
+for jj=1:length(TimeThreshs)
+    timeidx =jj;
+    
+        
+        
+        subplot(1,3,1)
+        hold on
+        plot(Results.TDOA(simIdx,timeidx).Recall,...
+            Results.TDOA(simIdx,timeidx).Precision, '.-','color',[230/255 159/255 0/255])
+        plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+         xlabel('Recall'); ylabel('Precision');
+        title('TDOA')
+        
+        subplot(1,3,2)
+        hold on
+        plot(Results.Spatial(simIdx,timeidx).Recall,...
+            Results.Spatial(simIdx,timeidx).Precision, '.-','color',[86/255 180/255 233/255])
+        plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+         xlabel('Recall'); ylabel('Precision');
+        title('Ambiguity Surface Method')
+        
+        subplot(1,3,3)
+        hold on
+        plot(Results.AcousticEncounters(simIdx,timeidx).Recall,...
+            Results.AcousticEncounters(simIdx,timeidx).Precision, '.-','color',[0/255 158/255 115/255])
+        plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        xlabel('Recall'); ylabel('Precision');
+        title('Acoustic Encounters')
+        
+        
+    
+end
+
+
 
 %%
 close all
