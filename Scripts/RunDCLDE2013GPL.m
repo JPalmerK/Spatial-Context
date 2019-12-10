@@ -107,7 +107,13 @@
 
 %%
 close all; clear all; clc
+% Load the parm file
 load('parm_RWtrial_kaitlin_measurements_40_400_kernels.mat')
+
+% Load localize structure parm file, array structure parm file and
+% hydrophone structure in the format that GPL expects
+
+% xxx update this section%%% 
 load('localizestruct.mat')
 load('arraystruct.mat')
 load('hydrophonestruct.mat')
@@ -188,9 +194,9 @@ start_date = datenum(str2num(extract_date(1:4)),...
 
 
 %for file_index=gstart:2
+% Run the detection algorithim
 
-
-for file_index=1:3%finish
+for file_index=1:finish
     
     
     
@@ -224,11 +230,9 @@ for file_index=1:3%finish
     
     
     
-    % Iterate through the number of hydrophones
+    % Iterate through the number of hydrophones and get detections
     
     for j=1:length(hydrophone_struct)
-        
-        
         
         %cd('/home/kpalmer/AnacondaProjects/Spatial-Context/Scripts');
         cd('D:\Anaconda Projects\Spatial-Context\Scripts')
@@ -300,29 +304,34 @@ array_struct_data =struct();
 
 
 %for ii=1:length(all_hyd)
+
+% Indices of the parent (master) hydrophones. Here channels 5 and 8 were
+% used since channel 4 came from a MARU that was not recovered (or broke,
+% whatever), the indices above 3 are off by one
 hyd_of_int =[4,7];
 
-for ii=1:2
+for ii=1: length(hyd_of_int)
     
     
     
     % Create the array structure
-
     array_struct.master= all_hyd(hyd_of_int(ii));
     
     
     
     % Knock out the master hydrophone from the list of slaves
-    
     new_hyd_array = all_hyd(logical(all_hyd ~=array_struct.master));
     
 
     array_struct.slave=new_hyd_array;
     %define supporting hydrophones (ch 4 left out b/c it didn't produce data)
    
-    
+    % Create the expected TDOA values in the array structure
     [array_struct] = setup_TDOA_grid(hydrophone_struct, array_struct, localize_struct, parm);
-     array_struct_data(array_struct.master).array =array_struct;
+    
+    % Move the array struct to a list (essentialy) to save each array
+    % structure
+    array_struct_data(array_struct.master).array =array_struct;
      
      
     [localize_struct] = localize_cross_corr_index_check(array_struct,hyd,localize_struct,1);
@@ -349,16 +358,15 @@ end
 
 prefix = 'DCLDE_2013_10_Chan';
 
-
-
-
 sizeOfSave=whos('localize_struct');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), '_localize_struct'),'localize_struct')
+    save(strcat('DCLDE2013_',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish), '_localize_struct'),'localize_struct')
     
-else save(strcat('DCLDE2013RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), '_localize_struct'),'localize_struct', '-v7.3')
+else save(strcat('DCLDE2013RW_',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish), '_localize_struct'),'localize_struct', '-v7.3')
     
 end
 
@@ -368,9 +376,11 @@ sizeOfSave=whos('array_struct_data');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish), '_array_struct_data'),'array_struct_data')
+    save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish), '_array_struct_data'),'array_struct_data')
     
-else save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'_array_struct_data'),'array_struct_data', '-v7.3')
+else save(strcat('DCLDE2013_RW',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish),'_array_struct_data'),'array_struct_data', '-v7.3')
     
 end
 
@@ -385,9 +395,11 @@ sizeOfSave=whos('hyd');
 
 if sizeOfSave.bytes <= 2000000000
     
-    save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'_hyd'),'hyd')
+    save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish),'_hyd'),'hyd')
     
-else save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),num2str(gstart),'_',num2str(finish),'_hyd'),'hyd', '-v7.3')
+else save(strcat('DCLDE2013_RW_',prefix,datestr(now, 'yyyyddmm'),...
+        num2str(gstart),'_',num2str(finish),'_hyd'),'hyd', '-v7.3')
     
 end
 

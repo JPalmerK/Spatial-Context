@@ -64,8 +64,7 @@ truth.mid = (truth.mend+truth.mstart)/2;
 truth.Sec = (truth.mstart-min(truth.mstart))*60*60*24;
 
 % Link validation spreadsheet to the detector output
-
-for ii=1:2
+for ii=1:length(parents)
     parent = parents(ii);
     
     % Create a validation column (T.H. code calls this 'pruned' sticking
@@ -160,26 +159,30 @@ parent = 5;
 examp = struct();
 examp.hydrophone_struct = hydrophone_struct;
 examp.randomMiss =0;
-examp.s = 6;
-examp.child_idx = [1,2,3,4,6]; % local array for 5, [1,2,3,4,6], for 8 master 4:8
-examp.fs =2000;
+examp.s = 6; % maximum swim speed of the animal in m/s
+examp.child_idx = [1,2,3,4,6]; % local array for parent 5, [1,2,3,4,6], for 8 master 4:8
+examp.fs =fs;
 examp.PosUncertsigma = 0.0004^2 +.1^2 + .3^2; % seconds see EM Nosal 20
-examp.drift = .5;
-examp.c =1500; 
-examp.truncateKm=18;
+examp.drift = .5; % clock drift uncertainty
+examp.c =1500;  % speed of sound
+examp.truncateKm=18; % replaced by half normal function, previously maximum detection distance
 examp.array_struct = array_struct_data(parent).array;
-examp.propAmbLoc = 'D:\DCLDE2013_ProjAmbSurfs'; %location of the ambiguity surfaces
+
+% where the projected ambiguity surfaces are stored or will be stored if
+% the file location is emptyish
+examp.propAmbLoc = 'D:\DCLDE2013_ProjAmbSurfs'; 
 
 % Create filter grids to knock out ambiguity surfaces where calls can't
-% have come from
+% have come from (half normal function)
 examp.filtGrid = createDetRangeFiltGrid(examp, hydrophone_struct);
+
 % try: 
 % figure; imagesc(examp.array_struct.latgrid, ...
 % examp.array_struct.latgrid, examp.filtGrid(:,:,1)), axis xy
 
-
-% Clip the detections by the correlation threshold and add correlation
-% scores (Get rid of calls with Nan values for the template cross
+%% Do some trimming of the localization structure to remove erronious detections and associations
+% Trim the localizeation structure based on the call templage (e.g. right
+% whale call template) scores
  localize_struct_trimmed = trimlocalize_structCrossCorr(...
      localize_struct, hyd, .25);
 
@@ -188,6 +191,8 @@ examp.filtGrid = createDetRangeFiltGrid(examp, hydrophone_struct);
 localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
     hyd, 0);
 
+% Trim the localization structure based on the cross correlation between
+% the call associations (not the template)
 localize_struct_trimmed = trimlocalize_struct(localize_struct_trimmed,...
     hyd, .01);
 
@@ -216,17 +221,18 @@ localize_struct_trimmed.hyd(5).pruned(badidx)=[];
 %% Create the structures to house the information (formally objects, boo!)
 
 examp.localize_struct =localize_struct_trimmed;
-examp.maxEltTime = 20*60;
-examp.callParm =  hyd(parent).detection.parm;
+examp.maxEltTime = 20*60; % Maximum elapsed time between detections to make another encounter
+examp.callParm =  hyd(parent).detection.parm; % From GPL
 examp.arrivalTable = updateArrTableGPL(examp); % Run this first!
 examp.arrivalArray = UpdateArrArrayRealData(examp);
 examp.TDOA_vals = UpdateTDOA(examp);
 
-
+% Create coppies for the different method comparisons
 exampSpatial = examp;
 exampTDOA = examp;
 exampBaseline = examp;
 Results=struct();
+
 %% Create simulation matricies (extra large, then trim down as time threshs)
 
 % Create the similarity matrix using pre-computed ambiguity surfaces
@@ -240,7 +246,8 @@ exampTDOA.Sim_mat = simMatTDOAonly(examp);
 % only approach
 exampBaseline.Sim_mat = ones(size(exampTDOA.Sim_mat));
 exampBaseline.Cluster_id = acEnc(examp);
-%%
+%% Create the results field to look at precision and recall as a function 
+% of the max elapsed time and similarity threshold
 
 simThreshs = linspace(.1,.98, 9);
 TimeThreshs = fliplr(linspace(8,120,10));

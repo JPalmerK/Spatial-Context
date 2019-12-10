@@ -19,10 +19,10 @@ grid_dx = grid_h/ (length(array_struct.longrid)-1);
 s = simStruct.s;
 
 
-
-
-% Maximum swim distance
-msd = gather(s*time_gaps);
+% Maximum swim distance (how far could the animal have swum in the
+% interveaning time between the call arrival and the arrival of the
+% subsiuent calls in the acoustic encounter)
+msd = s*time_gaps;
 th = 0:0.01:2*pi;
 
 % Prealocate propagated filter size
@@ -33,7 +33,8 @@ AS_propagated = zeros([...
     length(time_gaps)]);
 
 
-% Trim the average likelhiood space 
+% Trim the average likelhiood space using the detction function
+% approximation
 AS_propagated(:,:,1) = (averageLklhd_space).*filt;
 
 [row,col] = find(filt>0.00);
@@ -45,7 +46,6 @@ DetArea = averageLklhd_space(row_idx(1):row_idx(2),...
     col_idx(1):col_idx(2));
 
 % This bit is bloody **** slow and heats up computers.
-
 
 for ii=2:length(msd)
     
@@ -77,12 +77,9 @@ for ii=2:length(msd)
         
         AS_propagated(row_idx(1):row_idx(2),...
             col_idx(1):col_idx(2),ii) = dialateVal;
-        
+        % Consider removing the filter grid here
         AS_propagated(:,:,ii)=AS_propagated(:,:,ii).*filt;
 
-    
-    
-    
 end
 
 

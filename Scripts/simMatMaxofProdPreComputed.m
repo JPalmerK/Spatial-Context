@@ -104,10 +104,11 @@ for ii =1:size(arrivalArray,1)
         length(projIdxstrim)]);
     
     aa =full(struct2array(projAmbSurfCurrent.AmpSurfs(1)));
+    % Compare projected calls with subsiquent calls in the series
     for jj= 1:length(projIdxstrim)
         
 
-        % Index value of the next ambiguity surface(not projected)
+        % Index value of the next ambiguity surface (not projected)
         nextDex =projIdxstrim(jj);
         
         % Index in the non-time expanded ambiguity surfaces
@@ -138,6 +139,8 @@ for ii =1:size(arrivalArray,1)
         x2dist = sum(nextLklhdSpace,1);
         y2dist = sum(nextLklhdSpace,2);
         
+        % Mean squared error betwene the projected ambigiutiy surface and
+        % the ambiguity surfaces of the next call in the series
         
         sim = 1-immse(Lklhd_space_proj, nextLklhdSpace);
 %         if isnan(sim)
