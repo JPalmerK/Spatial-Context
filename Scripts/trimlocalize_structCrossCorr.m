@@ -3,7 +3,7 @@ function localize_struct_temp = trimlocalize_structCrossCorr(localize_struct, hy
 localize_struct_temp = localize_struct;
 
 
-% trim the scores
+% trim the detections based on association scores
 
 for ii = 1: length(localize_struct_temp.hyd)
     

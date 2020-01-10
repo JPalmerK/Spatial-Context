@@ -225,8 +225,8 @@ labelSpp=[{'Noise'}, {'Gray Whale'}, {'Fin Whale'}]
 idxvals =[0 1 2]
 for ii=1:length(idxvals)
     
-    idx = find(localize_struct.hyd.pruned == idxvals(ii));
-    scores = localize_struct.hyd.detectorScore(idx);
+    idx = find(localize_struct_trimmed.hyd.pruned == idxvals(ii));
+    scores = localize_struct_trimmed.hyd.detectorScore(idx);
     
     subplot(1,3,ii); hist((scores),[0:.05:1]);
     title([labelSpp(ii)]);
@@ -240,7 +240,7 @@ end
 
 % Just trim for prelim data
 arr_times_sec = localize_struct.hyd(1).rtimes/2000;
-noninterleavedIdx = [1:2000,3000:length(localize_struct.hyd.dex)];
+noninterleavedIdx = [1:2000,2999:length(localize_struct.hyd.dex)];
 
 localize_struct_trimmed = localize_struct;
 
@@ -336,6 +336,7 @@ exampBaseline = examp;
 exampTDOA= examp;
 exampTDOA.Sim_mat = simMatTDOAonly(examp);
 exampBaseline.Sim_mat = ones(size(exampTDOA.Sim_mat));
+Results=struct();
 %%
 
 simThreshs = linspace(.1,.98, 9);
@@ -345,18 +346,6 @@ ExperimentTDOA = struct();
 ExperimentMaxProd = struct();
 ExperimentUnaided = struct();
 
-% Pre allocate the output matrix
-PrecisionMatSpatial = inf(length(simThreshs), length(TimeThreshs),...
-    length(corrThresh));
-RecallMatSpatial = PrecisionMatSpatial;
-PrecisionMatTDOA = PrecisionMatSpatial;
-RecallMatTDOA = PrecisionMatSpatial;
-PrecisionMatBaseline =PrecisionMatSpatial;
-RecallMatBaseline =PrecisionMatSpatial;
-PrecisionMatAcEnc= PrecisionMatSpatial;
-RecallMatAcEnc =PrecisionMatSpatial;
-% Create the basic structure, this needs to be done for every correlation
-% threshold
 
 nmi_baseline = zeros(length(simThreshs), length(TimeThreshs));
 nmi_tdoa = nmi_baseline;

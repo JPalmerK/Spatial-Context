@@ -29,15 +29,6 @@ for i = 1:length(localize_struct.hyd)
     localize_struct.hyd(i).array = array_struct_data(i).array;
 end
 
-% Pre-compute ambiguity surfaces was run with the following parameters and
-% as such, more lienient parameters will not work
-% Template correlation threshold: 0.01
-% Correaltion threhsold (correlation between channels): 0.25
-% MAX TDOA (trimming TDOA where values are outside of the expected range)
-% maximum expected TDOA plus 0.5 sec clock drift
-% 18km maximum detection range (must be detected by two sensors, swim speed
-% 6m/s
-
 localize_struct.hyd(5).detectorScore= zeros(...
     [1 length(localize_struct.hyd(5).dex)])/0;
 
@@ -52,6 +43,16 @@ for jj =1:length(parents)
         localize_struct.hyd(parent).detectorScore(ii)=score;
     end
 end
+
+% Pre-compute ambiguity surfaces was run with the following parameters and
+% as such, more lienient parameters will not work
+% Template correlation threshold: 0.01
+% Correaltion threhsold (correlation between channels): 0.25
+% MAX TDOA (trimming TDOA where values are outside of the expected range)
+% maximum expected TDOA plus 0.5 sec clock drift
+% 18km maximum detection range (must be detected by two sensors, swim speed
+% 6m/s
+
 
 % Load truth dataset
 % Find the indicies that coinced with the truth table
@@ -75,7 +76,7 @@ for ii=1:length(parents)
     % Create temporary subset of the truth labels
     truthSub = truth(truth.Channel==parent,:);
     
-    
+    detected=0;
     % Step through the calls with TDOA info and if they match a validation
     % call assign 1 to the pruned value if it's a rw and 0 otherwise.
     for jj=1:length(localize_struct.hyd(parents(ii)).dex)
@@ -91,6 +92,8 @@ for ii=1:length(parents)
         [diffval, diffIdx] = min(abs(truthSub.mstart - callStart));
         diffSec = diffval*24*60*60;
         
+
+        
         % If a detection correlates with the truth value add the pruned fx
         if diffSec<.5
             %disp('blarg')
@@ -103,6 +106,8 @@ for ii=1:length(parents)
             else
                 localize_struct.hyd(parent).pruned(jj) = 0;
             end
+            truthSub(diffIdx,:)=[]; 
+            
         end
     end
 
@@ -110,7 +115,28 @@ for ii=1:length(parents)
 end
 
 
-
+% Determine how many raw detections coincided with rw annotations
+for ii=1:length(parents)
+    detected=0;
+    parent = parents(ii);
+    
+    % Create temporary subset of the truth labels
+    truthSub = truth(truth.Channel==parent,:);
+    callStart = cell2mat({hyd(parent).detection.calls.julian_start_time});
+    for jj=1:height(truthSub)
+        % Differences from the origional detection (for making results table)
+        [diffvaltmp, diffIdxtmp] = min(abs(truthSub.mstart(jj)-...
+            callStart));
+        
+        if (diffvaltmp*24*60*60)<.5
+            spp = truthSub.Species(jj);
+            if strcmp(spp, 'rw')
+                detected = detected+1;
+            end
+        end
+    end
+    
+end
 
 % Create subset of truth data where calls are interleaved
 % truth.Sec = (truth.mstart-floor(truth.mstart))*60*60*24;
@@ -134,21 +160,92 @@ end
 
 
 
-% Remove indicies where no call associated
-nanIdx = find(isnan(localize_struct.hyd(5).pruned));
-localize_struct.hyd(5).delays(nanIdx,:)=[];
-localize_struct.hyd(5).cross_score(nanIdx,:)=[];
-localize_struct.hyd(5).coord_time(nanIdx,:)=[];
-localize_struct.hyd(5).rtimes(nanIdx)=[];
-localize_struct.hyd(5).dex(nanIdx)=[];
-localize_struct.hyd(5).coordinates(:,:,nanIdx)=[];
-localize_struct.hyd(5).score(:,nanIdx)=[];
-localize_struct.hyd(5).detectorScore(nanIdx)=[];
+% Histograms of the scores for the TP and FP detections
+figure
+labelSpp=[{'Noise'}, {'Right Whale'}]
+idxvals =[0 1]
+for ii=1:length(idxvals)
+    
+    idx = find(localize_struct.hyd(5).pruned == idxvals(ii));
+    scores = localize_struct.hyd(5).detectorScore(idx);
+    
+    subplot(1,2,ii); hist((scores),[0:.05:1]);
+    title([labelSpp(ii)]);
+    xlabel('Template Detection Scores');
+    median(scores)
+end
 
-localize_struct.hyd(5).pruned(nanIdx)=[];
+
+
+%% Do some trimming of the localization structure to remove erronious detections and associations
+
+% Trim the localization structure based on the template correlation
+localize_struct_trimmed = trimlocalize_struct(localize_struct,...
+    hyd, .01);
+
+
+% Trim the localizeation structure based on the call association score
+ localize_struct_trimmed = trimlocalize_structCrossCorr(...
+     localize_struct_trimmed, hyd, .25);
+
+
+% % % Remove all the delays where the TDOA is greater than the array geometry
+localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
+    hyd, 0);
+
+
+
+% % Remove rows from the localizatoin structure where the calls are not
+% % detected on two or more hydrophones
+% Hydrophone 5 as parent - idxs= 1,2,3,4,6
+
+badidx = find(all...
+    (isnan(localize_struct_trimmed.hyd(5).delays(:, [1,2,3,4,6])),2));
+
+
+localize_struct_trimmed.hyd(5).delays(badidx,:)=[];
+localize_struct_trimmed.hyd(5).cross_score(badidx,:)=[];
+localize_struct_trimmed.hyd(5).coord_time(badidx,:)=[];
+localize_struct_trimmed.hyd(5).rtimes(badidx)=[];
+localize_struct_trimmed.hyd(5).dex(badidx)=[];
+localize_struct_trimmed.hyd(5).coordinates(:,:,badidx)=[];
+localize_struct_trimmed.hyd(5).score(:,badidx)=[];
+localize_struct_trimmed.hyd(5).detectorScore(badidx)=[];
+%localize_struct_trimmed.hyd(5).pruned(badidx)=[];
+%%
+
+
+
+% Remove indicies where no call associated
+nanIdx = find(isnan(localize_struct_trimmed.hyd(5).pruned));
+localize_struct_trimmed.hyd(5).delays(nanIdx,:)=[];
+localize_struct_trimmed.hyd(5).cross_score(nanIdx,:)=[];
+localize_struct_trimmed.hyd(5).coord_time(nanIdx,:)=[];
+localize_struct_trimmed.hyd(5).rtimes(nanIdx)=[];
+localize_struct_trimmed.hyd(5).dex(nanIdx)=[];
+localize_struct_trimmed.hyd(5).coordinates(:,:,nanIdx)=[];
+localize_struct_trimmed.hyd(5).score(:,nanIdx)=[];
+localize_struct_trimmed.hyd(5).detectorScore(nanIdx)=[];
+
+localize_struct_trimmed.hyd(5).pruned(nanIdx)=[];
 
 
 % Get the total number of detections and TP for precision/recall
+
+figure
+labelSpp=[{'False Positive'}, {'Right Whale'}]
+idxvals =[0 1 ]
+for ii=1:length(idxvals)
+    
+    idx = find(localize_struct_trimmed.hyd.pruned == idxvals(ii));
+    scores = localize_struct_trimmed.hyd.detectorScore(idx);
+    
+    subplot(1,3,ii); hist((scores),[0:.05:1]);
+    title([labelSpp(ii)]);
+    xlabel('Template Detection Scores');
+end
+
+
 %% Create structure (formally class) for running the analysis
 
 fs = 2000;
@@ -180,41 +277,6 @@ examp.filtGrid = createDetRangeFiltGrid(examp, hydrophone_struct);
 % figure; imagesc(examp.array_struct.latgrid, ...
 % examp.array_struct.latgrid, examp.filtGrid(:,:,1)), axis xy
 
-%% Do some trimming of the localization structure to remove erronious detections and associations
-% Trim the localizeation structure based on the call templage (e.g. right
-% whale call template) scores
- localize_struct_trimmed = trimlocalize_structCrossCorr(...
-     localize_struct, hyd, .25);
-
-
-% % % Remove all the delays where the TDOA is greater than the array geometry
-localize_struct_trimmed = trimlocalize_structTDOA(localize_struct_trimmed,...
-    hyd, 0);
-
-% Trim the localization structure based on the cross correlation between
-% the call associations (not the template)
-localize_struct_trimmed = trimlocalize_struct(localize_struct_trimmed,...
-    hyd, .01);
-
-
-% % Remove rows from the localizatoin structure where the calls are not
-% % detected on two or more hydrophones
-% Hydrophone 5 as parent - idxs= 1,2,3,4,6
-
-badidx = find(all...
-    (isnan(...
-    localize_struct_trimmed.hyd(5).delays(:, [1,2,3,4,6])),2));
-
-
-localize_struct_trimmed.hyd(5).delays(badidx,:)=[];
-localize_struct_trimmed.hyd(5).cross_score(badidx,:)=[];
-localize_struct_trimmed.hyd(5).coord_time(badidx,:)=[];
-localize_struct_trimmed.hyd(5).rtimes(badidx)=[];
-localize_struct_trimmed.hyd(5).dex(badidx)=[];
-localize_struct_trimmed.hyd(5).coordinates(:,:,badidx)=[];
-localize_struct_trimmed.hyd(5).score(:,badidx)=[];
-localize_struct_trimmed.hyd(5).detectorScore(badidx)=[];
-localize_struct_trimmed.hyd(5).pruned(badidx)=[];
 
 
 
@@ -337,46 +399,155 @@ end
 
 %% Create a nice plot
 
-simIdx =3;
+simIdx =2;
+simIdx2=5;
+simIdx3=9;
+
 figure
 hold on
+Markers = {'-o','-.','-+','-*'};
+sizeVal = [2, 6,4,2];
+markercounter=1;
 
-for jj=1:length(TimeThreshs)
+
+for jj=1:3:length(TimeThreshs)
     timeidx =jj;
     
-        
-        
-        subplot(1,3,1)
+
+        subplot(3,3,1)
         hold on
         plot(Results.TDOA(simIdx,timeidx).Recall,...
-            Results.TDOA(simIdx,timeidx).Precision, '.-','color',[230/255 159/255 0/255])
-        plot(Results.Baseline(1,1).Recall,...
+            Results.TDOA(simIdx,timeidx).Precision, ...
+            Markers{markercounter},'color',[230/255 159/255 0/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
             Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
-         xlabel('Recall'); ylabel('Precision');
-        title('TDOA')
+        end
+        ylabel('Precision');
+        title(['TDOA: ', num2str(round(simThreshs(simIdx),2)), ' Sim. Thresh'])
         
-        subplot(1,3,2)
+        subplot(3,3,2)
         hold on
         plot(Results.Spatial(simIdx,timeidx).Recall,...
-            Results.Spatial(simIdx,timeidx).Precision, '.-','color',[86/255 180/255 233/255])
-        plot(Results.Baseline(1,1).Recall,...
+            Results.Spatial(simIdx,timeidx).Precision,...
+            Markers{markercounter},'color',[86/255 180/255 233/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
             Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
-         xlabel('Recall'); ylabel('Precision');
-        title('Ambiguity Surface Method')
+        end
+        title(['Ambiguity Surfaces: ',...
+            num2str(round(simThreshs(simIdx),2)), ' Sim. Thresh'])
         
-        subplot(1,3,3)
+        subplot(3,3,3)
         hold on
         plot(Results.AcousticEncounters(simIdx,timeidx).Recall,...
-            Results.AcousticEncounters(simIdx,timeidx).Precision, '.-','color',[0/255 158/255 115/255])
-        plot(Results.Baseline(1,1).Recall,...
+            Results.AcousticEncounters(simIdx,timeidx).Precision,...
+             Markers{markercounter},'color',[0/255 158/255 115/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
             Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
-        xlabel('Recall'); ylabel('Precision');
+        end
         title('Acoustic Encounters')
         
         
+        % Second Row
+        
+        subplot(3,3,4)
+        hold on
+        plot(Results.TDOA(simIdx2,timeidx).Recall,...
+            Results.TDOA(simIdx2,timeidx).Precision, ...
+            Markers{markercounter},'color',[230/255 159/255 0/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        end
+        ylabel('Precision');
+        title(['TDOA: ',num2str(round(simThreshs(simIdx2),2)), ' Sim. Thresh'])
+        
+        subplot(3,3,5)
+        hold on
+        plot(Results.Spatial(simIdx2,timeidx).Recall,...
+            Results.Spatial(simIdx2,timeidx).Precision,...
+            Markers{markercounter},'color',[86/255 180/255 233/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        end
+        title(['Ambiguity Surfaces: ',num2str(round(simThreshs(simIdx2),2)), ' Sim. Thresh'])
+        
+        subplot(3,3,6)
+        hold on
+        plot(Results.AcousticEncounters(simIdx2,timeidx).Recall,...
+            Results.AcousticEncounters(simIdx2,timeidx).Precision,...
+             Markers{markercounter},'color',[0/255 158/255 115/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        end
+        title('Acoustic Encounters')
+        
+         
+        % Third Row
+        subplot(3,3,7)
+           hold on
+        plot(Results.TDOA(simIdx3,timeidx).Recall,...
+            Results.TDOA(simIdx3,timeidx).Precision, ...
+            Markers{markercounter},'color',[230/255 159/255 0/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        end
+         xlabel('Recall'); ylabel('Precision');
+        title(['TDOA: ', num2str(round(simThreshs(simIdx3),2)), ' Sim. Thresh'])
+        
+        subplot(3,3,8)
+        hold on
+        plot(Results.Spatial(simIdx3,timeidx).Recall,...
+            Results.Spatial(simIdx3,timeidx).Precision,...
+            Markers{markercounter},'color',[86/255 180/255 233/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        end
+         xlabel('Recall');
+        title(['Ambiguity Surfaces: ', num2str(round(simThreshs(simIdx3),2)), ' Sim. Thresh'])
+        
+        subplot(3,3,9)
+        hold on
+        plot(Results.AcousticEncounters(simIdx3,timeidx).Recall,...
+            Results.AcousticEncounters(simIdx3,timeidx).Precision,...
+             Markers{markercounter},'color',[0/255 158/255 115/255],...
+            'MarkerSize',sizeVal(markercounter))
+        if jj==10
+         plot(Results.Baseline(1,1).Recall,...
+            Results.Baseline(1,1).Precision, 'k-','Linewidth',2)
+        end
+        xlabel('Recall');
+        title('Acoustic Encounters')
+        
+              
+        markercounter = markercounter+1;
+        
+         
+         
     
 end
 
+
+legendtxt =[{'120 s'}, {'82 s'}, {'45 s'}, {'8 s'}, {'Template Corr.'}];
+% Add the legends
+for ii=1:9
+    subplot(3,3,ii)
+    legend(legendtxt, 'Location','southwest')
+end
 
 
 %%
